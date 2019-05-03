@@ -1,0 +1,21 @@
+{
+  "name": "Micro Debug",
+  "keywords": "Debug",
+  "description": "Really simple debug library for use with Arduino",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/jeremypoulter/MicroDebug.git"
+  },
+  "authors":
+  [
+    {
+      "name": "Jeremy Poulter",
+      "email": "jeremy@bigjungle.net",
+      "maintainer": true
+    }
+  ],
+  "version": "0.0.2",
+  "frameworks": "arduino",
+  "platforms": "*"
+}
