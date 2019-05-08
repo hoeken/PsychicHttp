@@ -12,6 +12,38 @@ static void ev_handler(struct mg_connection *nc, int ev, void *p) {
   }
 }
 
+#ifdef ARDUINO
+
+#include <Arduino.h>
+
+struct mg_mgr mgr;
+struct mg_connection *nc;
+
+void setup()
+{
+  Serial.begin(115200);
+
+  mg_mgr_init(&mgr, NULL);
+  Serial.printf("Starting web server on port %s\n", s_http_port);
+  nc = mg_bind(&mgr, s_http_port, ev_handler);
+  if (nc == NULL) {
+    Serial.printf("Failed to create listener\n");
+    return;
+  }
+
+  // Set up HTTP server parameters
+  mg_set_protocol_http_websocket(nc);
+  s_http_server_opts.document_root = ".";  // Serve current directory
+  s_http_server_opts.enable_directory_listing = "yes";
+}
+
+void loop() 
+{
+  mg_mgr_poll(&mgr, 1000);
+}
+
+#else
+
 int main(void) {
   struct mg_mgr mgr;
   struct mg_connection *nc;
@@ -36,3 +68,4 @@ int main(void) {
 
   return 0;
 }
+#endif
