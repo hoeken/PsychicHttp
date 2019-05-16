@@ -2,6 +2,9 @@
 #ifdef MG_MODULE_LINES
 #line 1 "mongoose/src/mg_internal.h"
 #endif
+
+#undef poll
+
 /*
  * Copyright (c) 2014 Cesanta Software Limited
  * All rights reserved
