@@ -23,8 +23,8 @@ cache:
     - "~/.platformio"
 
 env:
-  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_web_server_esp
-  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_web_server_native
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_esp
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_native
 
 install:
   - pip install -U platformio
