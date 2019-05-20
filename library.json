@@ -1,11 +1,11 @@
 {
-  "name": "Micro Debug",
-  "keywords": "Debug",
-  "description": "Really simple debug library for use with Arduino",
+  "name": "ArduinoMongoose",
+  "keywords": "network",
+  "description": "Arduino style wrapper arround Mongoose library",
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/jeremypoulter/MicroDebug.git"
+    "url": "https://github.com/jeremypoulter/ArduinoMongoose.git"
   },
   "authors":
   [
@@ -17,5 +17,11 @@
   ],
   "version": "0.0.2",
   "frameworks": "arduino",
-  "platforms": "*"
+  "platforms": "*",
+  "dependencies": [
+    {
+      "name": "Micro Debug",
+      "version": "~0.0.2"
+    }
+  ]
 }
