@@ -7,29 +7,60 @@
 
 #include <Arduino.h>
 #include <MongooseCore.h>
-#include <MongooseWebServer.h>
+#include <MongooseHttpServer.h>
 
-MongoosWebServer server;
+#ifdef ESP32
+#include <WiFi.h>
+#define START_ESP_WIFI
+#elif defined(ESP8266)
+#include <ESP8266WiFi.h>
+#define START_ESP_WIFI
+#else
+#error Platform not supported
+#endif
+
+MongooseHttpServer server;
+
+const char *ssid = "wibble";
+const char *password = "TheB1gJungle2";
 
 const char *PARAM_MESSAGE = "message";
 
-void notFound(MongooseWebServerRequest *request)
+void notFound(MongooseHttpServerRequest *request)
 {
   request->send(404, "text/plain", "Not found");
 }
+#include <Arduino.h>
 
-void server_setup()
+void setup()
 {
-  server.on("/", HTTP_GET, [](MongooseWebServerRequest *request) {
+  Serial.begin(115200);
+
+#ifdef START_ESP_WIFI
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  if (WiFi.waitForConnectResult() != WL_CONNECTED)
+  {
+    Serial.printf("WiFi Failed!\n");
+    return;
+  }
+
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+//  Serial.print("Hostname: ");
+//  Serial.println(WiFi.hostname());
+#endif
+
+  server.on("/", HTTP_GET, [](MongooseHttpServerRequest *request) {
     request->send(200, "text/plain", "Hello, world");
   });
 
   // Send a GET request to <IP>/get?message=<message>
-  server.on("/get", HTTP_GET, [](MongooseWebServerRequest *request) {
+  server.on("/get", HTTP_GET, [](MongooseHttpServerRequest *request) {
     String message;
     if (request->hasParam(PARAM_MESSAGE))
     {
-      message = request->getParam(PARAM_MESSAGE)->value();
+      message = request->getParam(PARAM_MESSAGE);
     }
     else
     {
@@ -39,11 +70,11 @@ void server_setup()
   });
 
   // Send a POST request to <IP>/post with a form field message set to <message>
-  server.on("/post", HTTP_POST, [](MongooseWebServerRequest *request) {
+  server.on("/post", HTTP_POST, [](MongooseHttpServerRequest *request) {
     String message;
-    if (request->hasParam(PARAM_MESSAGE, true))
+    if (request->hasParam(PARAM_MESSAGE))
     {
-      message = request->getParam(PARAM_MESSAGE, true)->value();
+      message = request->getParam(PARAM_MESSAGE);
     }
     else
     {
@@ -55,10 +86,10 @@ void server_setup()
   server.onNotFound(notFound);
 
   Mongoose.begin();
-  server.begin("80");
+  server.begin(80);
 }
 
-void server_loop()
+void loop()
 {
   Mongoose.poll(1000);
 }
