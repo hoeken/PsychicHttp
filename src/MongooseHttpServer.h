@@ -60,6 +60,7 @@ class MongooseHttpServerRequest {
     MongooseHttpServer *server;
     mg_connection *nc;
     http_message *msg;
+    HttpRequestMethodComposite method;
 
 //    AsyncClient* _client;
 //    MongooseHttpServer* _server;
@@ -187,9 +188,9 @@ class MongooseHttpServerRequest {
     bool hasParam(const String& name) const;
     bool hasParam(const __FlashStringHelper * data) const;
 
-    bool getParam(const char *name, char *dst, size_t dst_len) const;
-    bool getParam(const String& name, char *dst, size_t dst_len) const;
-    bool getParam(const __FlashStringHelper * data, char *dst, size_t dst_len) const; 
+    int getParam(const char *name, char *dst, size_t dst_len) const;
+    int getParam(const String& name, char *dst, size_t dst_len) const;
+    int getParam(const __FlashStringHelper * data, char *dst, size_t dst_len) const; 
 
     String getParam(const char *name) const;
     String getParam(const String& name) const;

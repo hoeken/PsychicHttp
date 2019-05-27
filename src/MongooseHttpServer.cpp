@@ -4,13 +4,16 @@
 #include "MongooseCore.h"
 #include "MongooseHttpServer.h"
 
+#ifndef ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH
+#define ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH 128
+#endif
+
 struct MongooseHttpServerHandler
 { 
   MongooseHttpServer *server;
   HttpRequestMethodComposite method;
   ArRequestHandlerFunction handler;
 };
-
 
 MongooseHttpServer::MongooseHttpServer() :
   nc(NULL)
@@ -120,7 +123,21 @@ MongooseHttpServerRequest::MongooseHttpServerRequest(MongooseHttpServer *server,
   nc(nc),
   msg(msg)
 {
-
+  if(0 == mg_vcasecmp(&msg->method, "GET")) {
+    method = HTTP_GET;
+  } else if(0 == mg_vcasecmp(&msg->method, "POST")) {
+    method = HTTP_POST;
+  } else if(0 == mg_vcasecmp(&msg->method, "DELETE")) {
+    method = HTTP_DELETE;
+  } else if(0 == mg_vcasecmp(&msg->method, "PUT")) {
+    method = HTTP_PUT;
+  } else if(0 == mg_vcasecmp(&msg->method, "PATCH")) {
+    method = HTTP_PATCH;
+  } else if(0 == mg_vcasecmp(&msg->method, "HEAD")) {
+    method = HTTP_HEAD;
+  } else if(0 == mg_vcasecmp(&msg->method, "OPTIONS")) {
+    method = HTTP_OPTIONS;
+  }
 }
 
 MongooseHttpServerRequest::~MongooseHttpServerRequest()
@@ -145,47 +162,91 @@ void MongooseHttpServerRequest::send(int code, const String& contentType, const 
   mg_printf(nc, reply_fmt, code, "", contentType.c_str(), content.c_str());
 }
 
+// IMPROVE: add a function to Mongoose to do this
 bool MongooseHttpServerRequest::hasParam(const char *name) const
 {
-  return false;
+  char dst[8];
+  return -4 != getParam(name, dst, sizeof(dst));
 }
 
 bool MongooseHttpServerRequest::hasParam(const String& name) const
 {
-  return false;
+  char dst[8];
+  return -4 != getParam(name, dst, sizeof(dst));
 }
 
 bool MongooseHttpServerRequest::hasParam(const __FlashStringHelper * data) const
 {
-  return false;
+  char dst[8];
+  return -4 != getParam(data, dst, sizeof(dst));
 }
 
-bool MongooseHttpServerRequest::getParam(const char *name, char *dst, size_t dst_len) const
+int MongooseHttpServerRequest::getParam(const char *name, char *dst, size_t dst_len) const
 {
-  return false;
+  return mg_get_http_var((HTTP_GET == method) ? (&msg->query_string) : (&msg->body), name, dst, dst_len);
 }
 
-bool MongooseHttpServerRequest::getParam(const String& name, char *dst, size_t dst_len) const
+int MongooseHttpServerRequest::getParam(const String& name, char *dst, size_t dst_len) const
 {
-  return false;
+  return getParam(name.c_str(), dst, dst_len);
 }
 
-bool MongooseHttpServerRequest::getParam(const __FlashStringHelper * data, char *dst, size_t dst_len) const
+int MongooseHttpServerRequest::getParam(const __FlashStringHelper * data, char *dst, size_t dst_len) const
 {
-  return false;
+  PGM_P p = reinterpret_cast<PGM_P>(data);
+  size_t n = strlen_P(p);
+  char * name = (char*) malloc(n+1);
+  if (name) {
+    strcpy_P(name, p);   
+    int result = getParam(name, dst, dst_len); 
+    free(name); 
+    return result; 
+  } 
+  
+  return -5; 
 }
 
 String MongooseHttpServerRequest::getParam(const char *name) const
 {
-  return "";
+  String ret = "";
+  char *tempString = new char[ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH];
+  if(tempString)
+  {
+    if(getParam(name, tempString, ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH) > 0) {
+      ret.concat(tempString);
+    }
+
+    delete tempString;
+  }
+  return ret;
 }
 
 String MongooseHttpServerRequest::getParam(const String& name) const
 {
-  return "";
+  String ret = "";
+  char *tempString = new char[ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH];
+  if(tempString)
+  {
+    if(getParam(name, tempString, ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH) > 0) {
+      ret.concat(tempString);
+    }
+
+    delete tempString;
+  }
+  return ret;
 }
 
 String MongooseHttpServerRequest::getParam(const __FlashStringHelper * data) const
 {
-  return "";
+  String ret = "";
+  char *tempString = new char[ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH];
+  if(tempString)
+  {
+    if(getParam(data, tempString, ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH) > 0) {
+      ret.concat(tempString);
+    }
+
+    delete tempString;
+  }
+  return ret;
 }
