@@ -57,6 +57,10 @@ class MongooseHttpServerRequest {
 //  using FS = fs::FS;
 //  friend class MongooseHttpServer;
   private:
+    MongooseHttpServer *server;
+    mg_connection *nc;
+    http_message *msg;
+
 //    AsyncClient* _client;
 //    MongooseHttpServer* _server;
 //    AsyncWebHandler* _handler;
@@ -122,7 +126,7 @@ class MongooseHttpServerRequest {
 //    File _tempFile;
 //    void *_tempObject;
 
-    MongooseHttpServerRequest(MongooseHttpServer*);
+    MongooseHttpServerRequest(MongooseHttpServer *server, mg_connection *nc, http_message *msg);
     ~MongooseHttpServerRequest();
 
 //    uint8_t version() const { return _version; }
@@ -259,9 +263,11 @@ class MongooseHttpServer
 {
   protected:
     struct mg_connection *nc;
+    ArRequestHandlerFunction fnNotFound;
 
-    static void eventHandler(struct mg_connection *nc, int ev, void *p, void *u);
-    void eventHandler(struct mg_connection *nc, int ev, void *p); 
+    static void defaultEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
+    static void endpointEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
+    void eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, ArRequestHandlerFunction onRequest); 
 
   public:
     MongooseHttpServer();

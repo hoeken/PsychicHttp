@@ -26,10 +26,8 @@ const char *password = "TheB1gJungle2";
 
 const char *PARAM_MESSAGE = "message";
 
-void notFound(MongooseHttpServerRequest *request)
-{
-  request->send(404, "text/plain", "Not found");
-}
+static void notFound(MongooseHttpServerRequest *request);
+
 #include <Arduino.h>
 
 void setup()
@@ -50,6 +48,9 @@ void setup()
 //  Serial.print("Hostname: ");
 //  Serial.println(WiFi.hostname());
 #endif
+
+  Mongoose.begin();
+  server.begin(80);
 
   server.on("/", HTTP_GET, [](MongooseHttpServerRequest *request) {
     request->send(200, "text/plain", "Hello, world");
@@ -84,12 +85,14 @@ void setup()
   });
 
   server.onNotFound(notFound);
-
-  Mongoose.begin();
-  server.begin(80);
 }
 
 void loop()
 {
   Mongoose.poll(1000);
+}
+
+static void notFound(MongooseHttpServerRequest *request)
+{
+  request->send(404, "text/plain", "Not found");
 }
