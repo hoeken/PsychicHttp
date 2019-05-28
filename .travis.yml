@@ -29,7 +29,7 @@ env:
 install:
   - pip install -U platformio
   - platformio update
-  - ln -sf $TRAVIS_BUILD_DIR ~/.platformio/lib
+  - pio lib -g install $TRAVIS_BUILD_DIR
 
 script:
   - cd $EXAMPLE
