@@ -23,8 +23,16 @@ cache:
     - "~/.platformio"
 
 env:
+#  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_esp
+#    ENV=huzzah
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_esp
+    ENV=espwroverkit
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_native
+    ENV=native
+#  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_native
+#    ENV=windows_x86
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_server
+    ENV=esp-wrover-kit
 
 install:
   - pip install -U platformio
@@ -33,4 +41,4 @@ install:
 
 script:
   - cd $EXAMPLE
-  - platformio run
+  - platformio run -e $ENV
