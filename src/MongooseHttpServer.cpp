@@ -1,4 +1,10 @@
+
+#ifdef ARDUINO
 #include <Arduino.h>
+#else
+#define utoa(i, buf, base) sprintf(buf, "%u", i)
+#endif
+
 #include <MicroDebug.h>
 
 #include "MongooseCore.h"
@@ -145,11 +151,14 @@ MongooseHttpServerRequest::~MongooseHttpServerRequest()
 
 }
 
+#ifdef ARDUINO
 void MongooseHttpServerRequest::redirect(const String& url)
 {
 
 }
+#endif
 
+#ifdef ARDUINO
 void MongooseHttpServerRequest::send(int code, const String& contentType, const String& content)
 {
   static const char *reply_fmt =
@@ -161,6 +170,7 @@ void MongooseHttpServerRequest::send(int code, const String& contentType, const 
 
   mg_printf(nc, reply_fmt, code, "", contentType.c_str(), content.c_str());
 }
+#endif
 
 // IMPROVE: add a function to Mongoose to do this
 bool MongooseHttpServerRequest::hasParam(const char *name) const
@@ -169,28 +179,35 @@ bool MongooseHttpServerRequest::hasParam(const char *name) const
   return -4 != getParam(name, dst, sizeof(dst));
 }
 
+#ifdef ARDUINO
 bool MongooseHttpServerRequest::hasParam(const String& name) const
 {
   char dst[8];
   return -4 != getParam(name, dst, sizeof(dst));
 }
+#endif
 
+#ifdef ARDUINO
 bool MongooseHttpServerRequest::hasParam(const __FlashStringHelper * data) const
 {
   char dst[8];
   return -4 != getParam(data, dst, sizeof(dst));
 }
+#endif
 
 int MongooseHttpServerRequest::getParam(const char *name, char *dst, size_t dst_len) const
 {
   return mg_get_http_var((HTTP_GET == method) ? (&msg->query_string) : (&msg->body), name, dst, dst_len);
 }
 
+#ifdef ARDUINO
 int MongooseHttpServerRequest::getParam(const String& name, char *dst, size_t dst_len) const
 {
   return getParam(name.c_str(), dst, dst_len);
 }
+#endif
 
+#ifdef ARDUINO
 int MongooseHttpServerRequest::getParam(const __FlashStringHelper * data, char *dst, size_t dst_len) const
 {
   PGM_P p = reinterpret_cast<PGM_P>(data);
@@ -205,7 +222,9 @@ int MongooseHttpServerRequest::getParam(const __FlashStringHelper * data, char *
   
   return -5; 
 }
+#endif
 
+#ifdef ARDUINO
 String MongooseHttpServerRequest::getParam(const char *name) const
 {
   String ret = "";
@@ -220,7 +239,9 @@ String MongooseHttpServerRequest::getParam(const char *name) const
   }
   return ret;
 }
+#endif
 
+#ifdef ARDUINO
 String MongooseHttpServerRequest::getParam(const String& name) const
 {
   String ret = "";
@@ -235,7 +256,9 @@ String MongooseHttpServerRequest::getParam(const String& name) const
   }
   return ret;
 }
+#endif
 
+#ifdef ARDUINO
 String MongooseHttpServerRequest::getParam(const __FlashStringHelper * data) const
 {
   String ret = "";
@@ -250,3 +273,4 @@ String MongooseHttpServerRequest::getParam(const __FlashStringHelper * data) con
   }
   return ret;
 }
+#endif
