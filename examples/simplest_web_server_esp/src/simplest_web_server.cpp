@@ -19,7 +19,7 @@ const char* password = "my-password";
 static const char *s_http_port = "80";
 //static struct mg_serve_http_opts s_http_server_opts;
 
-static void ev_handler(struct mg_connection *nc, int ev, void *p) {
+static void ev_handler(struct mg_connection *nc, int ev, void *p, void *d) {
   static const char *reply_fmt =
       "HTTP/1.0 200 OK\r\n"
       "Connection: close\r\n"
@@ -77,7 +77,7 @@ void setup()
 
   mg_mgr_init(&mgr, NULL);
   Serial.printf("Starting web server on port %s\n", s_http_port);
-  nc = mg_bind(&mgr, s_http_port, ev_handler);
+  nc = mg_bind(&mgr, s_http_port, ev_handler, NULL);
   if (nc == NULL) {
     Serial.printf("Failed to create listener\n");
     return;
