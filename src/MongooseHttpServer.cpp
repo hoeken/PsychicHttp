@@ -158,8 +158,7 @@ void MongooseHttpServerRequest::redirect(const String& url)
 }
 #endif
 
-#ifdef ARDUINO
-void MongooseHttpServerRequest::send(int code, const String& contentType, const String& content)
+void MongooseHttpServerRequest::send(int code, const char *contentType, const char *content)
 {
   static const char *reply_fmt =
       "HTTP/1.1 %d %s\r\n"
@@ -168,7 +167,13 @@ void MongooseHttpServerRequest::send(int code, const String& contentType, const 
       "\r\n"
       "%s\n";
 
-  mg_printf(nc, reply_fmt, code, "", contentType.c_str(), content.c_str());
+  mg_printf(nc, reply_fmt, code, "", contentType, content);
+}
+
+#ifdef ARDUINO
+void MongooseHttpServerRequest::send(int code, const String& contentType, const String& content)
+{
+  send(code, contentType.c_str(), content.c_str());
 }
 #endif
 
