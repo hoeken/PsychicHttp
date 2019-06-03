@@ -5252,7 +5252,9 @@ static enum mg_ssl_if_result mg_ssl_if_mbed_err(struct mg_connection *nc,
     nc->flags |= MG_F_CLOSE_IMMEDIATELY;
     res = MG_SSL_OK;
   } else {
-    LOG(LL_ERROR, ("%p mbedTLS error: -0x%04x", nc, -ret));
+    char buffer[256];
+    mbedtls_strerror(ret, buffer, 256);
+    LOG(LL_ERROR, ("%p mbedTLS error: -0x%04x: %s", nc, -ret, buffer));
     nc->flags |= MG_F_CLOSE_IMMEDIATELY;
     res = MG_SSL_ERROR;
   }
@@ -5383,7 +5385,7 @@ static enum mg_ssl_if_result mg_use_ca_cert(struct mg_ssl_if_ctx *ctx,
   ca_cert = strdup(ca_cert);
   mbedtls_ssl_conf_ca_chain_file(ctx->conf, ca_cert, NULL);
 #else
-  if (mbedtls_x509_crt_parse_file(ctx->ca_cert, ca_cert) != 0) {
+  if (mbedtls_x509_crt_parse(ctx->ca_cert, (uint8_t *)ca_cert, strlen(ca_cert) + 1) < 0) {
     return MG_SSL_ERROR;
   }
   mbedtls_ssl_conf_ca_chain(ctx->conf, ctx->ca_cert, NULL);
@@ -5403,11 +5405,11 @@ static enum mg_ssl_if_result mg_use_cert(struct mg_ssl_if_ctx *ctx,
   mbedtls_x509_crt_init(ctx->cert);
   ctx->key = (mbedtls_pk_context *) MG_CALLOC(1, sizeof(*ctx->key));
   mbedtls_pk_init(ctx->key);
-  if (mbedtls_x509_crt_parse_file(ctx->cert, cert) != 0) {
+  if (mbedtls_x509_crt_parse(ctx->cert, (uint8_t *)cert, strlen(cert) + 1) < 0) {
     MG_SET_PTRPTR(err_msg, "Invalid SSL cert");
     return MG_SSL_ERROR;
   }
-  if (mbedtls_pk_parse_keyfile(ctx->key, key, NULL) != 0) {
+  if (mbedtls_pk_parse_key(ctx->key, (uint8_t *)key, strlen(key) + 1, NULL, 0) < 0) {
     MG_SET_PTRPTR(err_msg, "Invalid SSL key");
     return MG_SSL_ERROR;
   }

@@ -32,20 +32,46 @@ MongooseHttpServer::~MongooseHttpServer()
 
 }
 
-void MongooseHttpServer::begin(uint16_t port)
+bool MongooseHttpServer::begin(uint16_t port)
 {
   char s_http_port[6];
   utoa(port, s_http_port, 10);
   nc = mg_bind(Mongoose.getMgr(), s_http_port, defaultEventHandler, this);
+  if(nc)
+  {
+    // Set up HTTP server parameters
+    mg_set_protocol_http_websocket(nc);
 
-  // Set up HTTP server parameters
-  mg_set_protocol_http_websocket(nc);
+    return true;
+  }
+
+  return false;
 }
 
 #if MG_ENABLE_SSL
-void MongooseHttpServer::begin(uint16_t port, const char *cert, const char *private_key_file, const char *password)
+bool MongooseHttpServer::begin(uint16_t port, const char *cert, const char *private_key)
 {
+  char s_http_port[6];
+  utoa(port, s_http_port, 10);
 
+  struct mg_bind_opts bind_opts;
+  const char *err;
+
+  memset(&bind_opts, 0, sizeof(bind_opts));
+  bind_opts.ssl_cert = cert;
+  bind_opts.ssl_key = private_key;
+  bind_opts.error_string = &err;
+
+  nc = mg_bind_opt(Mongoose.getMgr(), s_http_port, defaultEventHandler, this, bind_opts);
+  if(nc)
+  {
+    // Set up HTTP server parameters
+    mg_set_protocol_http_websocket(nc);
+
+    return true;
+  }
+
+  return false;
 }
 #endif
 
@@ -82,13 +108,6 @@ void MongooseHttpServer::endpointEventHandler(struct mg_connection *nc, int ev, 
 
 void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, ArRequestHandlerFunction onRequest)
 {
-  static const char *reply_fmt =
-      "HTTP/1.1 %d %s\r\n"
-      "Connection: close\r\n"
-      "Content-Type: text/plain\r\n"
-      "\r\n"
-      "%s\n";
-
   switch (ev) {
     case MG_EV_ACCEPT: {
       char addr[32];
@@ -109,7 +128,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
         MongooseHttpServerRequest request(this, nc, hm);
         onRequest(&request);
       } else {
-        mg_printf(nc, reply_fmt, 404, "Not Found", "File not found");
+        mg_http_send_error(nc, 404, NULL);
       }
       nc->flags |= MG_F_SEND_AND_CLOSE;
       break;

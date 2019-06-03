@@ -80,10 +80,10 @@ class MongooseHttpServer
     MongooseHttpServer();
     ~MongooseHttpServer();
 
-    void begin(uint16_t port);
+    bool begin(uint16_t port);
 
 #if MG_ENABLE_SSL
-    void begin(uint16_t port, const char *cert, const char *private_key);
+    bool begin(uint16_t port, const char *cert, const char *private_key);
 #endif
 
     void on(const char* uri, ArRequestHandlerFunction onRequest);
