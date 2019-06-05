@@ -5,6 +5,8 @@
 #include "Arduino.h"
 #endif
 
+#include <mongoose.h>
+
 #include <functional>
 
 class MongooseHttpServer;
@@ -26,14 +28,18 @@ typedef uint8_t HttpRequestMethodComposite;
 
 class MongooseHttpServerRequest {
   private:
-    MongooseHttpServer *server;
-    mg_connection *nc;
-    http_message *msg;
-    HttpRequestMethodComposite method;
+    MongooseHttpServer *_server;
+    mg_connection *_nc;
+    http_message *_msg;
+    HttpRequestMethodComposite _method;
 
   public:
     MongooseHttpServerRequest(MongooseHttpServer *server, mg_connection *nc, http_message *msg);
     ~MongooseHttpServerRequest();
+
+    HttpRequestMethodComposite method() {
+      return _method;
+    }
 
     void redirect(const char *url);
 #ifdef ARDUINO

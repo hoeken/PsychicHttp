@@ -144,24 +144,24 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
 /// MongooseHttpServerRequest object
 
 MongooseHttpServerRequest::MongooseHttpServerRequest(MongooseHttpServer *server, mg_connection *nc, http_message *msg) :
-  server(server),
-  nc(nc),
-  msg(msg)
+  _server(server),
+  _nc(nc),
+  _msg(msg)
 {
   if(0 == mg_vcasecmp(&msg->method, "GET")) {
-    method = HTTP_GET;
+    _method = HTTP_GET;
   } else if(0 == mg_vcasecmp(&msg->method, "POST")) {
-    method = HTTP_POST;
+    _method = HTTP_POST;
   } else if(0 == mg_vcasecmp(&msg->method, "DELETE")) {
-    method = HTTP_DELETE;
+    _method = HTTP_DELETE;
   } else if(0 == mg_vcasecmp(&msg->method, "PUT")) {
-    method = HTTP_PUT;
+    _method = HTTP_PUT;
   } else if(0 == mg_vcasecmp(&msg->method, "PATCH")) {
-    method = HTTP_PATCH;
+    _method = HTTP_PATCH;
   } else if(0 == mg_vcasecmp(&msg->method, "HEAD")) {
-    method = HTTP_HEAD;
+    _method = HTTP_HEAD;
   } else if(0 == mg_vcasecmp(&msg->method, "OPTIONS")) {
-    method = HTTP_OPTIONS;
+    _method = HTTP_OPTIONS;
   }
 }
 
@@ -186,7 +186,7 @@ void MongooseHttpServerRequest::send(int code, const char *contentType, const ch
       "\r\n"
       "%s\n";
 
-  mg_printf(nc, reply_fmt, code, "", contentType, content);
+  mg_printf(_nc, reply_fmt, code, "", contentType, content);
 }
 
 #ifdef ARDUINO
@@ -221,7 +221,7 @@ bool MongooseHttpServerRequest::hasParam(const __FlashStringHelper * data) const
 
 int MongooseHttpServerRequest::getParam(const char *name, char *dst, size_t dst_len) const
 {
-  return mg_get_http_var((HTTP_GET == method) ? (&msg->query_string) : (&msg->body), name, dst, dst_len);
+  return mg_get_http_var((HTTP_GET == _method) ? (&_msg->query_string) : (&_msg->body), name, dst, dst_len);
 }
 
 #ifdef ARDUINO
