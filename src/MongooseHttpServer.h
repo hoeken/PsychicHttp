@@ -9,6 +9,8 @@
 
 #include <functional>
 
+#include "MongooseString.h"
+
 class MongooseHttpServer;
 class MongooseHttpServerRequest;
 class MongooseHttpServerResponse;
@@ -39,6 +41,63 @@ class MongooseHttpServerRequest {
 
     HttpRequestMethodComposite method() {
       return _method;
+    }
+
+    MongooseString message() {
+      return MongooseString(_msg->message);
+    }
+    MongooseString body() {
+      return MongooseString(_msg->body);
+    }
+
+    MongooseString methodStr() {
+      return MongooseString(_msg->method);
+    }
+    MongooseString uri() {
+      return MongooseString(_msg->uri);
+    }
+    MongooseString proto() {
+      return MongooseString(_msg->proto);
+    }
+    
+    int respCode() {
+      return _msg->resp_code;
+    }
+    MongooseString respStatusMsg() {
+      return MongooseString(_msg->resp_status_msg);
+    }
+
+    MongooseString queryString() {
+      return MongooseString(_msg->query_string);
+    }
+
+    int headers() {
+      int i;
+      for (i = 0; i < MG_MAX_HTTP_HEADERS && _msg->header_names[i].len > 0; i++) {
+      }
+      return i;
+    }
+    MongooseString headers(const char *name) {
+      MongooseString ret;
+
+      for (int i = 0; i < MG_MAX_HTTP_HEADERS && _msg->header_names[i].len > 0; i++) {
+        if(0 == mg_vcasecmp(&(_msg->header_names[i]), name)) {
+          ret = MongooseString(_msg->header_values[i]);
+          break;
+        }
+      }
+
+      return ret;
+    }
+    MongooseString headerNames(int i) {
+      return MongooseString(_msg->header_names[i]);
+    }
+    MongooseString headerValues(int i) {
+      return MongooseString(_msg->header_values[i]);
+    }
+
+    MongooseString host() {
+      return headers("Host");
     }
 
     void redirect(const char *url);
