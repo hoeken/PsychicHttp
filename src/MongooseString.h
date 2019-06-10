@@ -11,6 +11,14 @@ class MongooseString
 {
   private:
     mg_str _string;
+
+    // use a function pointer to allow for "if (s)" without the
+    // complications of an operator bool(). for more information, see:
+    // http://www.artima.com/cppsource/safebool.html
+    typedef void (MongooseString::*StringIfHelperType)() const;
+    void StringIfHelper() const {
+    }
+
   public:
     MongooseString() : 
       _string(MG_NULL_STR)
@@ -41,6 +49,14 @@ class MongooseString
     {
       return _string.p;
     }
+
+    // use a function pointer to allow for "if (s)" without the
+    // complications of an operator bool(). for more information, see:
+    // http://www.artima.com/cppsource/safebool.html
+    operator StringIfHelperType() const
+    {
+      return NULL != _string.p ? &MongooseString::StringIfHelper : 0;
+    }
     
 #ifdef ARDUINO
     operator String()
@@ -52,6 +68,22 @@ class MongooseString
       return ret;
     }
 #endif
+
+    MongooseString & operator = (const char *cstr) {
+      _string = mg_mk_str(cstr);
+      return *this;
+    }
+    MongooseString & operator = (const mg_str *rhs) {
+      _string.p = rhs ? rhs->p : NULL;
+      _string.len = rhs ? rhs->len : 0;
+      return *this;
+    }
+    MongooseString & operator = (const mg_str &rhs) {
+      _string = rhs;
+      return *this;
+    }
+//    MongooseString & operator = (const String &rhs);
+//    MongooseString & operator = (const __FlashStringHelper *str);
 
     void get(const char * &p, size_t &len) {
       p = _string.p;
