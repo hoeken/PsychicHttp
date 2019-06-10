@@ -78,15 +78,7 @@ class MongooseHttpServerRequest {
       return i;
     }
     MongooseString headers(const char *name) {
-      MongooseString ret;
-
-      for (int i = 0; i < MG_MAX_HTTP_HEADERS && _msg->header_names[i].len > 0; i++) {
-        if(0 == mg_vcasecmp(&(_msg->header_names[i]), name)) {
-          ret = MongooseString(_msg->header_values[i]);
-          break;
-        }
-      }
-
+      MongooseString ret(mg_get_http_header(_msg, name));
       return ret;
     }
     MongooseString headerNames(int i) {
@@ -98,6 +90,10 @@ class MongooseHttpServerRequest {
 
     MongooseString host() {
       return headers("Host");
+    }
+
+    size_t contentLength() {
+      return _msg->body.len;
     }
 
     void redirect(const char *url);
