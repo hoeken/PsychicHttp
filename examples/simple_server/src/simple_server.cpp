@@ -111,12 +111,12 @@ void setup()
   server.begin(80);
 #endif
 
-  server.on("/", HTTP_GET, [](MongooseHttpServerRequest *request) {
+  server.on("/$", HTTP_GET, [](MongooseHttpServerRequest *request) {
     request->send(200, "text/plain", "Hello world");
   });
 
   // Send a GET request to <IP>/get?message=<message>
-  server.on("/get", HTTP_GET, [](MongooseHttpServerRequest *request) {
+  server.on("/get$", HTTP_GET, [](MongooseHttpServerRequest *request) {
     String message;
     if (request->hasParam(PARAM_MESSAGE))
     {
@@ -130,7 +130,7 @@ void setup()
   });
 
   // Send a POST request to <IP>/post with a form field message set to <message>
-  server.on("/post", HTTP_POST, [](MongooseHttpServerRequest *request) {
+  server.on("/post$", HTTP_POST, [](MongooseHttpServerRequest *request) {
     String message;
     if (request->hasParam(PARAM_MESSAGE))
     {
