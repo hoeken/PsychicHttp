@@ -14,6 +14,9 @@
 class MongooseHttpServer;
 class MongooseHttpServerRequest;
 class MongooseHttpServerResponse;
+#ifdef ARDUINO
+class MongooseHttpServerResponseStream;
+#endif
 
 typedef enum {
   HTTP_GET     = 0b00000001,
@@ -101,10 +104,23 @@ class MongooseHttpServerRequest {
     void redirect(const String& url);
 #endif
 
-    void send(int code, const char *contentType="", const char *content="");
+    MongooseHttpServerResponse *beginResponse(const char *contentType="");
+    MongooseHttpServerResponse *beginResponse(int code, const char *contentType="", const char *content="");
+
 #ifdef ARDUINO
-    void send(int code, const String& contentType=String(), const String& content=String());
+    MongooseHttpServerResponse *beginResponse(const String& contentType="");
+    MongooseHttpServerResponse *beginResponse(int code, const String& contentType=String(), const String& content=String());
+    MongooseHttpServerResponseStream *beginResponseStream(const char *contentType="");
+    MongooseHttpServerResponseStream *beginResponseStream(const String& contentType=String());
 #endif
+
+    void send(MongooseHttpServerResponse *response);
+    void send(int code);
+    void send(int code, const char *contentType, const char *content="");
+#ifdef ARDUINO
+    void send(int code, const String& contentType, const String& content=String());
+#endif
+
     bool hasParam(const char *name) const;
 #ifdef ARDUINO
     bool hasParam(const String& name) const;
@@ -122,7 +138,37 @@ class MongooseHttpServerRequest {
     String getParam(const String& name) const;
     String getParam(const __FlashStringHelper * data) const; 
 #endif
+
+    bool authenticate(const char * username, const char * password);
+    void requestAuthentication(const char* realm);
 };
+
+class MongooseHttpServerResponse
+{
+  public:
+    virtual void setCode(int code);
+
+    bool addHeader(const char *name, const char *value) const;
+#ifdef ARDUINO
+    bool addHeader(const String& name, const String& value) const;
+#endif
+
+
+};
+
+#ifdef ARDUINO
+class MongooseHttpServerResponseStream: 
+  public MongooseHttpServerResponse,
+  public Print
+{
+  public:
+
+    size_t write(const uint8_t *data, size_t len);
+    size_t write(uint8_t data);
+  //  using Print::write;
+
+};
+#endif
 
 
 typedef std::function<void(MongooseHttpServerRequest *request)> ArRequestHandlerFunction;

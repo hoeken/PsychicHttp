@@ -170,12 +170,60 @@ MongooseHttpServerRequest::~MongooseHttpServerRequest()
 
 }
 
-#ifdef ARDUINO
-void MongooseHttpServerRequest::redirect(const String& url)
+void MongooseHttpServerRequest::redirect(const char *url)
 {
 
 }
+
+#ifdef ARDUINO
+void MongooseHttpServerRequest::redirect(const String& url)
+{
+  redirect(url.c_str());
+}
 #endif
+
+MongooseHttpServerResponse *MongooseHttpServerRequest::beginResponse(const char *contentType)
+{
+  return NULL;
+}
+
+MongooseHttpServerResponse *MongooseHttpServerRequest::beginResponse(int code, const char *contentType, const char *content)
+{
+  return NULL;
+}
+
+#ifdef ARDUINO
+MongooseHttpServerResponse *MongooseHttpServerRequest::beginResponse(const String& contentType)
+{
+  return beginResponse(contentType.c_str());
+}
+
+MongooseHttpServerResponse *MongooseHttpServerRequest::beginResponse(int code, const String& contentType, const String& content)
+{
+  return beginResponse(code, contentType.c_str(), content.c_str());
+}
+
+MongooseHttpServerResponseStream *MongooseHttpServerRequest::beginResponseStream(const char *contentType)
+{
+  return NULL;
+}
+
+MongooseHttpServerResponseStream *MongooseHttpServerRequest::beginResponseStream(const String& contentType)
+{
+  return beginResponseStream(contentType.c_str());
+}
+
+#endif
+
+void MongooseHttpServerRequest::send(MongooseHttpServerResponse *response)
+{
+
+}
+
+void MongooseHttpServerRequest::send(int code)
+{
+  send(code, "text/plain", "");
+}
 
 void MongooseHttpServerRequest::send(int code, const char *contentType, const char *content)
 {
@@ -297,4 +345,45 @@ String MongooseHttpServerRequest::getParam(const __FlashStringHelper * data) con
   }
   return ret;
 }
+#endif
+
+bool MongooseHttpServerRequest::authenticate(const char * username, const char * password)
+{
+  return true;
+}
+
+void MongooseHttpServerRequest::requestAuthentication(const char* realm)
+{
+
+}
+
+
+void MongooseHttpServerResponse::setCode(int code)
+{
+
+}
+
+bool MongooseHttpServerResponse::addHeader(const char *name, const char *value) const
+{
+  return false;
+}
+
+#ifdef ARDUINO
+bool MongooseHttpServerResponse::addHeader(const String& name, const String& value) const
+{
+  return false;
+}
+#endif
+
+#ifdef ARDUINO
+size_t MongooseHttpServerResponseStream::write(const uint8_t *data, size_t len)
+{
+  return len;
+}
+
+size_t MongooseHttpServerResponseStream::write(uint8_t data)
+{
+  return 1;
+}
+
 #endif
