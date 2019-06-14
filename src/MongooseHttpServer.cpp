@@ -220,21 +220,24 @@ void MongooseHttpServerRequest::send(MongooseHttpServerResponse *response)
 
 }
 
+extern "C" const char *mg_status_message(int status_code);
+
 void MongooseHttpServerRequest::send(int code)
 {
-  send(code, "text/plain", "");
+  send(code, "text/plain", mg_status_message(code));
 }
 
 void MongooseHttpServerRequest::send(int code, const char *contentType, const char *content)
 {
-  static const char *reply_fmt =
-      "HTTP/1.1 %d %s\r\n"
+  char headers[64];
+  snprintf(headers, sizeof(headers), 
       "Connection: close\r\n"
-      "Content-Type: %s\r\n"
-      "\r\n"
-      "%s\n";
+      "Content-Type: %s",
+      contentType);
 
-  mg_printf(_nc, reply_fmt, code, "", contentType, content);
+  mg_send_head(_nc, code, strlen(content), headers);
+  mg_send(_nc, content, strlen(content));
+  _nc->flags |= MG_F_SEND_AND_CLOSE;
 }
 
 #ifdef ARDUINO
@@ -383,7 +386,7 @@ size_t MongooseHttpServerResponseStream::write(const uint8_t *data, size_t len)
 
 size_t MongooseHttpServerResponseStream::write(uint8_t data)
 {
-  return 1;
+  return write(&data, 1);
 }
 
 #endif
