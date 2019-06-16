@@ -96,8 +96,12 @@ void setup()
 
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
-//  Serial.print("Hostname: ");
-//  Serial.println(WiFi.hostname());
+  Serial.print("Hostname: ");
+#ifdef ESP32
+  Serial.println(WiFi.getHostname());
+#elif defined(ESP8266)
+  Serial.println(WiFi.hostname());
+#endif
 #endif
 
   Mongoose.begin();
