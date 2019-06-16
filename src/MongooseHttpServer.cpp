@@ -14,6 +14,14 @@
 #define ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH 128
 #endif
 
+#ifndef ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER
+#define ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER 128
+#endif
+
+#ifndef ARDUINO_MONGOOSE_SEND_BUFFER_SIZE
+#define ARDUINO_MONGOOSE_SEND_BUFFER_SIZE 256
+#endif
+
 struct MongooseHttpServerHandler
 { 
   MongooseHttpServer *server;
@@ -108,6 +116,7 @@ void MongooseHttpServer::endpointEventHandler(struct mg_connection *nc, int ev, 
 
 void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, ArRequestHandlerFunction onRequest)
 {
+  //DBUGF("Connection %p: %x", nc, ev);
   switch (ev) {
     case MG_EV_ACCEPT: {
       char addr[32];
@@ -124,17 +133,44 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
       DBUGF("HTTP request from %s: %.*s %.*s", addr, (int) hm->method.len,
              hm->method.p, (int) hm->uri.len, hm->uri.p);
 
-      if(onRequest) {
-        MongooseHttpServerRequest request(this, nc, hm);
-        onRequest(&request);
-      } else {
-        mg_http_send_error(nc, 404, NULL);
+      if(nc->user_connection_data) {
+        delete (MongooseHttpServerRequest *)nc->user_connection_data;
+        nc->user_connection_data = NULL;
       }
-      nc->flags |= MG_F_SEND_AND_CLOSE;
+      MongooseHttpServerRequest *request = new MongooseHttpServerRequest(this, nc, hm);
+      if(request)
+      {
+        nc->user_connection_data = request;
+
+        if(onRequest) {
+          onRequest(request);
+        } else {
+          mg_http_send_error(nc, 404, NULL);
+        }
+      } else {
+        mg_http_send_error(nc, 500, NULL);
+      }
       break;
     }
+
+    case MG_EV_POLL:
+    case MG_EV_SEND:
+    {
+      if(nc->user_connection_data)
+      {
+        MongooseHttpServerRequest *request = (MongooseHttpServerRequest *)nc->user_connection_data;
+        request->sendBody();
+      }
+
+      break;
+    }
+
     case MG_EV_CLOSE: {
       DBUGF("Connection %p closed", nc);
+      if(nc->user_connection_data) {
+        delete (MongooseHttpServerRequest *)nc->user_connection_data;
+        nc->user_connection_data = NULL;
+      }
       break;
     }
   }
@@ -146,7 +182,8 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
 MongooseHttpServerRequest::MongooseHttpServerRequest(MongooseHttpServer *server, mg_connection *nc, http_message *msg) :
   _server(server),
   _nc(nc),
-  _msg(msg)
+  _msg(msg),
+  _response(NULL)
 {
   if(0 == mg_vcasecmp(&msg->method, "GET")) {
     _method = HTTP_GET;
@@ -167,7 +204,10 @@ MongooseHttpServerRequest::MongooseHttpServerRequest(MongooseHttpServer *server,
 
 MongooseHttpServerRequest::~MongooseHttpServerRequest()
 {
-
+  if(_response) {
+    delete _response;
+    _response = NULL;
+  }
 }
 
 void MongooseHttpServerRequest::redirect(const char *url)
@@ -182,42 +222,52 @@ void MongooseHttpServerRequest::redirect(const String& url)
 }
 #endif
 
-MongooseHttpServerResponse *MongooseHttpServerRequest::beginResponse(const char *contentType)
+MongooseHttpServerResponseBasic *MongooseHttpServerRequest::beginResponse()
 {
-  return NULL;
-}
-
-MongooseHttpServerResponse *MongooseHttpServerRequest::beginResponse(int code, const char *contentType, const char *content)
-{
-  return NULL;
+  return new MongooseHttpServerResponseBasic();
 }
 
 #ifdef ARDUINO
-MongooseHttpServerResponse *MongooseHttpServerRequest::beginResponse(const String& contentType)
-{
-  return beginResponse(contentType.c_str());
-}
 
-MongooseHttpServerResponse *MongooseHttpServerRequest::beginResponse(int code, const String& contentType, const String& content)
+MongooseHttpServerResponseStream *MongooseHttpServerRequest::beginResponseStream()
 {
-  return beginResponse(code, contentType.c_str(), content.c_str());
-}
-
-MongooseHttpServerResponseStream *MongooseHttpServerRequest::beginResponseStream(const char *contentType)
-{
-  return NULL;
-}
-
-MongooseHttpServerResponseStream *MongooseHttpServerRequest::beginResponseStream(const String& contentType)
-{
-  return beginResponseStream(contentType.c_str());
+  return new MongooseHttpServerResponseStream();
 }
 
 #endif
 
 void MongooseHttpServerRequest::send(MongooseHttpServerResponse *response)
 {
+  if(_response) {
+    delete _response;
+    _response = NULL;
+  }
 
+  response->sendHeaders(_nc);
+  _response = response;
+  sendBody();
+}
+
+void MongooseHttpServerRequest::sendBody()
+{
+  if(_response) 
+  {
+    size_t free = _nc->send_mbuf.size - _nc->send_mbuf.len;
+    if(0 == _nc->send_mbuf.size) {
+      free = ARDUINO_MONGOOSE_SEND_BUFFER_SIZE;
+    }
+    if(free > 0) 
+    {
+      size_t sent = _response->sendBody(_nc, free);
+      DBUGF("Connection %p: sent %u/%u, %lx", _nc, sent, free, _nc->flags & MG_F_SEND_AND_CLOSE);
+
+      if(sent < free) {
+        DBUGLN("Response finished");
+        delete _response;
+        _response = NULL;
+      }
+    }
+  }
 }
 
 extern "C" const char *mg_status_message(int status_code);
@@ -229,15 +279,17 @@ void MongooseHttpServerRequest::send(int code)
 
 void MongooseHttpServerRequest::send(int code, const char *contentType, const char *content)
 {
-  char headers[64];
-  snprintf(headers, sizeof(headers), 
+  char headers[64], *pheaders = headers;
+  mg_asprintf(&pheaders, sizeof(headers), 
       "Connection: close\r\n"
       "Content-Type: %s",
       contentType);
 
-  mg_send_head(_nc, code, strlen(content), headers);
+  mg_send_head(_nc, code, strlen(content), pheaders);
   mg_send(_nc, content, strlen(content));
   _nc->flags |= MG_F_SEND_AND_CLOSE;
+
+  if (pheaders != headers) free(pheaders);
 }
 
 #ifdef ARDUINO
@@ -360,10 +412,25 @@ void MongooseHttpServerRequest::requestAuthentication(const char* realm)
 
 }
 
-
-void MongooseHttpServerResponse::setCode(int code)
+MongooseHttpServerResponse::MongooseHttpServerResponse() :
+  _code(200),
+  _contentType("text/plain"),
+  _contentLength(-1)
 {
 
+}
+
+void MongooseHttpServerResponse::sendHeaders(struct mg_connection *nc)
+{
+  char headers[64], *pheaders = headers;
+  mg_asprintf(&pheaders, sizeof(headers), 
+      "Connection: close\r\n"
+      "Content-Type: %s",
+      _contentType);
+
+  mg_send_head(nc, _code, _contentLength, pheaders);
+
+  if (pheaders != headers) free(pheaders);
 }
 
 bool MongooseHttpServerResponse::addHeader(const char *name, const char *value) const
@@ -378,15 +445,70 @@ bool MongooseHttpServerResponse::addHeader(const String& name, const String& val
 }
 #endif
 
+MongooseHttpServerResponseBasic::MongooseHttpServerResponseBasic() :
+  _content(MG_NULL_STR)
+{
+
+}
+
+void MongooseHttpServerResponseBasic::setContent(const char *content)
+{
+  _content = mg_mk_str(content);
+  setContentLength(_content.len);
+}
+
+size_t MongooseHttpServerResponseBasic::sendBody(struct mg_connection *nc, size_t bytes)
+{
+  size_t send = min(_content.len, bytes);
+
+  mg_send(nc, _content.p, send);
+
+  _content.p += send;
+  _content.len -= send;
+
+  if(0 == _content.len) {
+    nc->flags |= MG_F_SEND_AND_CLOSE;
+  }
+
+  return send;
+}
+
+MongooseHttpServerResponseStream::MongooseHttpServerResponseStream()
+{
+  mbuf_init(&_content, ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER);
+}
+
+MongooseHttpServerResponseStream::~MongooseHttpServerResponseStream()
+{
+  mbuf_free(&_content);
+}
+
 #ifdef ARDUINO
 size_t MongooseHttpServerResponseStream::write(const uint8_t *data, size_t len)
 {
-  return len;
+  size_t written = mbuf_append(&_content, data, len);
+  setContentLength(_content.len);
+  return written;
 }
 
 size_t MongooseHttpServerResponseStream::write(uint8_t data)
 {
   return write(&data, 1);
+}
+
+size_t MongooseHttpServerResponseStream::sendBody(struct mg_connection *nc, size_t bytes)
+{
+  size_t send = min(_content.len, bytes);
+
+  mg_send(nc, _content.buf, send);
+
+  mbuf_remove(&_content, send);
+
+  if(0 == _content.len) {
+    nc->flags |= MG_F_SEND_AND_CLOSE;
+  }
+
+  return send;
 }
 
 #endif

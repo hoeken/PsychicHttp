@@ -143,6 +143,53 @@ void setup()
     request->send(200, "text/plain", "Hello, POST: " + message);
   });
 
+  // Test the basic response class
+  server.on("/basic$", HTTP_GET, [](MongooseHttpServerRequest *request) {
+    MongooseHttpServerResponseBasic *resp = request->beginResponse();
+    resp->setCode(200);
+    resp->setContentType("text/html");
+    resp->addHeader("X-hello", "world");
+    resp->setContent(
+      "<html>\n"
+      "<head>\n"
+      "<title>Basic Page</title>\n"
+      "</head>\n"
+      "<body>\n"
+      "<h1>Basic Page</h1>\n"
+      "<p>\n"
+      "This page has been sent using the MongooseHttpServerResponseBasic class\n"
+      "</p>\n"
+      "</body>\n"
+      "</html>\n");
+    request->send(resp);
+  });
+
+  // Test the stream response class
+  server.on("/stream$", HTTP_GET, [](MongooseHttpServerRequest *request) {
+    MongooseHttpServerResponseStream *resp = request->beginResponseStream();
+    resp->setCode(200);
+    resp->setContentType("text/html");
+    resp->addHeader("X-hello", "world");
+    
+    resp->println("<html>");
+    resp->println("<head>");
+    resp->println("<title>Stream Page</title>");
+    resp->println("</head>");
+    resp->println("<body>");
+    resp->println("<h1>Stream Page</h1>");
+    resp->println("<p>");
+    resp->println("This page has been sent using the MongooseHttpServerResponseStream class");
+    resp->println("</p>");
+    resp->println("<p>");
+    resp->printf("micros = %lu<br/>", micros());
+    resp->printf("free = %u<br/>", ESP.getFreeHeap());
+    resp->println("</p>");
+    resp->println("</body>");
+    resp->println("</html>");
+
+    request->send(resp);
+  });
+
   server.onNotFound(notFound);
 }
 

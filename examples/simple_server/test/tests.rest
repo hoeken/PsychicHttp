@@ -25,3 +25,11 @@ message=Hello+World
 ###
 
 GET {{baseUrl}}/someRandomFile HTTP/1.1
+
+###
+
+GET {{baseUrl}}/basic HTTP/1.1
+
+###
+
+GET {{baseUrl}}/stream HTTP/1.1

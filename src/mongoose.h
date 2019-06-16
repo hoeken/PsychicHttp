@@ -3934,6 +3934,7 @@ struct mg_connection {
   void (*proto_data_destructor)(void *proto_data);
   mg_event_handler_t handler; /* Event handler function */
   void *user_data;            /* User-specific data */
+  void *user_connection_data; /* User-specific data */
   union {
     void *v;
     /*

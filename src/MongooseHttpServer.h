@@ -14,6 +14,7 @@
 class MongooseHttpServer;
 class MongooseHttpServerRequest;
 class MongooseHttpServerResponse;
+class MongooseHttpServerResponseBasic;
 #ifdef ARDUINO
 class MongooseHttpServerResponseStream;
 #endif
@@ -32,15 +33,20 @@ typedef enum {
 typedef uint8_t HttpRequestMethodComposite;
 
 class MongooseHttpServerRequest {
+  friend MongooseHttpServer;
+
   private:
     MongooseHttpServer *_server;
     mg_connection *_nc;
     http_message *_msg;
     HttpRequestMethodComposite _method;
+    MongooseHttpServerResponse *_response;
+
+    void sendBody();
 
   public:
     MongooseHttpServerRequest(MongooseHttpServer *server, mg_connection *nc, http_message *msg);
-    ~MongooseHttpServerRequest();
+    virtual ~MongooseHttpServerRequest();
 
     HttpRequestMethodComposite method() {
       return _method;
@@ -104,17 +110,15 @@ class MongooseHttpServerRequest {
     void redirect(const String& url);
 #endif
 
-    MongooseHttpServerResponse *beginResponse(const char *contentType="");
-    MongooseHttpServerResponse *beginResponse(int code, const char *contentType="", const char *content="");
+    MongooseHttpServerResponseBasic *beginResponse();
 
 #ifdef ARDUINO
-    MongooseHttpServerResponse *beginResponse(const String& contentType="");
-    MongooseHttpServerResponse *beginResponse(int code, const String& contentType=String(), const String& content=String());
-    MongooseHttpServerResponseStream *beginResponseStream(const char *contentType="");
-    MongooseHttpServerResponseStream *beginResponseStream(const String& contentType=String());
+    MongooseHttpServerResponseStream *beginResponseStream();
 #endif
 
+    // Takes ownership of `response`, will delete when finished. Do not use `response` after calling
     void send(MongooseHttpServerResponse *response);
+
     void send(int code);
     void send(int code, const char *contentType, const char *content="");
 #ifdef ARDUINO
@@ -145,15 +149,49 @@ class MongooseHttpServerRequest {
 
 class MongooseHttpServerResponse
 {
+  private:
+    int _code;
+    const char *_contentType;
+    int64_t _contentLength;
+
   public:
-    virtual void setCode(int code);
+    MongooseHttpServerResponse();
+    virtual ~MongooseHttpServerResponse() {
+    }
+
+    void setCode(int code) {
+      _code = code;
+    }
+    void setContentType(const char *contentType) {
+      _contentType = contentType;
+    }
+    void setContentLength(int64_t contentLength) {
+      _contentLength = contentLength;
+    }
 
     bool addHeader(const char *name, const char *value) const;
 #ifdef ARDUINO
     bool addHeader(const String& name, const String& value) const;
 #endif
 
+    // send the to `nc`, return true if more to send
+    virtual void sendHeaders(struct mg_connection *nc);
 
+    // send (a part of) the body to `nc`, return < `bytes` if no more to send
+    virtual size_t sendBody(struct mg_connection *nc, size_t bytes) = 0;
+};
+
+class MongooseHttpServerResponseBasic: 
+  public MongooseHttpServerResponse
+{
+  private:
+    mg_str _content;
+
+  public:
+    MongooseHttpServerResponseBasic();
+  
+    void setContent(const char *content);
+    virtual size_t sendBody(struct mg_connection *nc, size_t bytes);
 };
 
 #ifdef ARDUINO
@@ -161,12 +199,18 @@ class MongooseHttpServerResponseStream:
   public MongooseHttpServerResponse,
   public Print
 {
+  private:
+    mbuf _content;
+
   public:
+    MongooseHttpServerResponseStream();
+    virtual ~MongooseHttpServerResponseStream();
 
     size_t write(const uint8_t *data, size_t len);
     size_t write(uint8_t data);
   //  using Print::write;
 
+    virtual size_t sendBody(struct mg_connection *nc, size_t bytes);
 };
 #endif
 
