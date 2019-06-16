@@ -446,27 +446,33 @@ bool MongooseHttpServerResponse::addHeader(const String& name, const String& val
 #endif
 
 MongooseHttpServerResponseBasic::MongooseHttpServerResponseBasic() :
-  _content(MG_NULL_STR)
+  ptr(NULL), len(0)
 {
 
 }
 
 void MongooseHttpServerResponseBasic::setContent(const char *content)
 {
-  _content = mg_mk_str(content);
-  setContentLength(_content.len);
+  setContent((uint8_t *)content, strlen(content));
+}
+
+void MongooseHttpServerResponseBasic::setContent(const uint8_t *content, size_t len)
+{
+  this->ptr = content;
+  this->len = len;
+  setContentLength(this->len);
 }
 
 size_t MongooseHttpServerResponseBasic::sendBody(struct mg_connection *nc, size_t bytes)
 {
-  size_t send = min(_content.len, bytes);
+  size_t send = min(len, bytes);
 
-  mg_send(nc, _content.p, send);
+  mg_send(nc, ptr, send);
 
-  _content.p += send;
-  _content.len -= send;
+  ptr += send;
+  len -= send;
 
-  if(0 == _content.len) {
+  if(0 == len) {
     nc->flags |= MG_F_SEND_AND_CLOSE;
   }
 

@@ -144,6 +144,11 @@ class MongooseHttpServerRequest {
 #endif
 
     bool authenticate(const char * username, const char * password);
+#ifdef ARDUINO
+    bool authenticate(const String& username, const String& password) {
+      return authenticate(username.c_str(), password.c_str());
+    }
+#endif
     void requestAuthentication(const char* realm);
 };
 
@@ -185,12 +190,14 @@ class MongooseHttpServerResponseBasic:
   public MongooseHttpServerResponse
 {
   private:
-    mg_str _content;
+    const uint8_t *ptr;
+    size_t len;
 
   public:
     MongooseHttpServerResponseBasic();
   
     void setContent(const char *content);
+    void setContent(const uint8_t *content, size_t len);
     virtual size_t sendBody(struct mg_connection *nc, size_t bytes);
 };
 
