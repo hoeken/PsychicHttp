@@ -31,7 +31,7 @@ env:
     ENV=native
 #  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_native
 #    ENV=windows_x86
-  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_server
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_server
     ENV=esp-wrover-kit
 
 install:
