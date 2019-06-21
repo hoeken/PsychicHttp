@@ -29,10 +29,12 @@ env:
     ENV=espwroverkit
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_native
     ENV=native
-#  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_native
-#    ENV=windows_x86
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_native
+    ENV=windows_x86
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_server
     ENV=esp-wrover-kit
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_server
+    ENV=esp-wrover-kit-secure
 
 install:
   - pip install -U platformio
