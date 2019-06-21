@@ -22,6 +22,10 @@
 #define ARDUINO_MONGOOSE_SEND_BUFFER_SIZE 256
 #endif
 
+#ifndef min
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
 struct MongooseHttpServerHandler
 { 
   MongooseHttpServer *server;
@@ -479,6 +483,7 @@ size_t MongooseHttpServerResponseBasic::sendBody(struct mg_connection *nc, size_
   return send;
 }
 
+#ifdef ARDUINO
 MongooseHttpServerResponseStream::MongooseHttpServerResponseStream()
 {
   mbuf_init(&_content, ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER);
@@ -489,7 +494,6 @@ MongooseHttpServerResponseStream::~MongooseHttpServerResponseStream()
   mbuf_free(&_content);
 }
 
-#ifdef ARDUINO
 size_t MongooseHttpServerResponseStream::write(const uint8_t *data, size_t len)
 {
   size_t written = mbuf_append(&_content, data, len);
