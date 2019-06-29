@@ -35,6 +35,8 @@ env:
     ENV=esp-wrover-kit
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_server
     ENV=esp-wrover-kit-secure
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_client
+    ENV=esp-wrover-kit
 
 install:
   - pip install -U platformio
