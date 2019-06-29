@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "MongooseString.h"
+#include "MongooseHttp.h"
 
 class MongooseHttpServer;
 class MongooseHttpServerRequest;
@@ -18,19 +19,6 @@ class MongooseHttpServerResponseBasic;
 #ifdef ARDUINO
 class MongooseHttpServerResponseStream;
 #endif
-
-typedef enum {
-  HTTP_GET     = 0b00000001,
-  HTTP_POST    = 0b00000010,
-  HTTP_DELETE  = 0b00000100,
-  HTTP_PUT     = 0b00001000,
-  HTTP_PATCH   = 0b00010000,
-  HTTP_HEAD    = 0b00100000,
-  HTTP_OPTIONS = 0b01000000,
-  HTTP_ANY     = 0b01111111,
-} HttpRequestMethod;
-
-typedef uint8_t HttpRequestMethodComposite;
 
 class MongooseHttpServerRequest {
   friend MongooseHttpServer;
@@ -222,17 +210,17 @@ class MongooseHttpServerResponseStream:
 #endif
 
 
-typedef std::function<void(MongooseHttpServerRequest *request)> ArRequestHandlerFunction;
+typedef std::function<void(MongooseHttpServerRequest *request)> MongooseHttpRequestHandler;
 
 class MongooseHttpServer 
 {
   protected:
     struct mg_connection *nc;
-    ArRequestHandlerFunction fnNotFound;
+    MongooseHttpRequestHandler fnNotFound;
 
     static void defaultEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
     static void endpointEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
-    void eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, ArRequestHandlerFunction onRequest); 
+    void eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, MongooseHttpRequestHandler onRequest); 
 
   public:
     MongooseHttpServer();
@@ -244,10 +232,10 @@ class MongooseHttpServer
     bool begin(uint16_t port, const char *cert, const char *private_key);
 #endif
 
-    void on(const char* uri, ArRequestHandlerFunction onRequest);
-    void on(const char* uri, HttpRequestMethodComposite method, ArRequestHandlerFunction onRequest);
+    void on(const char* uri, MongooseHttpRequestHandler onRequest);
+    void on(const char* uri, HttpRequestMethodComposite method, MongooseHttpRequestHandler onRequest);
 
-    void onNotFound(ArRequestHandlerFunction fn);
+    void onNotFound(MongooseHttpRequestHandler fn);
 
     void reset();
 };

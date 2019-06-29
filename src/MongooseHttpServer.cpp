@@ -10,27 +10,11 @@
 #include "MongooseCore.h"
 #include "MongooseHttpServer.h"
 
-#ifndef ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH
-#define ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH 128
-#endif
-
-#ifndef ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER
-#define ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER 128
-#endif
-
-#ifndef ARDUINO_MONGOOSE_SEND_BUFFER_SIZE
-#define ARDUINO_MONGOOSE_SEND_BUFFER_SIZE 256
-#endif
-
-#ifndef min
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-#endif
-
 struct MongooseHttpServerHandler
 { 
   MongooseHttpServer *server;
   HttpRequestMethodComposite method;
-  ArRequestHandlerFunction handler;
+  MongooseHttpRequestHandler handler;
 };
 
 MongooseHttpServer::MongooseHttpServer() :
@@ -87,12 +71,12 @@ bool MongooseHttpServer::begin(uint16_t port, const char *cert, const char *priv
 }
 #endif
 
-void MongooseHttpServer::on(const char* uri, ArRequestHandlerFunction onRequest)
+void MongooseHttpServer::on(const char* uri, MongooseHttpRequestHandler onRequest)
 {
   on(uri, HTTP_ANY, onRequest);
 }
 
-void MongooseHttpServer::on(const char* uri, HttpRequestMethodComposite method, ArRequestHandlerFunction onRequest)
+void MongooseHttpServer::on(const char* uri, HttpRequestMethodComposite method, MongooseHttpRequestHandler onRequest)
 {
   MongooseHttpServerHandler *handler = new MongooseHttpServerHandler;
   handler->server = this;
@@ -101,7 +85,7 @@ void MongooseHttpServer::on(const char* uri, HttpRequestMethodComposite method, 
   mg_register_http_endpoint(nc, uri, endpointEventHandler, handler);
 }
 
-void MongooseHttpServer::onNotFound(ArRequestHandlerFunction fn)
+void MongooseHttpServer::onNotFound(MongooseHttpRequestHandler fn)
 {
   fnNotFound = fn;
 }
@@ -118,7 +102,7 @@ void MongooseHttpServer::endpointEventHandler(struct mg_connection *nc, int ev, 
   self->server->eventHandler(nc, ev, p, self->method, self->handler);
 }
 
-void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, ArRequestHandlerFunction onRequest)
+void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, MongooseHttpRequestHandler onRequest)
 {
   //DBUGF("Connection %p: %x", nc, ev);
   switch (ev) {
