@@ -34,6 +34,13 @@ class MongooseString
     MongooseString(const mg_str string) :
       _string(string) {
     }
+#ifdef ARDUINO
+    MongooseString(String &str)
+    {
+      _string.p = str.c_str();
+      _string.len = str.length();
+    }
+#endif
 
     operator mg_str ()
     {
@@ -94,6 +101,66 @@ class MongooseString
       return _string.len;
     }
 
+    int compareTo(const mg_str &str) const {
+      return mg_strcmp(_string, str);
+    }
+    int compareTo(const MongooseString &str) const {
+      return mg_strcmp(_string, str._string);
+    }
+    int compareTo(const char *str) const {
+      mg_str mgStr = mg_mk_str(str);
+      return mg_strcmp(_string, mgStr);
+    }
+
+    unsigned char equals(const mg_str &str) const {
+      return 0 == compareTo(str);
+    }
+    unsigned char equals(const MongooseString &str) const {
+      return 0 == compareTo(str);
+    }
+    unsigned char equals(const char *str) const {
+      return 0 == compareTo(str);
+    }
+
+    unsigned char operator ==(const mg_str &str) const {
+      return equals(str);
+    }
+    unsigned char operator ==(const MongooseString &str) const {
+      return equals(str);
+    }
+    unsigned char operator ==(const char *str) const {
+      return equals(str);
+    }
+
+    unsigned char operator !=(const mg_str &str) const {
+      return !equals(str);
+    }
+    unsigned char operator !=(const MongooseString &str) const {
+      return !equals(str);
+    }
+    unsigned char operator !=(const char *str) const {
+      return !equals(str);
+    }
+
+#ifdef ARDUINO
+    int compareTo(const String &str) const {
+      mg_str mgStr = mg_mk_str_n(str.c_str(), str.length());
+      return mg_strcmp(_string, mgStr);
+    }
+
+    unsigned char equals(const String &str) const {
+      return 0 == compareTo(str);
+    }
+
+    unsigned char operator ==(const String &str) const {
+      return equals(str);
+    }
+
+    unsigned char operator !=(const String &str) const {
+      return !equals(str);
+    }
+
+#endif // ARDUINO
 };
 
 #endif // MongooseString_h
