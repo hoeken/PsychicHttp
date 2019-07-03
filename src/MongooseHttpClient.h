@@ -157,6 +157,21 @@ class MongooseHttpClient
 
     void get(const char* uri, MongooseHttpResponseHandler onResponse);
     void post(const char* uri, const char *contentType, const char *body, MongooseHttpResponseHandler onResponse);
+
+#ifdef ARDUINO
+    void get(String &uri, MongooseHttpResponseHandler onResponse) {
+      get(uri.c_str(), onResponse);
+    }
+    void post(String &uri, const char *contentType, const char *body, MongooseHttpResponseHandler onResponse) {
+      post(uri.c_str(), contentType, body, onResponse);
+    }
+    void post(String& uri, String& contentType, const char *body, MongooseHttpResponseHandler onResponse) {
+      post(uri.c_str(), contentType.c_str(), body, onResponse);
+    }
+    void post(String &uri, String& contentType, String& body, MongooseHttpResponseHandler onResponse) {
+      post(uri.c_str(), contentType.c_str(), body.c_str(), onResponse);
+    }
+#endif // ARDUINO
 };
 
 
