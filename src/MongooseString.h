@@ -138,6 +138,10 @@ class MongooseString
       return !equals(str);
     }
 
+    mg_str toMgStr() {
+      return _string;
+    }
+
 #ifdef ARDUINO
     int compareTo(const String &str) const {
       mg_str mgStr = mg_mk_str_n(str.c_str(), str.length());
