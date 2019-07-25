@@ -134,9 +134,6 @@ class MongooseHttpClientResponse {
 class MongooseHttpClient
 {
   private:
-#if MG_ENABLE_SSL
-    const char *_rootCa;
-#endif
 
   protected:
     static void eventHandler(struct mg_connection *nc, int ev, void *p, void *u);
@@ -145,12 +142,6 @@ class MongooseHttpClient
   public:
     MongooseHttpClient();
     ~MongooseHttpClient();
-
-#if MG_ENABLE_SSL
-    void setRootCa(const char *rootCa) {
-      _rootCa = rootCa;
-    }
-#endif
 
     MongooseHttpClientRequest *beginRequest(const char *uri);
     void send(MongooseHttpClientRequest *request);

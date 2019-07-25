@@ -23,10 +23,6 @@
 #define ARDUINO_MONGOOSE_SEND_BUFFER_SIZE 256
 #endif
 
-#ifndef ARDUINO_MONGOOSE_DEFAULT_ROOT_CA
-#define ARDUINO_MONGOOSE_DEFAULT_ROOT_CA ""
-#endif
-
 #ifndef min
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #endif

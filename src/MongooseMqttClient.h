@@ -20,9 +20,6 @@ typedef std::function<void(uint8_t retCode)> MongooseMqttErrorHandler;
 class MongooseMqttClient
 {
   private:
-#if MG_ENABLE_SSL
-    const char *_rootCa;
-#endif
     const char *_username;
     const char *_password;
     struct mg_connection *_nc;

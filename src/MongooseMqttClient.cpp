@@ -8,9 +8,6 @@
 #include "MongooseMqttClient.h"
 
 MongooseMqttClient::MongooseMqttClient() :
-#if MG_ENABLE_SSL
-  _rootCa(ARDUINO_MONGOOSE_DEFAULT_ROOT_CA),
-#endif
   _username(NULL),
   _password(NULL),
   _nc(NULL),
@@ -94,12 +91,10 @@ bool MongooseMqttClient::connect(const char *server, const char *username, const
   if(NULL == _nc) 
   {
     struct mg_connect_opts opts;
-    memset(&opts, 0, sizeof(opts));
+    Mongoose.getDefaultOpts(&opts);
+
     const char *err;
     opts.error_string = &err;
-#if MG_ENABLE_SSL
-    opts.ssl_ca_cert = _rootCa;
-#endif
 
     DBUGF("Trying to connect to %s", server);
     _nc = mg_connect_opt(Mongoose.getMgr(), server, eventHandler, this, opts);

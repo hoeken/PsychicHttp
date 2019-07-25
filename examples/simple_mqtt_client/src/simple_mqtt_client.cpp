@@ -86,7 +86,7 @@ void setup()
   Mongoose.begin();
 
 #if MG_ENABLE_SSL
-  client.setRootCa(root_ca);
+  Mongoose.setRootCa(root_ca);
 #endif
 
   client.onMessage([](MongooseString topic, MongooseString payload) {

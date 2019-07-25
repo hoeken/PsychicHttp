@@ -10,9 +10,6 @@
 #include "MongooseHttpClient.h"
 
 MongooseHttpClient::MongooseHttpClient() 
-#if MG_ENABLE_SSL
-  : _rootCa(ARDUINO_MONGOOSE_DEFAULT_ROOT_CA)
-#endif
 {
 
 }
@@ -108,12 +105,11 @@ MongooseHttpClientRequest *MongooseHttpClient::beginRequest(const char *uri)
 void MongooseHttpClient::send(MongooseHttpClientRequest *request)
 {
   struct mg_connect_opts opts;
-  memset(&opts, 0, sizeof(opts));
+    Mongoose.getDefaultOpts(&opts);
+
   const char *err;
   opts.error_string = &err;
-#if MG_ENABLE_SSL
-  opts.ssl_ca_cert = _rootCa;
-#endif
+
   mg_connection *nc = mg_connect_http_opt(Mongoose.getMgr(), eventHandler, request, opts, request->_uri, NULL, (const char *)request->_body);
   if(!nc) {
     DBUGF("Failed to connect to %s: %s", request->_uri, err);

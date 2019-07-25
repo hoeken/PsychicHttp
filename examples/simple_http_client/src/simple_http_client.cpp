@@ -130,7 +130,7 @@ void setup()
   Mongoose.begin();
 
 #if MG_ENABLE_SSL
-  client.setRootCa(root_ca);
+  Mongoose.setRootCa(root_ca);
 #endif
 
   // Based on https://github.com/typicode/jsonplaceholder#how-to
