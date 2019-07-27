@@ -21,14 +21,13 @@
 #endif
 
 #if MG_ENABLE_SSL
-#define PROTO "https"
+// SHA-1 hash, not supported
+#define MQTT_HOST "test.mosquitto.org:8883"
+#define MQTT_PROTOCOL MQTT_MQTTS
 #else
-#define PROTO "http"
-#endif
-
-//#define MQTT_HOST "172.16.0.109:1883"
-//#define MQTT_HOST "moonshade.lan:1883"
 #define MQTT_HOST "test.mosquitto.org:1883"
+#define MQTT_PROTOCOL MQTT_MQTT
+#endif
 
 MongooseMqttClient client;
 
@@ -98,7 +97,7 @@ void setup()
   });
 
   DBUGF("Trying to connect to " MQTT_HOST);
-  client.connect(MQTT_HOST, []()
+  client.connect(MQTT_PROTOCOL, MQTT_HOST, []()
   {
     DBUGF("Connected, subscribing to #");
     client.subscribe("/stuff");

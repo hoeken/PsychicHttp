@@ -86,12 +86,20 @@ void MongooseMqttClient::eventHandler(struct mg_connection *nc, int ev, void *p)
   }
 }
 
-bool MongooseMqttClient::connect(const char *server, const char *username, const char *password, MongooseMqttConnectionHandler onConnect)
+bool MongooseMqttClient::connect(MongooseMqttProtocol protocol, const char *server, const char *username, const char *password, MongooseMqttConnectionHandler onConnect)
 {
   if(NULL == _nc) 
   {
     struct mg_connect_opts opts;
-    Mongoose.getDefaultOpts(&opts);
+    bool secure = false;
+
+#if MG_ENABLE_SSL
+    if(MQTT_MQTTS == protocol || MQTT_WSS == protocol) {
+      secure = true;
+    }
+#endif
+
+    Mongoose.getDefaultOpts(&opts, secure);
 
     const char *err;
     opts.error_string = &err;

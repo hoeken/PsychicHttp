@@ -17,6 +17,13 @@ typedef std::function<void()> MongooseMqttConnectionHandler;
 typedef std::function<void(const MongooseString topic, const MongooseString payload)> MongooseMqttMessageHandler;
 typedef std::function<void(uint8_t retCode)> MongooseMqttErrorHandler;
 
+typedef enum {
+  MQTT_MQTT,
+  MQTT_MQTTS,
+  MQTT_WS,  // TODO
+  MQTT_WSS  // TODO
+} MongooseMqttProtocol;
+
 class MongooseMqttClient
 {
   private:
@@ -38,9 +45,15 @@ class MongooseMqttClient
     ~MongooseMqttClient();
 
   bool connect(const char *server, MongooseMqttConnectionHandler onConnect) {
-    return connect(server, NULL, NULL, onConnect);
+    return connect(MQTT_MQTT, server, NULL, NULL, onConnect);
   }
-  bool connect(const char *server, const char *username, const char *password, MongooseMqttConnectionHandler onConnect);
+  bool connect(MongooseMqttProtocol protocol, const char *server, MongooseMqttConnectionHandler onConnect) {
+    return connect(protocol, server, NULL, NULL, onConnect);
+  }
+  bool connect(const char *server, const char *username, const char *password, MongooseMqttConnectionHandler onConnect) {
+    return connect(MQTT_MQTT, server, username, password, onConnect);
+  }
+  bool connect(MongooseMqttProtocol protocol, const char *server, const char *username, const char *password, MongooseMqttConnectionHandler onConnect);
   bool connected() {
     return _connected;
   }

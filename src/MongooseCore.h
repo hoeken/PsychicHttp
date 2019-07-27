@@ -29,7 +29,7 @@ class MongooseCore
     void poll(int timeout_ms);
 
     struct mg_mgr *getMgr();
-    void getDefaultOpts(struct mg_connect_opts *opts);
+    void getDefaultOpts(struct mg_connect_opts *opts, bool secure = false);
 
 #if MG_ENABLE_SSL
     void setRootCa(const char *rootCa) {

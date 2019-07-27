@@ -40,7 +40,7 @@ struct mg_mgr *MongooseCore::getMgr()
   return &mgr;
 }
 
-void MongooseCore::getDefaultOpts(struct mg_connect_opts *opts)
+void MongooseCore::getDefaultOpts(struct mg_connect_opts *opts, bool secure)
 {
   memset(opts, 0, sizeof(*opts));
 
@@ -53,7 +53,11 @@ void MongooseCore::getDefaultOpts(struct mg_connect_opts *opts)
 #endif // ARDUINO
 
 #if MG_ENABLE_SSL
+  if(secure) {
     opts->ssl_ca_cert = _rootCa;
+  }
+#else
+  (void)secure;
 #endif
 }
 
