@@ -138,6 +138,11 @@ class MongooseHttpServerRequest {
     }
 #endif
     void requestAuthentication(const char* realm);
+#ifdef ARDUINO
+    void requestAuthentication(const String& realm) {
+      requestAuthentication(realm.c_str());
+    }
+#endif
 };
 
 class MongooseHttpServerResponse
