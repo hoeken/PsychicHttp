@@ -105,6 +105,8 @@ bool MongooseMqttClient::connect(MongooseMqttProtocol protocol, const char *serv
     opts.error_string = &err;
 
     DBUGF("Trying to connect to %s", server);
+    _username = username;
+    _password = password;
     _nc = mg_connect_opt(Mongoose.getMgr(), server, eventHandler, this, opts);
     if(_nc) {
       return true;
