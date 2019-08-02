@@ -54,6 +54,22 @@ class MongooseMqttClient
     return connect(MQTT_MQTT, server, username, password, onConnect);
   }
   bool connect(MongooseMqttProtocol protocol, const char *server, const char *username, const char *password, MongooseMqttConnectionHandler onConnect);
+
+#ifdef ARDUINO
+  bool connect(String &server, MongooseMqttConnectionHandler onConnect) {
+    return connect(MQTT_MQTT, server.c_str(), NULL, NULL, onConnect);
+  }
+  bool connect(MongooseMqttProtocol protocol, String &server, MongooseMqttConnectionHandler onConnect) {
+    return connect(protocol, server.c_str(), NULL, NULL, onConnect);
+  }
+  bool connect(String &server, String &username, String &password, MongooseMqttConnectionHandler onConnect) {
+    return connect(MQTT_MQTT, server.c_str(), username.c_str(), password.c_str(), onConnect);
+  }
+  bool connect(MongooseMqttProtocol protocol, String &server, String &username, String &password, MongooseMqttConnectionHandler onConnect) {
+    return connect(protocol, server.c_str(), username.c_str(), password.c_str(), onConnect);
+  }
+#endif
+
   bool connected() {
     return _connected;
   }
@@ -66,6 +82,11 @@ class MongooseMqttClient
   }
 
   bool subscribe(const char *topic);
+#ifdef ARDUINO
+  bool subscribe(String &topic) {
+    return subscribe(topic.c_str());
+  }
+#endif
 
   bool publish(const char *topic, const char *payload) {
     return publish(topic, mg_mk_str(payload));
@@ -74,6 +95,17 @@ class MongooseMqttClient
     return publish(topic, payload.toMgStr());
   }
   bool publish(const char *topic, mg_str payload);
+#ifdef ARDUINO
+  bool publish(String &topic, const char *payload) {
+    return publish(topic.c_str(), mg_mk_str(payload));
+  }
+  bool publish(String &topic, String &payload) {
+    return publish(topic.c_str(), mg_mk_str(payload.c_str()));
+  }
+  bool publish(const char *topic, String &payload) {
+    return publish(topic, mg_mk_str(payload.c_str()));
+  }
+#endif
 };
 
 #endif /* MongooseMqttClient_h */
