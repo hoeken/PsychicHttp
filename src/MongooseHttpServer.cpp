@@ -10,15 +10,9 @@
 #include "MongooseCore.h"
 #include "MongooseHttpServer.h"
 
-struct MongooseHttpServerHandler
-{ 
-  MongooseHttpServer *server;
-  HttpRequestMethodComposite method;
-  MongooseHttpRequestHandler handler;
-};
-
 MongooseHttpServer::MongooseHttpServer() :
-  nc(NULL)
+  nc(NULL),
+  defaultEndpoint(this, HTTP_ANY)
 {
 
 }
@@ -71,40 +65,53 @@ bool MongooseHttpServer::begin(uint16_t port, const char *cert, const char *priv
 }
 #endif
 
-void MongooseHttpServer::on(const char* uri, MongooseHttpRequestHandler onRequest)
+MongooseHttpServerEndpoint *MongooseHttpServer::on(const char* uri)
 {
-  on(uri, HTTP_ANY, onRequest);
+  return on(uri, HTTP_ANY);
 }
 
-void MongooseHttpServer::on(const char* uri, HttpRequestMethodComposite method, MongooseHttpRequestHandler onRequest)
+MongooseHttpServerEndpoint *MongooseHttpServer::on(const char* uri, MongooseHttpRequestHandler onRequest)
 {
-  MongooseHttpServerHandler *handler = new MongooseHttpServerHandler;
-  handler->server = this;
-  handler->handler = onRequest;
+  return on(uri, HTTP_ANY)->onRequest(onRequest);
+}
+
+MongooseHttpServerEndpoint *MongooseHttpServer::on(const char* uri, HttpRequestMethodComposite method, MongooseHttpRequestHandler onRequest)
+{
+  return on(uri, method)->onRequest(onRequest);
+}
+
+MongooseHttpServerEndpoint *MongooseHttpServer::on(const char* uri, HttpRequestMethodComposite method)
+{
+  MongooseHttpServerEndpoint *handler = new MongooseHttpServerEndpoint(this, method);
 
   mg_register_http_endpoint(nc, uri, endpointEventHandler, handler);
+
+  return handler;
 }
 
 void MongooseHttpServer::onNotFound(MongooseHttpRequestHandler fn)
 {
-  fnNotFound = fn;
+  defaultEndpoint.onRequest(fn);
 }
 
 void MongooseHttpServer::defaultEventHandler(struct mg_connection *nc, int ev, void *p, void *u)
 {
   MongooseHttpServer *self = (MongooseHttpServer *)u;
-  self->eventHandler(nc, ev, p, HTTP_ANY, self->fnNotFound);
+  //if (ev != MG_EV_POLL) { DBUGF("defaultEventHandler: nc = %p, self = %p", nc, self); }
+  self->eventHandler(nc, ev, p, HTTP_ANY, &(self->defaultEndpoint));
 }
 
 void MongooseHttpServer::endpointEventHandler(struct mg_connection *nc, int ev, void *p, void *u)
 {
-  MongooseHttpServerHandler *self = (MongooseHttpServerHandler *)u;
-  self->server->eventHandler(nc, ev, p, self->method, self->handler);
+  MongooseHttpServerEndpoint *self = (MongooseHttpServerEndpoint *)u;
+  //if (ev != MG_EV_POLL) { DBUGF("endpointEventHandler: nc = %p,  self = %p,  self->server = %p", nc, self, self->server); }
+  self->server->eventHandler(nc, ev, p, self->method, self);
 }
 
-void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, MongooseHttpRequestHandler onRequest)
+void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, MongooseHttpServerEndpoint *endpoint)
 {
-  //DBUGF("Connection %p: %x", nc, ev);
+  if (ev != MG_EV_POLL) { DBUGF("%s %p: %d", __FUNCTION__, nc, ev); }
+
   switch (ev) {
     case MG_EV_ACCEPT: {
       char addr[32];
@@ -113,6 +120,9 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
       DBUGF("Connection %p from %s", nc, addr);
       break;
     }
+#if MG_ENABLE_HTTP_STREAMING_MULTIPART
+    case MG_EV_HTTP_MULTIPART_REQUEST:
+#endif
     case MG_EV_HTTP_REQUEST: {
       char addr[32];
       struct http_message *hm = (struct http_message *) p;
@@ -125,13 +135,18 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
         delete (MongooseHttpServerRequest *)nc->user_connection_data;
         nc->user_connection_data = NULL;
       }
-      MongooseHttpServerRequest *request = new MongooseHttpServerRequest(this, nc, hm);
+      MongooseHttpServerRequest *request = 
+#if MG_ENABLE_HTTP_STREAMING_MULTIPART
+        MG_EV_HTTP_MULTIPART_REQUEST == ev ? new MongooseHttpServerRequestUpload(this, nc, hm) :
+#endif
+                                             new MongooseHttpServerRequest(this, nc, hm);
       if(request)
       {
         nc->user_connection_data = request;
 
-        if(onRequest) {
-          onRequest(request);
+        if(endpoint->request) 
+        {
+          endpoint->request(request);
         } else {
           mg_http_send_error(nc, 404, NULL);
         }
@@ -141,22 +156,59 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
       break;
     }
 
+#if MG_ENABLE_HTTP_STREAMING_MULTIPART
+    case MG_EV_HTTP_PART_BEGIN:
+    case MG_EV_HTTP_PART_DATA:
+    case MG_EV_HTTP_PART_END:
+    {
+      if(nc->user_connection_data)
+      {
+        struct mg_http_multipart_part *mp = (struct mg_http_multipart_part *) p;
+        MongooseHttpServerRequestUpload *request = (MongooseHttpServerRequestUpload *)nc->user_connection_data;
+ 
+        if(endpoint->upload) {
+          mp->num_data_consumed = endpoint->upload(request, ev, MongooseString(mg_mk_str(mp->file_name)), 
+                                           request->index, (uint8_t*)mp->data.p, mp->data.len);
+        }
+
+        request->index += mp->num_data_consumed;
+      }
+      break;
+    }
+#endif // MG_ENABLE_HTTP_STREAMING_MULTIPART
+
     case MG_EV_POLL:
     case MG_EV_SEND:
     {
       if(nc->user_connection_data)
       {
         MongooseHttpServerRequest *request = (MongooseHttpServerRequest *)nc->user_connection_data;
-        request->sendBody();
+        if(request->responseSent()) {
+          request->sendBody();
+        }
       }
 
       break;
     }
 
+    case MG_EV_RECV:
+    {
+      int *num_bytes = (int *)p;
+      DBUGF("Received %d bytes", *num_bytes);
+      break;
+    }
+
     case MG_EV_CLOSE: {
       DBUGF("Connection %p closed", nc);
-      if(nc->user_connection_data) {
-        delete (MongooseHttpServerRequest *)nc->user_connection_data;
+      if(nc->user_connection_data) 
+      {
+        MongooseHttpServerRequest *request = (MongooseHttpServerRequest *)nc->user_connection_data;
+
+        if(endpoint->close) {
+          endpoint->close(request);
+        }
+
+        delete request;
         nc->user_connection_data = NULL;
       }
       break;

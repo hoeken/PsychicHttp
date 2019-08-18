@@ -97,6 +97,11 @@ class MongooseString
       return _string.len;
     }
 
+    const char *c_str()
+    {
+      return _string.p;
+    }
+
     int compareTo(const mg_str &str) const {
       return mg_strcmp(_string, str);
     }

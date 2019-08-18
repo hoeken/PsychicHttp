@@ -106,6 +106,9 @@ class MongooseHttpServerRequest {
 
     // Takes ownership of `response`, will delete when finished. Do not use `response` after calling
     void send(MongooseHttpServerResponse *response);
+    bool responseSent() {
+      return NULL != _response;
+    }
 
     void send(int code);
     void send(int code, const char *contentType, const char *content="");
@@ -143,6 +146,23 @@ class MongooseHttpServerRequest {
       requestAuthentication(realm.c_str());
     }
 #endif
+};
+
+class MongooseHttpServerRequestUpload : public MongooseHttpServerRequest
+{
+  friend MongooseHttpServer;
+
+  private:
+    uint64_t index;
+
+  public:
+    MongooseHttpServerRequestUpload(MongooseHttpServer *server, mg_connection *nc, http_message *msg) :
+      MongooseHttpServerRequest(server, nc, msg),
+      index(0)
+    {
+    }
+    virtual ~MongooseHttpServerRequestUpload() {
+    }
 };
 
 class MongooseHttpServerResponse
@@ -216,16 +236,54 @@ class MongooseHttpServerResponseStream:
 
 
 typedef std::function<void(MongooseHttpServerRequest *request)> MongooseHttpRequestHandler;
+typedef std::function<size_t(MongooseHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> MongooseHttpUploadHandler;
+
+class MongooseHttpServerEndpoint
+{
+  friend MongooseHttpServer;
+
+  private:
+    MongooseHttpServer *server;
+    HttpRequestMethodComposite method;
+    MongooseHttpRequestHandler request;
+    MongooseHttpUploadHandler upload;
+    MongooseHttpRequestHandler close;
+  
+  public:
+    MongooseHttpServerEndpoint(MongooseHttpServer *server, HttpRequestMethodComposite method) : 
+      server(server),
+      method(method),
+      request(NULL),
+      upload(NULL),
+      close(NULL)
+    {
+    }
+
+    MongooseHttpServerEndpoint *onRequest(MongooseHttpRequestHandler handler) {
+      this->request = handler;
+      return this;
+    }
+
+    MongooseHttpServerEndpoint *onUpload(MongooseHttpUploadHandler handler) {
+      this->upload = handler;
+      return this;
+    }
+
+    MongooseHttpServerEndpoint *onClose(MongooseHttpRequestHandler handler) {
+      this->close = handler;
+      return this;
+    }
+};
 
 class MongooseHttpServer 
 {
   protected:
     struct mg_connection *nc;
-    MongooseHttpRequestHandler fnNotFound;
+    MongooseHttpServerEndpoint defaultEndpoint;
 
     static void defaultEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
     static void endpointEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
-    void eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, MongooseHttpRequestHandler onRequest); 
+    void eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, MongooseHttpServerEndpoint *endpoint);
 
   public:
     MongooseHttpServer();
@@ -237,8 +295,10 @@ class MongooseHttpServer
     bool begin(uint16_t port, const char *cert, const char *private_key);
 #endif
 
-    void on(const char* uri, MongooseHttpRequestHandler onRequest);
-    void on(const char* uri, HttpRequestMethodComposite method, MongooseHttpRequestHandler onRequest);
+    MongooseHttpServerEndpoint *on(const char* uri);
+    MongooseHttpServerEndpoint *on(const char* uri, HttpRequestMethodComposite method);
+    MongooseHttpServerEndpoint *on(const char* uri, MongooseHttpRequestHandler onRequest);
+    MongooseHttpServerEndpoint *on(const char* uri, HttpRequestMethodComposite method, MongooseHttpRequestHandler onRequest);
 
     void onNotFound(MongooseHttpRequestHandler fn);
 
