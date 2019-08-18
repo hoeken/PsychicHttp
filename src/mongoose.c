@@ -6000,6 +6000,9 @@ struct mg_http_proto_data {
   struct mg_http_proto_data_chuncked chunk;
   struct mg_http_endpoint *endpoints;
   mg_event_handler_t endpoint_handler;
+#if MG_ENABLE_CALLBACK_USERDATA
+  void *user_data;
+#endif
   struct mg_reverse_proxy_data reverse_proxy_data;
   size_t rcvd; /* How many bytes we have received. */
 };
@@ -6576,11 +6579,13 @@ void mg_http_handler(struct mg_connection *nc, int ev,
       mp.var_name = pd->mp_stream.var_name;
       mp.file_name = pd->mp_stream.file_name;
       mg_call(nc, (pd->endpoint_handler ? pd->endpoint_handler : nc->handler),
-              nc->user_data, MG_EV_HTTP_PART_END, &mp);
+              (pd->endpoint_handler ? pd->user_data : nc->user_data),
+              MG_EV_HTTP_PART_END, &mp);
       mp.var_name = NULL;
       mp.file_name = NULL;
       mg_call(nc, (pd->endpoint_handler ? pd->endpoint_handler : nc->handler),
-              nc->user_data, MG_EV_HTTP_MULTIPART_REQUEST_END, &mp);
+              (pd->endpoint_handler ? pd->user_data : nc->user_data),
+              MG_EV_HTTP_MULTIPART_REQUEST_END, &mp);
     } else
 #endif
         if (io->len > 0 &&
@@ -6597,7 +6602,7 @@ void mg_http_handler(struct mg_connection *nc, int ev,
     }
     pd->rcvd = 0;
     if (pd->endpoint_handler != NULL && pd->endpoint_handler != nc->handler) {
-      mg_call(nc, pd->endpoint_handler, nc->user_data, ev, NULL);
+      mg_call(nc, pd->endpoint_handler, pd->user_data, ev, NULL);
     }
   }
 
@@ -6816,6 +6821,7 @@ static void mg_http_multipart_begin(struct mg_connection *nc,
     ep = mg_http_get_endpoint_handler(nc->listener, &hm->uri);
     if (ep != NULL) {
       pd->endpoint_handler = ep->handler;
+      pd->user_data = ep->user_data;
     }
 
     mg_http_call_endpoint_handler(nc, MG_EV_HTTP_MULTIPART_REQUEST, hm);
@@ -6841,7 +6847,7 @@ static size_t mg_http_multipart_call_handler(struct mg_connection *c, int ev,
   mp.data.p = data;
   mp.data.len = data_len;
   mp.num_data_consumed = data_len;
-  mg_call(c, pd->endpoint_handler, c->user_data, ev, &mp);
+  mg_call(c, pd->endpoint_handler, pd->user_data, ev, &mp);
   pd->mp_stream.user_data = mp.user_data;
   pd->mp_stream.data_avail = (mp.num_data_consumed != data_len);
   return mp.num_data_consumed;
@@ -8928,6 +8934,7 @@ static void mg_http_call_endpoint_handler(struct mg_connection *nc, int ev,
       pd->endpoint_handler = ep->handler;
 #if MG_ENABLE_CALLBACK_USERDATA
       user_data = ep->user_data;
+      pd->user_data = ep->user_data;
 #endif
     }
   }
