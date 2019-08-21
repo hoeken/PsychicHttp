@@ -27,7 +27,8 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, int ev, void *p,
 
 void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClientRequest *request, int ev, void *p)
 {
-  //DBUGF("Connection %p: %x", nc, ev);
+  if (ev != MG_EV_POLL) { DBUGF("%s %p: %d", __PRETTY_FUNCTION__, nc, ev); }
+
   switch (ev) {
     case MG_EV_ACCEPT: {
       char addr[32];
@@ -53,6 +54,7 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
         nc->user_connection_data = response;
         request->_onResponse(response);
       }
+      nc->flags |= MG_F_CLOSE_IMMEDIATELY;
       break;
     }
 
@@ -105,7 +107,7 @@ MongooseHttpClientRequest *MongooseHttpClient::beginRequest(const char *uri)
 void MongooseHttpClient::send(MongooseHttpClientRequest *request)
 {
   struct mg_connect_opts opts;
-    Mongoose.getDefaultOpts(&opts);
+  Mongoose.getDefaultOpts(&opts);
 
   const char *err;
   opts.error_string = &err;

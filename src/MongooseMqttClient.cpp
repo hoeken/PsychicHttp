@@ -34,7 +34,8 @@ void MongooseMqttClient::eventHandler(struct mg_connection *nc, int ev, void *p)
 {
   struct mg_mqtt_message *msg = (struct mg_mqtt_message *) p;
 
-  if (ev != MG_EV_POLL) { DBUGF("Connection %p: %d", nc, ev); }
+  if (ev != MG_EV_POLL) { DBUGF("%s %p: %d", __PRETTY_FUNCTION__, nc, ev); }
+
   switch (ev) 
   {
     case MG_EV_CONNECT: {
