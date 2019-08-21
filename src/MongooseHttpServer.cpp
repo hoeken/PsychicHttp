@@ -110,7 +110,7 @@ void MongooseHttpServer::endpointEventHandler(struct mg_connection *nc, int ev, 
 
 void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, MongooseHttpServerEndpoint *endpoint)
 {
-  if (ev != MG_EV_POLL) { DBUGF("%s %p: %d", __FUNCTION__, nc, ev); }
+  if (ev != MG_EV_POLL) { DBUGF("%s %p: %d", __PRETTY_FUNCTION__, nc, ev); }
 
   switch (ev) {
     case MG_EV_ACCEPT: {
@@ -222,7 +222,11 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
 MongooseHttpServerRequest::MongooseHttpServerRequest(MongooseHttpServer *server, mg_connection *nc, http_message *msg) :
   _server(server),
   _nc(nc),
+#if MG_COPY_HTTP_MESSAGE
+  _msg(duplicateMessage(msg)),
+#else
   _msg(msg),
+#endif
   _response(NULL)
 {
   if(0 == mg_vcasecmp(&msg->method, "GET")) {
@@ -248,7 +252,51 @@ MongooseHttpServerRequest::~MongooseHttpServerRequest()
     delete _response;
     _response = NULL;
   }
+
+#if MG_COPY_HTTP_MESSAGE
+  mg_strfree(&_msg->message);
+  delete _msg;
+  _msg = NULL;
+#endif
 }
+
+#if MG_COPY_HTTP_MESSAGE
+
+mg_str mg_mk_str_from_offsets(mg_str &dest, mg_str &src, mg_str &value) {
+  mg_str s;
+
+  s.p = value.p ? (dest.p + (value.p - src.p)) : NULL;
+  s.len = value.len;
+
+  return s;
+}
+
+http_message *MongooseHttpServerRequest::duplicateMessage(http_message *sm)
+{
+  http_message *nm = new http_message();
+  memset(nm, 0, sizeof(*nm));
+
+  mg_str headers = mg_mk_str_n(sm->message.p, sm->message.len - sm->body.len);
+
+  nm->message = mg_strdup_nul(headers);
+  nm->body = sm->body;
+
+  nm->method = mg_mk_str_from_offsets(nm->message, sm->message, sm->method);
+  nm->uri = mg_mk_str_from_offsets(nm->message, sm->message, sm->uri);
+  nm->proto = mg_mk_str_from_offsets(nm->message, sm->message, sm->proto);
+
+  nm->resp_code = sm->resp_code;
+  nm->resp_status_msg = mg_mk_str_from_offsets(nm->message, sm->message, sm->resp_status_msg);
+
+  nm->query_string = mg_mk_str_from_offsets(nm->message, sm->message, sm->query_string);
+
+  for(int i = 0; i < MG_MAX_HTTP_HEADERS; i++)
+  {
+    nm->header_names[i] = mg_mk_str_from_offsets(nm->message, sm->message, sm->header_names[i]);
+    nm->header_values[i] = mg_mk_str_from_offsets(nm->message, sm->message, sm->header_values[i]);
+  }
+}
+#endif
 
 void MongooseHttpServerRequest::redirect(const char *url)
 {
