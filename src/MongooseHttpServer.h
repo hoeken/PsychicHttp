@@ -12,6 +12,14 @@
 #include "MongooseString.h"
 #include "MongooseHttp.h"
 
+// Make a copy of the HTTP header so it is avalible outside of the onReceive 
+// callback. Setting to 0 will save some runtime memory but accessing the HTTP
+// message details outside of the onReceive callback will give undefined behaviour.
+// The body may not allways be avalible even in onReceive, eg file upload
+#ifndef MG_COPY_HTTP_MESSAGE
+#define MG_COPY_HTTP_MESSAGE 1
+#endif
+
 class MongooseHttpServer;
 class MongooseHttpServerRequest;
 class MongooseHttpServerResponse;
@@ -31,6 +39,10 @@ class MongooseHttpServerRequest {
     MongooseHttpServerResponse *_response;
 
     void sendBody();
+
+#if MG_COPY_HTTP_MESSAGE
+    http_message *duplicateMessage(http_message *);
+#endif
 
   public:
     MongooseHttpServerRequest(MongooseHttpServer *server, mg_connection *nc, http_message *msg);
@@ -87,6 +99,10 @@ class MongooseHttpServerRequest {
 
     MongooseString host() {
       return headers("Host");
+    }
+
+    MongooseString contentType() {
+      return headers("Content-Type");
     }
 
     size_t contentLength() {
