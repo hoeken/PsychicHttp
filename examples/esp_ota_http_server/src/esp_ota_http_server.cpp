@@ -120,7 +120,7 @@ const char* server_index =
 static void updateError(MongooseHttpServerRequest *request)
 {
   MongooseHttpServerResponseStream *resp = request->beginResponseStream();
-  resp->setCode(200);
+  resp->setCode(500);
   resp->setContentType("text/plain");
   resp->printf("Error: %d", Update.getError());
   request->send(resp);
@@ -203,7 +203,7 @@ void setup()
     })->
     onClose([](MongooseHttpServerRequest *request) 
     {
-      if(!Update.hasError()) {
+      if(Update.isFinished() && !Update.hasError()) {
         ESP.restart();
       }
     });
