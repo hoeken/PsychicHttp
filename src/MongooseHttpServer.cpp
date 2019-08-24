@@ -193,7 +193,10 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
 
     case MG_EV_RECV:
     {
+
+#ifdef ENABLE_DEBUG
       int *num_bytes = (int *)p;
+#endif
       DBUGF("Received %d bytes", *num_bytes);
       break;
     }
@@ -295,6 +298,8 @@ http_message *MongooseHttpServerRequest::duplicateMessage(http_message *sm)
     nm->header_names[i] = mg_mk_str_from_offsets(nm->message, sm->message, sm->header_names[i]);
     nm->header_values[i] = mg_mk_str_from_offsets(nm->message, sm->message, sm->header_values[i]);
   }
+  
+  return nm;
 }
 #endif
 
