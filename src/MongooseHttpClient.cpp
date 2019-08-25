@@ -30,11 +30,8 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
   if (ev != MG_EV_POLL) { DBUGF("%s %p: %d", __PRETTY_FUNCTION__, nc, ev); }
 
   switch (ev) {
-    case MG_EV_ACCEPT: {
-      char addr[32];
-      mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr),
-                          MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_PORT);
-      DBUGF("Connection %p to %s", nc, addr);
+    case MG_EV_CONNECT: {
+      DBUGVAR(*(int *)p);
       break;
     }
     case MG_EV_HTTP_REPLY: {

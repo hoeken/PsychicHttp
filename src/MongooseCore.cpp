@@ -4,6 +4,7 @@
 #ifdef ARDUINO
 #ifdef ESP32
 #include <WiFi.h>
+#include <ETH.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
 #endif
@@ -47,6 +48,11 @@ void MongooseCore::getDefaultOpts(struct mg_connect_opts *opts, bool secure)
 #ifdef ARDUINO
 #if defined(ESP32) || defined(ESP8266)
   IPAddress dns = WiFi.dnsIP(0);
+#if defined(ESP32)
+  if(0 == dns) {
+    dns = ETH.dnsIP(0);
+  }
+#endif
   _nameserver = dns.toString();
   opts->nameserver = _nameserver.c_str();
 #endif
