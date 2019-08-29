@@ -396,14 +396,14 @@ void MongooseHttpServerRequest::send(int code, const String& contentType, const 
 bool MongooseHttpServerRequest::hasParam(const char *name) const
 {
   char dst[8];
-  return -4 != getParam(name, dst, sizeof(dst));
+  return getParam(name, dst, sizeof(dst)) >= 0;
 }
 
 #ifdef ARDUINO
 bool MongooseHttpServerRequest::hasParam(const String& name) const
 {
   char dst[8];
-  return -4 != getParam(name, dst, sizeof(dst));
+  return getParam(name, dst, sizeof(dst)) >= 0;
 }
 #endif
 
@@ -411,7 +411,7 @@ bool MongooseHttpServerRequest::hasParam(const String& name) const
 bool MongooseHttpServerRequest::hasParam(const __FlashStringHelper * data) const
 {
   char dst[8];
-  return -4 != getParam(data, dst, sizeof(dst));
+  return getParam(data, dst, sizeof(dst)) >= 0;
 }
 #endif
 
