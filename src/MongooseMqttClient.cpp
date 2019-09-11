@@ -8,8 +8,12 @@
 #include "MongooseMqttClient.h"
 
 MongooseMqttClient::MongooseMqttClient() :
+  _client_id(NULL),
   _username(NULL),
   _password(NULL),
+  _will_topic(NULL),
+  _will_message(NULL),
+  _will_retain(false),
   _nc(NULL),
   _connected(false),
   _onConnect(NULL),
@@ -43,9 +47,22 @@ void MongooseMqttClient::eventHandler(struct mg_connection *nc, int ev, void *p)
       memset(&opts, 0, sizeof(opts));
       opts.user_name = _username;
       opts.password = _password;
+      opts.will_topic = _will_topic;
+      opts.will_message = _will_message;
+      
+      if(_will_retain) {
+        opts.flags |= MG_MQTT_WILL_RETAIN;
+      }
+      
+      DBUGVAR(_client_id);
+      DBUGVAR(opts.user_name);
+      DBUGVAR(opts.password);
+      DBUGVAR(opts.will_topic);
+      DBUGVAR(opts.will_message);
+      DBUGVAR(opts.flags);
 
       mg_set_protocol_mqtt(nc);
-      mg_send_mqtt_handshake_opt(nc, "dummy", opts);
+      mg_send_mqtt_handshake_opt(nc, _client_id, opts);
       break;
     }
 
@@ -59,6 +76,7 @@ void MongooseMqttClient::eventHandler(struct mg_connection *nc, int ev, void *p)
         DBUGF("Got mqtt connection error: %d", msg->connack_ret_code);
         if(_onError) {
           _onError(msg->connack_ret_code);
+          _nc = NULL;
         }
       }
       break;
@@ -82,12 +100,13 @@ void MongooseMqttClient::eventHandler(struct mg_connection *nc, int ev, void *p)
 
     case MG_EV_CLOSE: {
       DBUGF("Connection %p closed", nc);
+      _nc = NULL;
       break;
     }
   }
 }
 
-bool MongooseMqttClient::connect(MongooseMqttProtocol protocol, const char *server, const char *username, const char *password, MongooseMqttConnectionHandler onConnect)
+bool MongooseMqttClient::connect(MongooseMqttProtocol protocol, const char *server, const char *client_id, MongooseMqttConnectionHandler onConnect)
 {
   if(NULL == _nc) 
   {
@@ -106,8 +125,8 @@ bool MongooseMqttClient::connect(MongooseMqttProtocol protocol, const char *serv
     opts.error_string = &err;
 
     DBUGF("Trying to connect to %s", server);
-    _username = username;
-    _password = password;
+    _onConnect = onConnect;
+    _client_id = client_id;
     _nc = mg_connect_opt(Mongoose.getMgr(), server, eventHandler, this, opts);
     if(_nc) {
       return true;
@@ -131,10 +150,15 @@ bool MongooseMqttClient::subscribe(const char *topic)
   return false;
 }
 
-bool MongooseMqttClient::publish(const char *topic, mg_str payload)
+bool MongooseMqttClient::publish(const char *topic, mg_str payload, bool retain)
 {
+  int flags = MG_MQTT_QOS(0);
+  if(retain) {
+    flags |= MG_MQTT_RETAIN;
+  }
+  
   if(connected()) {
-    mg_mqtt_publish(_nc, topic, 65, MG_MQTT_QOS(0), payload.p, payload.len);
+    mg_mqtt_publish(_nc, topic, 65, flags, payload.p, payload.len);
     return true;
   }
 

@@ -27,8 +27,12 @@ typedef enum {
 class MongooseMqttClient
 {
   private:
+    const char *_client_id;
     const char *_username;
     const char *_password;
+    const char *_will_topic;
+    const char *_will_message;
+    bool _will_retain;
     struct mg_connection *_nc;
     bool _connected;
 
@@ -44,29 +48,34 @@ class MongooseMqttClient
     MongooseMqttClient();
     ~MongooseMqttClient();
 
-  bool connect(const char *server, MongooseMqttConnectionHandler onConnect) {
-    return connect(MQTT_MQTT, server, NULL, NULL, onConnect);
+  bool connect(const char *server, const char *client_id, MongooseMqttConnectionHandler onConnect) {
+    return connect(MQTT_MQTT, server, client_id, onConnect);
   }
-  bool connect(MongooseMqttProtocol protocol, const char *server, MongooseMqttConnectionHandler onConnect) {
-    return connect(protocol, server, NULL, NULL, onConnect);
+  bool connect(MongooseMqttProtocol protocol, const char *server, const char *client_id, MongooseMqttConnectionHandler onConnect);
+
+  void setCredentials(const char *username, const char *password) {
+    _username = username;
+    _password = password;
   }
-  bool connect(const char *server, const char *username, const char *password, MongooseMqttConnectionHandler onConnect) {
-    return connect(MQTT_MQTT, server, username, password, onConnect);
+
+  void setLastWillAndTestimment(const char *topic, const char *message, bool retain = false) {
+    _will_topic = topic;
+    _will_message = message;
+    _will_retain = retain;
   }
-  bool connect(MongooseMqttProtocol protocol, const char *server, const char *username, const char *password, MongooseMqttConnectionHandler onConnect);
 
 #ifdef ARDUINO
-  bool connect(String &server, MongooseMqttConnectionHandler onConnect) {
-    return connect(MQTT_MQTT, server.c_str(), NULL, NULL, onConnect);
+  bool connect(String &server, String &client_id, MongooseMqttConnectionHandler onConnect) {
+    return connect(MQTT_MQTT, server.c_str(), client_id.c_str(), onConnect);
   }
-  bool connect(MongooseMqttProtocol protocol, String &server, MongooseMqttConnectionHandler onConnect) {
-    return connect(protocol, server.c_str(), NULL, NULL, onConnect);
+  bool connect(MongooseMqttProtocol protocol, String &server, String &client_id, MongooseMqttConnectionHandler onConnect) {
+    return connect(protocol, server.c_str(), client_id.c_str(), onConnect);
   }
-  bool connect(String &server, String &username, String &password, MongooseMqttConnectionHandler onConnect) {
-    return connect(MQTT_MQTT, server.c_str(), username.c_str(), password.c_str(), onConnect);
+  void setCredentials(String &username, String &password) {
+    setCredentials(username.c_str(), password.c_str());
   }
-  bool connect(MongooseMqttProtocol protocol, String &server, String &username, String &password, MongooseMqttConnectionHandler onConnect) {
-    return connect(protocol, server.c_str(), username.c_str(), password.c_str(), onConnect);
+  void setLastWillAndTestimment(String &topic, String &message, bool retain = false) {
+    setLastWillAndTestimment(topic.c_str(), message.c_str(), retain);
   }
 #endif
 
@@ -88,22 +97,22 @@ class MongooseMqttClient
   }
 #endif
 
-  bool publish(const char *topic, const char *payload) {
-    return publish(topic, mg_mk_str(payload));
+  bool publish(const char *topic, const char *payload, bool retain = false) {
+    return publish(topic, mg_mk_str(payload), retain);
   }
-  bool publish(const char *topic, MongooseString payload) {
-    return publish(topic, payload.toMgStr());
+  bool publish(const char *topic, MongooseString payload, bool retain = false) {
+    return publish(topic, payload.toMgStr(), retain);
   }
-  bool publish(const char *topic, mg_str payload);
+  bool publish(const char *topic, mg_str payload, bool retain = false);
 #ifdef ARDUINO
-  bool publish(String &topic, const char *payload) {
-    return publish(topic.c_str(), mg_mk_str(payload));
+  bool publish(String &topic, const char *payload, bool retain = false) {
+    return publish(topic.c_str(), mg_mk_str(payload), retain);
   }
-  bool publish(String &topic, String &payload) {
-    return publish(topic.c_str(), mg_mk_str(payload.c_str()));
+  bool publish(String &topic, String &payload, bool retain = false) {
+    return publish(topic.c_str(), mg_mk_str(payload.c_str()), retain);
   }
-  bool publish(const char *topic, String &payload) {
-    return publish(topic, mg_mk_str(payload.c_str()));
+  bool publish(const char *topic, String &payload, bool retain = false) {
+    return publish(topic, mg_mk_str(payload.c_str()), retain);
   }
 #endif
 };
