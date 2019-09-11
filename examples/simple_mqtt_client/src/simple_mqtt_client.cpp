@@ -30,9 +30,11 @@
 #endif
 
 MongooseMqttClient client;
+char clientId[16];
 
 const char *ssid = "wibble";
 const char *password = "TheB1gJungle2";
+
 
 #if MG_ENABLE_SSL
 // Root CA bundle
@@ -61,6 +63,8 @@ const char *root_ca =
 
 void setup()
 {
+  uint64_t deviceId = 0;
+
   Serial.begin(115200);
 
 #ifdef START_ESP_WIFI
@@ -77,8 +81,10 @@ void setup()
   Serial.print("Hostname: ");
 #ifdef ESP32
   Serial.println(WiFi.getHostname());
+  deviceId = ESP.getEfuseMac();
 #elif defined(ESP8266)
   Serial.println(WiFi.hostname());
+  deviceId = ESP.getChipId();
 #endif
 #endif
 
@@ -88,6 +94,7 @@ void setup()
   Mongoose.setRootCa(root_ca);
 #endif
 
+  sniprintf(clientId, sizeof(clientId), "mg-%llx", deviceId);
   client.onMessage([](MongooseString topic, MongooseString payload) {
     DBUGF("%.*s: %.*s", topic.length(), (const char *)topic, payload.length(), (const char *)payload);
     client.publish("/test", payload);
@@ -97,7 +104,7 @@ void setup()
   });
 
   DBUGF("Trying to connect to " MQTT_HOST);
-  client.connect(MQTT_PROTOCOL, MQTT_HOST, []()
+  client.connect(MQTT_PROTOCOL, MQTT_HOST, clientId, []()
   {
     DBUGF("Connected, subscribing to #");
     client.subscribe("/stuff");
