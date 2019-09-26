@@ -61,6 +61,19 @@
 #define CS_P_STM32 16
 /* Next id: 18 */
 
+#if defined(ARDUINO) && !defined(CS_PLATFORM)
+#ifdef ESP32
+#define CS_PLATFORM CS_P_ESP32
+#define START_ESP_WIFI
+#elif defined(ESP8266)
+#define CS_PLATFORM CS_P_ESP8266
+#define MG_ESP8266
+#define LWIP_COMPAT_SOCKETS 0
+#else
+#error Platform not supported
+#endif
+#endif
+
 /* If not specified explicitly, we guess platform by defines. */
 #ifndef CS_PLATFORM
 

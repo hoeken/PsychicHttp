@@ -26,17 +26,31 @@ env:
 #  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_esp
 #    ENV=huzzah
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_esp
+    ENV=huzzah
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_esp
     ENV=espwroverkit
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_native
     ENV=native
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_native
     ENV=windows_x86
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_server
+    ENV=huzzah
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_server
     ENV=esp-wrover-kit
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_server
     ENV=esp-wrover-kit-secure
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_client
+    ENV=huzzah
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_client
     ENV=esp-wrover-kit
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_http_client
+    ENV=esp-wrover-kit-secure
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_mqtt_client
+    ENV=huzzah
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_mqtt_client
+    ENV=esp-wrover-kit
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_mqtt_client
+    ENV=esp-wrover-kit-secure
 
 install:
   - pip install -U platformio
