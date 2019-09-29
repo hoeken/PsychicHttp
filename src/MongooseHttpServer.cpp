@@ -511,33 +511,61 @@ void MongooseHttpServerRequest::requestAuthentication(const char* realm)
 MongooseHttpServerResponse::MongooseHttpServerResponse() :
   _code(200),
   _contentType("text/plain"),
-  _contentLength(-1)
+  _contentLength(-1),
+  _headerBuffer(NULL)
 {
 
 }
 
+MongooseHttpServerResponse::~MongooseHttpServerResponse()
+{
+  if(_headerBuffer) {
+    free(_headerBuffer);
+    _headerBuffer = NULL;
+  }
+}
 void MongooseHttpServerResponse::sendHeaders(struct mg_connection *nc)
 {
   char headers[64], *pheaders = headers;
   mg_asprintf(&pheaders, sizeof(headers), 
       "Connection: close\r\n"
-      "Content-Type: %s",
-      _contentType);
+      "Content-Type: %s%s",
+      _contentType, _headerBuffer ? _headerBuffer : "");
 
   mg_send_head(nc, _code, _contentLength, pheaders);
 
-  if (pheaders != headers) free(pheaders);
+  if(_headerBuffer) {
+    free(_headerBuffer);
+    _headerBuffer = NULL;
+  }
+  if(pheaders != headers) {
+    free(pheaders);
+  }
 }
 
-bool MongooseHttpServerResponse::addHeader(const char *name, const char *value) const
+bool MongooseHttpServerResponse::addHeader(const char *name, const char *value)
 {
+  size_t startLen = _headerBuffer ? strlen(_headerBuffer) : 0;
+  size_t newLen = sizeof(": \r\n");
+  newLen += strlen(name);
+  newLen += strlen(value);
+  size_t len = startLen + newLen;
+
+  char * newBuffer = (char *)realloc(_headerBuffer, len);
+  if(newBuffer)
+  {
+    snprintf(newBuffer + startLen, newLen, "\r\n%s: %s", name, value);
+    _headerBuffer = newBuffer;
+    return true;
+  }
+
   return false;
 }
 
 #ifdef ARDUINO
-bool MongooseHttpServerResponse::addHeader(const String& name, const String& value) const
+bool MongooseHttpServerResponse::addHeader(const String& name, const String& value)
 {
-  return false;
+  return addHeader(name.c_str(), value.c_str());
 }
 #endif
 

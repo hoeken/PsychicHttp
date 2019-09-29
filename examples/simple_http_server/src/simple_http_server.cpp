@@ -152,6 +152,7 @@ void setup()
     MongooseHttpServerResponseBasic *resp = request->beginResponse();
     resp->setCode(200);
     resp->setContentType("text/html");
+    resp->addHeader("Cache-Control", "max-age=300");
     resp->addHeader("X-hello", "world");
     resp->setContent(
       "<html>\n"
@@ -173,8 +174,9 @@ void setup()
     MongooseHttpServerResponseStream *resp = request->beginResponseStream();
     resp->setCode(200);
     resp->setContentType("text/html");
+    resp->addHeader("Cache-Control", "max-age=300");
     resp->addHeader("X-hello", "world");
-    
+
     resp->println("<html>");
     resp->println("<head>");
     resp->println("<title>Stream Page</title>");
@@ -200,6 +202,7 @@ void setup()
 void loop()
 {
   Mongoose.poll(1000);
+  Serial.printf("Free memory %u\n", ESP.getFreeHeap());
 }
 
 static void notFound(MongooseHttpServerRequest *request)
