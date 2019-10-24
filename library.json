@@ -1,7 +1,7 @@
 {
   "name": "ArduinoMongoose",
-  "keywords": "network",
-  "description": "Arduino style wrapper arround Mongoose library",
+  "keywords": "network,http,mqtt,tcp,udp,ssl,tls",
+  "description": "Arduino style wrapper around Mongoose library. HTTP client/server, MQTT client",
   "repository":
   {
     "type": "git",
@@ -15,7 +15,7 @@
       "maintainer": true
     }
   ],
-  "version": "0.0.2",
+  "version": "0.0.4",
   "frameworks": "arduino",
   "platforms": "*",
   "dependencies": [
