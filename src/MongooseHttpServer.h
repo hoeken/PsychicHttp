@@ -188,10 +188,11 @@ class MongooseHttpServerResponse
     const char *_contentType;
     int64_t _contentLength;
 
+    char * _headerBuffer;
+
   public:
     MongooseHttpServerResponse();
-    virtual ~MongooseHttpServerResponse() {
-    }
+    virtual ~MongooseHttpServerResponse();
 
     void setCode(int code) {
       _code = code;
@@ -203,9 +204,9 @@ class MongooseHttpServerResponse
       _contentLength = contentLength;
     }
 
-    bool addHeader(const char *name, const char *value) const;
+    bool addHeader(const char *name, const char *value);
 #ifdef ARDUINO
-    bool addHeader(const String& name, const String& value) const;
+    bool addHeader(const String& name, const String& value);
 #endif
 
     // send the to `nc`, return true if more to send
