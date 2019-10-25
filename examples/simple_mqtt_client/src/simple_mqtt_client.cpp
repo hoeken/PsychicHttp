@@ -32,8 +32,8 @@
 MongooseMqttClient client;
 char clientId[16];
 
-const char *ssid = "wibble";
-const char *password = "TheB1gJungle2";
+const char *ssid = "wifi";
+const char *password = "password";
 
 
 #if MG_ENABLE_SSL

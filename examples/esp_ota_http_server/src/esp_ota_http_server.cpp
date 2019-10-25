@@ -22,8 +22,8 @@
 
 MongooseHttpServer server;
 
-const char *ssid = "wibble";
-const char *password = "TheB1gJungle2";
+const char *ssid = "wifi";
+const char *password = "password";
 
 const char *PARAM_MESSAGE = "message";
 

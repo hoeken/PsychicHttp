@@ -27,8 +27,8 @@
 
 MongooseHttpClient client;
 
-const char *ssid = "wibble";
-const char *password = "TheB1gJungle2";
+const char *ssid = "wifi";
+const char *password = "password";
 
 #if MG_ENABLE_SSL
 // Root CA bundle
