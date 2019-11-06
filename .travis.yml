@@ -51,6 +51,10 @@ env:
     ENV=esp-wrover-kit
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simple_mqtt_client
     ENV=esp-wrover-kit-secure
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/sntp_client
+    ENV=huzzah
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/sntp_client
+    ENV=esp-wrover-kit
 
 install:
   - pip install -U platformio

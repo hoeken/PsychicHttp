@@ -6596,6 +6596,10 @@ uint32_t mg_coap_compose(struct mg_coap_message *cm, struct mbuf *io);
 /* Failed to get time from server (timeout etc) */
 #define MG_SNTP_FAILED (MG_SNTP_EVENT_BASE + 3)
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 struct mg_sntp_message {
   /* if server sends this flags, user should not send requests to it */
   int kiss_of_death;
@@ -6621,7 +6625,12 @@ void mg_sntp_send_request(struct mg_connection *c);
  */
 struct mg_connection *mg_sntp_get_time(struct mg_mgr *mgr,
                                        mg_event_handler_t event_handler,
-                                       const char *sntp_server_name);
+                                       const char *sntp_server_name
+                                       MG_UD_ARG(void *user_data));
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif
 

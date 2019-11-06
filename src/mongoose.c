@@ -13091,6 +13091,9 @@ cleanup:
 
 struct sntp_data {
   mg_event_handler_t hander;
+#if MG_ENABLE_CALLBACK_USERDATA
+  void *user_data;
+#endif
   int count;
 };
 
@@ -13119,14 +13122,15 @@ static void mg_sntp_util_ev_handler(struct mg_connection *c, int ev,
       }
       break;
     case MG_SNTP_MALFORMED_REPLY:
-      mg_call(c, sd->hander, c->user_data, MG_SNTP_FAILED, NULL);
+      mg_call(c, sd->hander, sd->user_data, MG_SNTP_FAILED, NULL);
       c->flags |= MG_F_CLOSE_IMMEDIATELY;
       break;
     case MG_SNTP_REPLY:
-      mg_call(c, sd->hander, c->user_data, MG_SNTP_REPLY, ev_data);
+      mg_call(c, sd->hander, sd->user_data, MG_SNTP_REPLY, ev_data);
       c->flags |= MG_F_CLOSE_IMMEDIATELY;
       break;
     case MG_EV_CLOSE:
+      mg_call(c, sd->hander, sd->user_data, MG_EV_CLOSE, NULL);
       MG_FREE(user_data);
       c->user_data = NULL;
       break;
@@ -13135,7 +13139,7 @@ static void mg_sntp_util_ev_handler(struct mg_connection *c, int ev,
 
 struct mg_connection *mg_sntp_get_time(struct mg_mgr *mgr,
                                        mg_event_handler_t event_handler,
-                                       const char *sntp_server_name) {
+                                       const char *sntp_server_name MG_UD_ARG(void *user_data)) {
   struct mg_connection *c;
   struct sntp_data *sd = (struct sntp_data *) MG_CALLOC(1, sizeof(*sd));
   if (sd == NULL) {
@@ -13150,6 +13154,10 @@ struct mg_connection *mg_sntp_get_time(struct mg_mgr *mgr,
   }
 
   sd->hander = event_handler;
+#if MG_ENABLE_CALLBACK_USERDATA
+  sd->user_data = user_data;  
+#endif
+
 #if !MG_ENABLE_CALLBACK_USERDATA
   c->user_data = sd;
 #endif

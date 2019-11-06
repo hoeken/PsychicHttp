@@ -1,6 +1,6 @@
 {
   "name": "ArduinoMongoose",
-  "keywords": "network,http,mqtt,tcp,udp,ssl,tls",
+  "keywords": "network,http,mqtt,tcp,udp,ssl,tls,sntp",
   "description": "Arduino style wrapper around Mongoose library. HTTP client/server, MQTT client",
   "repository":
   {

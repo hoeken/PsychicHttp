@@ -24,6 +24,20 @@ MongooseCore::MongooseCore() :
 void MongooseCore::begin() 
 {
   mg_mgr_init(&mgr, this);
+
+#ifdef ARDUINO
+#if defined(ESP32) || defined(ESP8266)
+  IPAddress dns = WiFi.dnsIP(0);
+#if defined(ESP32)
+  if(0 == dns) {
+    dns = ETH.dnsIP(0);
+  }
+#endif
+  _nameserver = dns.toString();
+  mg_set_nameserver(&mgr, _nameserver.c_str());
+#endif
+#endif // ARDUINO
+
 }
 
 void MongooseCore::end() 
@@ -44,19 +58,6 @@ struct mg_mgr *MongooseCore::getMgr()
 void MongooseCore::getDefaultOpts(struct mg_connect_opts *opts, bool secure)
 {
   memset(opts, 0, sizeof(*opts));
-
-#ifdef ARDUINO
-#if defined(ESP32) || defined(ESP8266)
-  IPAddress dns = WiFi.dnsIP(0);
-#if defined(ESP32)
-  if(0 == dns) {
-    dns = ETH.dnsIP(0);
-  }
-#endif
-  _nameserver = dns.toString();
-  opts->nameserver = _nameserver.c_str();
-#endif
-#endif // ARDUINO
 
 #if MG_ENABLE_SSL
   if(secure) {
