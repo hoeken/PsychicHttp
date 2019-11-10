@@ -13010,8 +13010,11 @@ MG_INTERNAL int mg_sntp_parse_reply(const char *buf, int len,
 #endif
 
   mg_ntp_to_tv(trsm_ts_T3, &tv);
+  
+  msg->tv.tv_sec = tv.tv_sec + (delay / 1000000);
+  msg->tv.tv_usec = tv.tv_usec + (delay % 1000000);
 
-  msg->time = (double) tv.tv_sec + (((double) tv.tv_usec + delay) / 1000000.0);
+  msg->time = (double) msg->tv.tv_sec + (((double) msg->tv.tv_usec + delay) / 1000000.0);
 
   return 0;
 }

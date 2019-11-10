@@ -15,7 +15,7 @@
 
 class MongooseSntpClient;
 
-typedef std::function<void(double time)> MongooseSntpTimeHandler;
+typedef std::function<void(struct timeval time)> MongooseSntpTimeHandler;
 typedef std::function<void(uint8_t retCode)> MongooseSntpErrorHandler;
 
 class MongooseSntpClient

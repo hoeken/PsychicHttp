@@ -6605,6 +6605,8 @@ struct mg_sntp_message {
   int kiss_of_death;
   /* usual mg_time */
   double time;
+  /* usual timeval */
+  struct timeval tv;
 };
 
 /* Establishes connection to given sntp server */

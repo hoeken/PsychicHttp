@@ -38,7 +38,7 @@ void MongooseSntpClient::eventHandler(struct mg_connection *nc, int ev, void *p)
   {
     case MG_SNTP_REPLY:
       if(_onTime) {
-        _onTime(msg->time);
+        _onTime(msg->tv);
       }
       break;
 

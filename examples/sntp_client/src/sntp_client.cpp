@@ -31,6 +31,16 @@ const char *ssid = "wifi";
 const char *password = "password";
 
 static unsigned long next_time = 0;
+static bool fetching_time = false;
+
+double diff_time(timeval tv1, timeval tv2)
+{
+    double t1 = (double) tv1.tv_sec + (((double) tv1.tv_usec) / 1000000.0);
+    double t2 = (double) tv2.tv_sec + (((double) tv2.tv_usec) / 1000000.0);
+
+    return t1-t2;
+}
+
 
 void setup()
 {
@@ -60,6 +70,8 @@ void setup()
 
   sntp.onError([](uint8_t err) {
     DBUGF("Got error %u", err);
+    fetching_time = false;
+    next_time = millis() + 10 * 1000;
   });
   
   next_time = millis();
@@ -67,20 +79,24 @@ void setup()
 
 void loop()
 {
-  Mongoose.poll(next_time - millis());
-  
-  unsigned long now = millis();
-  if(now >= next_time)
+  Mongoose.poll(fetching_time ? 1000 : next_time - millis());
+
+  if(false == fetching_time && millis() >= next_time)
   {
-    next_time = now + 10 * 1000;
+    fetching_time = true;
 
     DBUGF("Trying to get time from " SNTP_HOST);
-    sntp.getTime(SNTP_HOST, [](double server_time)
+    sntp.getTime(SNTP_HOST, [](struct timeval server_time)
     {
-      time_t t = time(NULL);
-      Serial.printf("Local time: %s\n", ctime(&t));
-      t = (time_t)server_time;
-      Serial.printf("Time from %s: %s\n", SNTP_HOST, ctime(&t));
+      struct timeval local_time;
+      gettimeofday(&local_time, NULL);
+      Serial.printf("Local time: %s", ctime(&local_time.tv_sec));
+      Serial.printf("Time from %s: %s", SNTP_HOST, ctime(&server_time.tv_sec));
+      Serial.printf("Diff %.2f\n", diff_time(server_time, local_time));
+      settimeofday(&server_time, NULL);
+      
+      fetching_time = false;
+      next_time = millis() + 10 * 1000;
     });
   }
 }
