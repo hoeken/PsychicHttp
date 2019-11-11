@@ -73,6 +73,7 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
         delete (MongooseHttpClientResponse *)nc->user_connection_data;
         nc->user_connection_data = NULL;
       }
+      delete request;
       break;
     }
   }
