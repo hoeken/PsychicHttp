@@ -5062,6 +5062,7 @@ const char *mg_set_ssl(struct mg_connection *nc, const char *cert,
 #include <mbedtls/ssl_internal.h>
 #include <mbedtls/x509_crt.h>
 #include <mbedtls/version.h>
+#include <mbedtls/error.h>
 
 static void mg_ssl_mbed_log(void *ctx, int level, const char *file, int line,
                             const char *str) {
