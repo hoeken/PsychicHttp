@@ -32,11 +32,14 @@ class MongooseCore
     struct mg_mgr *getMgr();
     void getDefaultOpts(struct mg_connect_opts *opts, bool secure = false);
 
+    void ipConfigChanged();
+
 #if MG_ENABLE_SSL
     void setRootCa(const char *rootCa) {
       _rootCa = rootCa;
     }
 #endif
+
 };
 
 extern MongooseCore Mongoose;
