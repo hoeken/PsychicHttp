@@ -12,7 +12,7 @@
 #include "MongooseString.h"
 #include "MongooseHttp.h"
 
-// Make a copy of the HTTP header so it is avalible outside of the onReceive 
+// Make a copy of the HTTP header so it is avalible outside of the onReceive
 // callback. Setting to 0 will save some runtime memory but accessing the HTTP
 // message details outside of the onReceive callback will give undefined behaviour.
 // The body may not allways be avalible even in onReceive, eg file upload
@@ -68,7 +68,7 @@ class MongooseHttpServerRequest {
     MongooseString proto() {
       return MongooseString(_msg->proto);
     }
-    
+
     int respCode() {
       return _msg->resp_code;
     }
@@ -141,13 +141,13 @@ class MongooseHttpServerRequest {
     int getParam(const char *name, char *dst, size_t dst_len) const;
 #ifdef ARDUINO
     int getParam(const String& name, char *dst, size_t dst_len) const;
-    int getParam(const __FlashStringHelper * data, char *dst, size_t dst_len) const; 
+    int getParam(const __FlashStringHelper * data, char *dst, size_t dst_len) const;
 #endif
 
 #ifdef ARDUINO
     String getParam(const char *name) const;
     String getParam(const String& name) const;
-    String getParam(const __FlashStringHelper * data) const; 
+    String getParam(const __FlashStringHelper * data) const;
 #endif
 
     bool authenticate(const char * username, const char * password);
@@ -185,7 +185,7 @@ class MongooseHttpServerResponse
 {
   private:
     int _code;
-    const char *_contentType;
+    char *_contentType;
     int64_t _contentLength;
 
     char * _headerBuffer;
@@ -197,15 +197,17 @@ class MongooseHttpServerResponse
     void setCode(int code) {
       _code = code;
     }
-    void setContentType(const char *contentType) {
-      _contentType = contentType;
-    }
+    void setContentType(const char *contentType);
     void setContentLength(int64_t contentLength) {
       _contentLength = contentLength;
     }
 
     bool addHeader(const char *name, const char *value);
 #ifdef ARDUINO
+    void setContentType(String &contentType) {
+      setContentType(contentType.c_str());
+    }
+    void setContentType(const __FlashStringHelper *contentType);
     bool addHeader(const String& name, const String& value);
 #endif
 
@@ -216,7 +218,7 @@ class MongooseHttpServerResponse
     virtual size_t sendBody(struct mg_connection *nc, size_t bytes) = 0;
 };
 
-class MongooseHttpServerResponseBasic: 
+class MongooseHttpServerResponseBasic:
   public MongooseHttpServerResponse
 {
   private:
@@ -225,14 +227,14 @@ class MongooseHttpServerResponseBasic:
 
   public:
     MongooseHttpServerResponseBasic();
-  
+
     void setContent(const char *content);
     void setContent(const uint8_t *content, size_t len);
     virtual size_t sendBody(struct mg_connection *nc, size_t bytes);
 };
 
 #ifdef ARDUINO
-class MongooseHttpServerResponseStream: 
+class MongooseHttpServerResponseStream:
   public MongooseHttpServerResponse,
   public Print
 {
@@ -265,9 +267,9 @@ class MongooseHttpServerEndpoint
     MongooseHttpRequestHandler request;
     MongooseHttpUploadHandler upload;
     MongooseHttpRequestHandler close;
-  
+
   public:
-    MongooseHttpServerEndpoint(MongooseHttpServer *server, HttpRequestMethodComposite method) : 
+    MongooseHttpServerEndpoint(MongooseHttpServer *server, HttpRequestMethodComposite method) :
       server(server),
       method(method),
       request(NULL),
@@ -292,7 +294,7 @@ class MongooseHttpServerEndpoint
     }
 };
 
-class MongooseHttpServer 
+class MongooseHttpServer
 {
   protected:
     struct mg_connection *nc;

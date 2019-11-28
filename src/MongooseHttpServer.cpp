@@ -510,7 +510,7 @@ void MongooseHttpServerRequest::requestAuthentication(const char* realm)
 
 MongooseHttpServerResponse::MongooseHttpServerResponse() :
   _code(200),
-  _contentType("text/plain"),
+  _contentType(NULL),
   _contentLength(-1),
   _headerBuffer(NULL)
 {
@@ -519,6 +519,11 @@ MongooseHttpServerResponse::MongooseHttpServerResponse() :
 
 MongooseHttpServerResponse::~MongooseHttpServerResponse()
 {
+  if(_contentType) {
+    free(_contentType);
+    _contentType = NULL;
+  }
+
   if(_headerBuffer) {
     free(_headerBuffer);
     _headerBuffer = NULL;
@@ -530,7 +535,7 @@ void MongooseHttpServerResponse::sendHeaders(struct mg_connection *nc)
   mg_asprintf(&pheaders, sizeof(headers), 
       "Connection: close\r\n"
       "Content-Type: %s%s",
-      _contentType, _headerBuffer ? _headerBuffer : "");
+      _contentType ? _contentType : "text/plain", _headerBuffer ? _headerBuffer : "");
 
   mg_send_head(nc, _code, _contentLength, pheaders);
 
@@ -568,6 +573,30 @@ bool MongooseHttpServerResponse::addHeader(const String& name, const String& val
   return addHeader(name.c_str(), value.c_str());
 }
 #endif
+
+void MongooseHttpServerResponse::setContentType(const char *contentType)
+{
+  size_t len = strlen(contentType);
+  char *newPtr = (char *)realloc(_contentType, len + 1);
+  if(newPtr) {
+    strcpy(newPtr, contentType);
+    _contentType = newPtr;
+  }
+}
+
+#ifdef ARDUINO
+void MongooseHttpServerResponse::setContentType(const __FlashStringHelper *contentType)
+{
+  size_t len = strlen_P((PGM_P)contentType);
+  char *newPtr = (char *)realloc(_contentType, len + 1);
+  if(newPtr) {
+    strcpy_P(newPtr, (PGM_P)contentType);
+    _contentType = newPtr;
+  }
+}
+#endif
+
+
 
 MongooseHttpServerResponseBasic::MongooseHttpServerResponseBasic() :
   ptr(NULL), len(0)
