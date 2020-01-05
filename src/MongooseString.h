@@ -166,6 +166,9 @@ class MongooseString
     }
 
     String toString() {
+      if(NULL == _string.p) {
+        return String("");
+      }
       mg_str copy = mg_strdup_nul(_string);
       String ret = String(copy.p);
       mg_strfree(&copy);
