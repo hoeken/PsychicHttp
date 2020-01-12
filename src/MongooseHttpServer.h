@@ -27,6 +27,10 @@ class MongooseHttpServerResponseBasic;
 #ifdef ARDUINO
 class MongooseHttpServerResponseStream;
 #endif
+#if MG_ENABLE_HTTP_WEBSOCKET
+class MongooseHttpWebSocketConnection;
+#endif
+
 
 class MongooseHttpServerRequest {
   friend MongooseHttpServer;
@@ -256,6 +260,10 @@ class MongooseHttpServerResponseStream:
 
 typedef std::function<void(MongooseHttpServerRequest *request)> MongooseHttpRequestHandler;
 typedef std::function<size_t(MongooseHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> MongooseHttpUploadHandler;
+#if MG_ENABLE_HTTP_WEBSOCKET
+typedef std::function<void(MongooseHttpWebSocketConnection *connection)> MongooseHttpWebSocketConnectionHandler;
+typedef std::function<void(MongooseHttpWebSocketConnection *connection, int flags, uint8_t *data, size_t len)> MongooseHttpWebSocketFrameHandler;
+#endif
 
 class MongooseHttpServerEndpoint
 {
@@ -267,6 +275,11 @@ class MongooseHttpServerEndpoint
     MongooseHttpRequestHandler request;
     MongooseHttpUploadHandler upload;
     MongooseHttpRequestHandler close;
+#if MG_ENABLE_HTTP_WEBSOCKET
+    MongooseHttpWebSocketConnectionHandler wsConnect;
+    MongooseHttpWebSocketConnectionHandler wsClose;
+    MongooseHttpWebSocketFrameHandler wsFrame;
+#endif
 
   public:
     MongooseHttpServerEndpoint(MongooseHttpServer *server, HttpRequestMethodComposite method) :
@@ -275,6 +288,12 @@ class MongooseHttpServerEndpoint
       request(NULL),
       upload(NULL),
       close(NULL)
+#if MG_ENABLE_HTTP_WEBSOCKET
+      ,
+      wsConnect(NULL),
+      wsClose(NULL),
+      wsFrame(NULL)
+#endif
     {
     }
 
@@ -292,7 +311,56 @@ class MongooseHttpServerEndpoint
       this->close = handler;
       return this;
     }
+
+#if MG_ENABLE_HTTP_WEBSOCKET
+    MongooseHttpServerEndpoint *onConnect(MongooseHttpWebSocketConnectionHandler handler) {
+      this->wsConnect = handler;
+      return this;
+    }
+
+    MongooseHttpServerEndpoint *onClose(MongooseHttpWebSocketConnectionHandler handler) {
+      this->wsClose = handler;
+      return this;
+    }
+
+    MongooseHttpServerEndpoint *onFrame(MongooseHttpWebSocketFrameHandler handler) {
+      this->wsFrame = handler;
+      return this;
+    }
+#endif
 };
+
+#if MG_ENABLE_HTTP_WEBSOCKET
+class MongooseHttpWebSocketConnection
+{
+  friend MongooseHttpServer;
+
+  private:
+    MongooseHttpServer *_server;
+    mg_connection *_nc;
+
+  public:
+    MongooseHttpWebSocketConnection(MongooseHttpServer *server, mg_connection *nc);
+    virtual ~MongooseHttpWebSocketConnection();
+
+    void send(int op, const void *data, size_t len);
+    void send(const char *buf) {
+      send(WEBSOCKET_OP_TEXT, buf, strlen(buf));
+    }
+#ifdef ARDUINO
+    void send(String &str) {
+      send(str.c_str());
+    }
+#endif
+
+    const union socket_address *getRemoteAddress() {
+      return &(_nc->sa);
+    }
+    const mg_connection *getConnection() {
+      return _nc;
+    }
+};
+#endif
 
 class MongooseHttpServer
 {
@@ -322,6 +390,24 @@ class MongooseHttpServer
     void onNotFound(MongooseHttpRequestHandler fn);
 
     void reset();
+
+#if MG_ENABLE_HTTP_WEBSOCKET
+    void sendAll(MongooseHttpWebSocketConnection *from, int op, const void *data, size_t len);
+    void sendAll(int op, const void *data, size_t len) {
+      sendAll(NULL, op, data, len);
+    }
+    void sendAll(MongooseHttpWebSocketConnection *from, const char *buf) {
+      sendAll(WEBSOCKET_OP_TEXT, buf, strlen(buf));
+    }
+    void sendAll(const char *buf) {
+      sendAll(NULL, WEBSOCKET_OP_TEXT, buf, strlen(buf));
+    }
+#ifdef ARDUINO
+    void sendAll(String &str) {
+      sendAll(str.c_str());
+    }
+#endif
+#endif // MG_ENABLE_HTTP_WEBSOCKET
 };
 
 #endif /* _MongooseHttpServer_H_ */

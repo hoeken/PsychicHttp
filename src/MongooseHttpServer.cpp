@@ -161,6 +161,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
     case MG_EV_HTTP_PART_DATA:
     case MG_EV_HTTP_PART_END:
     {
+      DBUGF("nc->user_connection_data = %p", nc->user_connection_data);
       if(nc->user_connection_data)
       {
         struct mg_http_multipart_part *mp = (struct mg_http_multipart_part *) p;
@@ -213,12 +214,64 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
 
         delete request;
         nc->user_connection_data = NULL;
+      } 
+#if MG_ENABLE_HTTP_WEBSOCKET
+      if(nc->flags & MG_F_IS_WEBSOCKET && endpoint->wsClose)
+      {
+        MongooseHttpWebSocketConnection c(this, nc);
+        endpoint->wsClose(&c);
       }
+#endif
       break;
     }
+
+#if MG_ENABLE_HTTP_WEBSOCKET
+    case MG_EV_WEBSOCKET_HANDSHAKE_REQUEST: {
+
+    } break;
+
+    case MG_EV_WEBSOCKET_HANDSHAKE_DONE: {
+      if(endpoint->wsConnect)
+      {
+        MongooseHttpWebSocketConnection c(this, nc);
+        endpoint->wsConnect(&c);
+      }
+    } break;
+
+    case MG_EV_WEBSOCKET_FRAME: {
+      if(endpoint->wsFrame)
+      {
+        struct websocket_message *wm = (struct websocket_message *)p;
+        MongooseHttpWebSocketConnection c(this, nc);
+        endpoint->wsFrame(&c, wm->flags, wm->data, wm->size);
+      }
+    } break;
+
+    case MG_EV_WEBSOCKET_CONTROL_FRAME: {
+
+    } break;
+
+#endif    
   }
 }
 
+#if MG_ENABLE_HTTP_WEBSOCKET
+void MongooseHttpServer::sendAll(MongooseHttpWebSocketConnection *from, int op, const void *data, size_t len)
+{
+  mg_mgr *mgr = Mongoose.getMgr();
+
+  const struct mg_connection *nc = from ? from->getConnection() : NULL;
+  struct mg_connection *c;
+  for (c = mg_next(mgr, NULL); c != NULL; c = mg_next(mgr, c)) {
+    if (c == nc) continue; /* Don't send to the sender. */
+    if (c->flags & MG_F_IS_WEBSOCKET)
+    {
+      MongooseHttpWebSocketConnection to(this, c);
+      to.send(op, data, len);
+    }
+  }
+}
+#endif
 
 /// MongooseHttpServerRequest object
 
@@ -670,4 +723,22 @@ size_t MongooseHttpServerResponseStream::sendBody(struct mg_connection *nc, size
   return send;
 }
 
+#endif
+
+#if MG_ENABLE_HTTP_WEBSOCKET
+MongooseHttpWebSocketConnection::MongooseHttpWebSocketConnection(MongooseHttpServer *server, mg_connection *nc) :
+  _server(server),
+  _nc(nc)
+{
+}
+
+MongooseHttpWebSocketConnection::~MongooseHttpWebSocketConnection()
+{
+
+}
+
+void MongooseHttpWebSocketConnection::send(int op, const void *data, size_t len)
+{
+  mg_send_websocket_frame(_nc, op, data, len);
+}
 #endif

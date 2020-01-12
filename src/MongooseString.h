@@ -34,6 +34,12 @@ class MongooseString
     MongooseString(const mg_str string) :
       _string(string) {
     }
+    MongooseString(const char *string) :
+      _string(mg_mk_str(string)) {
+    }
+    MongooseString(const char *string, size_t len) :
+      _string(mg_mk_str_n(string, len)) {
+    }
 #ifdef ARDUINO
     MongooseString(String &str)
     {
