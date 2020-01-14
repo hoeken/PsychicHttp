@@ -397,12 +397,15 @@ class MongooseHttpServer
       sendAll(NULL, op, data, len);
     }
     void sendAll(MongooseHttpWebSocketConnection *from, const char *buf) {
-      sendAll(WEBSOCKET_OP_TEXT, buf, strlen(buf));
+      sendAll(from, WEBSOCKET_OP_TEXT, buf, strlen(buf));
     }
     void sendAll(const char *buf) {
       sendAll(NULL, WEBSOCKET_OP_TEXT, buf, strlen(buf));
     }
 #ifdef ARDUINO
+    void sendAll(MongooseHttpWebSocketConnection *from, String &str) {
+      sendAll(from, str.c_str());
+    }
     void sendAll(String &str) {
       sendAll(str.c_str());
     }
