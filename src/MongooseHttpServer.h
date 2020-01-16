@@ -41,6 +41,7 @@ class MongooseHttpServerRequest {
     http_message *_msg;
     HttpRequestMethodComposite _method;
     MongooseHttpServerResponse *_response;
+    bool _responseSent;
 
     void sendBody();
 

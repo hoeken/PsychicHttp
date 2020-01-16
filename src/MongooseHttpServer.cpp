@@ -167,7 +167,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
         struct mg_http_multipart_part *mp = (struct mg_http_multipart_part *) p;
         MongooseHttpServerRequestUpload *request = (MongooseHttpServerRequestUpload *)nc->user_connection_data;
  
-        if(endpoint->upload) {
+        if(!request->_responseSent && endpoint->upload) {
           mp->num_data_consumed = endpoint->upload(request, ev, MongooseString(mg_mk_str(mp->file_name)), 
                                            request->index, (uint8_t*)mp->data.p, mp->data.len);
         }
@@ -283,7 +283,8 @@ MongooseHttpServerRequest::MongooseHttpServerRequest(MongooseHttpServer *server,
 #else
   _msg(msg),
 #endif
-  _response(NULL)
+  _response(NULL),
+  _responseSent(false)
 {
   if(0 == mg_vcasecmp(&msg->method, "GET")) {
     _method = HTTP_GET;
@@ -392,6 +393,7 @@ void MongooseHttpServerRequest::send(MongooseHttpServerResponse *response)
   response->sendHeaders(_nc);
   _response = response;
   sendBody();
+  _responseSent = true;
 }
 
 void MongooseHttpServerRequest::sendBody()
@@ -436,6 +438,8 @@ void MongooseHttpServerRequest::send(int code, const char *contentType, const ch
   _nc->flags |= MG_F_SEND_AND_CLOSE;
 
   if (pheaders != headers) free(pheaders);
+
+  _responseSent = true;
 }
 
 #ifdef ARDUINO
@@ -553,12 +557,43 @@ String MongooseHttpServerRequest::getParam(const __FlashStringHelper * data) con
 
 bool MongooseHttpServerRequest::authenticate(const char * username, const char * password)
 {
-  return true;
+  DBUGVAR(username);
+  DBUGVAR(password);
+
+  char user_buf[64];
+  char pass_buf[64];
+
+  if(0 == mg_get_http_basic_auth(_msg, user_buf, sizeof(user_buf),
+                           pass_buf, sizeof(pass_buf)))
+  {
+    DBUGVAR(user_buf);
+    DBUGVAR(pass_buf);
+
+    if(0 == strcmp(username, user_buf) && 0 == strcmp(password, pass_buf))
+    {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void MongooseHttpServerRequest::requestAuthentication(const char* realm)
 {
+  // https://github.com/me-no-dev/ESPAsyncWebServer/blob/master/src/WebRequest.cpp#L852
+  // mg_http_send_digest_auth_request
 
+  char headers[64], *pheaders = headers;
+  mg_asprintf(&pheaders, sizeof(headers), 
+      "WWW-Authenticate: Basic realm=%s",
+      realm);
+
+  mg_send_head(_nc, 401, 0, pheaders);
+  _nc->flags |= MG_F_SEND_AND_CLOSE;
+
+  if (pheaders != headers) free(pheaders);
+
+  _responseSent = true;
 }
 
 MongooseHttpServerResponse::MongooseHttpServerResponse() :

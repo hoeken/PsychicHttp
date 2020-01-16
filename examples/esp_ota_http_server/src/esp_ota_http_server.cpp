@@ -25,8 +25,6 @@ MongooseHttpServer server;
 const char *ssid = "wifi";
 const char *password = "password";
 
-const char *PARAM_MESSAGE = "message";
-
 const char *server_pem = 
 "-----BEGIN CERTIFICATE-----\r\n"
 "MIIDDjCCAfagAwIBAgIBBDANBgkqhkiG9w0BAQsFADA/MRkwFwYDVQQDDBB0ZXN0\r\n"
@@ -117,6 +115,8 @@ const char* server_index =
 
 #include <Arduino.h>
 
+bool updateCompleted = false;
+
 static void updateError(MongooseHttpServerRequest *request)
 {
   MongooseHttpServerResponseStream *resp = request->beginResponseStream();
@@ -164,12 +164,25 @@ void setup()
 #endif
 
   server.on("/$", HTTP_GET, [](MongooseHttpServerRequest *request) {
+#if defined(ADMIN_USER) && defined(ADMIN_PASS) && defined(ADMIN_REALM)
+    if(false == request->authenticate(ADMIN_USER, ADMIN_PASS)) {
+      request->requestAuthentication(ADMIN_REALM);
+      return;
+    }
+#endif
+
     request->send(200, "text/html", server_index);
   });
 
   server.on("/update$", HTTP_POST)->
     onRequest([](MongooseHttpServerRequest *request) {
-      
+#if defined(ADMIN_USER) && defined(ADMIN_PASS) && defined(ADMIN_REALM)
+      if(false == request->authenticate(ADMIN_USER, ADMIN_PASS)) {
+        request->requestAuthentication(ADMIN_REALM);
+        return;
+      }
+#endif
+      updateCompleted = false;
     })->
     onUpload([](MongooseHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)
     {
@@ -194,6 +207,7 @@ void setup()
         if(Update.end(true)) {
           Serial.printf("Update Success: %lluB\n", index+len);
           request->send(200, "text/plain", "OK");
+          updateCompleted = true;
         } else {
           updateError(request);
         }
@@ -203,7 +217,7 @@ void setup()
     })->
     onClose([](MongooseHttpServerRequest *request) 
     {
-      if(Update.isFinished() && !Update.hasError()) {
+      if(updateCompleted) {
         ESP.restart();
       }
     });
