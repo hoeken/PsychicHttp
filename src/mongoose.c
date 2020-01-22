@@ -7453,9 +7453,13 @@ int mg_get_http_var(const struct mg_str *buf, const char *name, char *dst,
     dst[0] = '\0';
 
     for (p = buf->p; p + name_len < e; p++) {
-      if ((p == buf->p || p[-1] == '&') && p[name_len] == '=' &&
+      if ((p == buf->p || p[-1] == '&') && 
+          (p[name_len] == '=' || p[name_len] == '&') &&
           !mg_ncasecmp(name, p, name_len)) {
-        p += name_len + 1;
+        p += name_len;
+        if('=' == *p) {
+          p++;
+        }
         s = (const char *) memchr(p, '&', (size_t)(e - p));
         if (s == NULL) {
           s = e;
