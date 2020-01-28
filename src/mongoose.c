@@ -13115,7 +13115,7 @@ static void mg_sntp_util_ev_handler(struct mg_connection *c, int ev,
   switch (ev) {
     case MG_EV_CONNECT:
       if (*(int *) ev_data != 0) {
-        mg_call(c, sd->hander, c->user_data, MG_SNTP_FAILED, NULL);
+        mg_call(c, sd->hander, sd->user_data, MG_SNTP_FAILED, NULL);
         break;
       }
     /* fallthrough */
@@ -13125,7 +13125,7 @@ static void mg_sntp_util_ev_handler(struct mg_connection *c, int ev,
         mg_set_timer(c, mg_time() + 10);
         sd->count++;
       } else {
-        mg_call(c, sd->hander, c->user_data, MG_SNTP_FAILED, NULL);
+        mg_call(c, sd->hander, sd->user_data, MG_SNTP_FAILED, NULL);
         c->flags |= MG_F_CLOSE_IMMEDIATELY;
       }
       break;
