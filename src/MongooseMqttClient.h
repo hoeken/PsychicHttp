@@ -15,10 +15,10 @@ class MongooseMqttClient;
 
 typedef std::function<void()> MongooseMqttConnectionHandler;
 typedef std::function<void(const MongooseString topic, const MongooseString payload)> MongooseMqttMessageHandler;
-typedef std::function<void(uint8_t retCode)> MongooseMqttErrorHandler;
+typedef std::function<void(int retCode)> MongooseMqttErrorHandler;
 
 typedef enum {
-  MQTT_MQTT,
+  MQTT_MQTT = 0,
   MQTT_MQTTS,
   MQTT_WS,  // TODO
   MQTT_WSS  // TODO
@@ -78,6 +78,8 @@ class MongooseMqttClient
     setLastWillAndTestimment(topic.c_str(), message.c_str(), retain);
   }
 #endif
+
+  bool disconnect();
 
   bool connected() {
     return _connected;

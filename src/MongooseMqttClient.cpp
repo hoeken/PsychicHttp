@@ -43,26 +43,33 @@ void MongooseMqttClient::eventHandler(struct mg_connection *nc, int ev, void *p)
   switch (ev) 
   {
     case MG_EV_CONNECT: {
-      struct mg_send_mqtt_handshake_opts opts;
-      memset(&opts, 0, sizeof(opts));
-      opts.user_name = _username;
-      opts.password = _password;
-      opts.will_topic = _will_topic;
-      opts.will_message = _will_message;
-      
-      if(_will_retain) {
-        opts.flags |= MG_MQTT_WILL_RETAIN;
-      }
-      
-      DBUGVAR(_client_id);
-      DBUGVAR(opts.user_name);
-      DBUGVAR(opts.password);
-      DBUGVAR(opts.will_topic);
-      DBUGVAR(opts.will_message);
-      DBUGVAR(opts.flags);
+      int err = *((int *)p);
+      if(0 == err)
+      {
+        struct mg_send_mqtt_handshake_opts opts;
+        memset(&opts, 0, sizeof(opts));
+        opts.user_name = _username;
+        opts.password = _password;
+        opts.will_topic = _will_topic;
+        opts.will_message = _will_message;
+        
+        if(_will_retain) {
+          opts.flags |= MG_MQTT_WILL_RETAIN;
+        }
+        
+        DBUGVAR(_client_id);
+        DBUGVAR(opts.user_name);
+        DBUGVAR(opts.password);
+        DBUGVAR(opts.will_topic);
+        DBUGVAR(opts.will_message);
+        DBUGVAR(opts.flags);
 
-      mg_set_protocol_mqtt(nc);
-      mg_send_mqtt_handshake_opt(nc, _client_id, opts);
+        mg_set_protocol_mqtt(nc);
+        mg_send_mqtt_handshake_opt(nc, _client_id, opts);
+      } else {
+        DBUGVAR(err);
+        _onError(err);
+      }
       break;
     }
 
@@ -159,6 +166,17 @@ bool MongooseMqttClient::publish(const char *topic, mg_str payload, bool retain)
   
   if(connected()) {
     mg_mqtt_publish(_nc, topic, 65, flags, payload.p, payload.len);
+    return true;
+  }
+
+  return false;
+}
+
+bool MongooseMqttClient::disconnect()
+{
+  if(connected()) {
+    mg_mqtt_disconnect(_nc);
+    _nc->flags |= MG_F_SEND_AND_CLOSE;
     return true;
   }
 
