@@ -16,6 +16,7 @@ MongooseMqttClient::MongooseMqttClient() :
   _will_retain(false),
   _nc(NULL),
   _connected(false),
+  _reject_unauthorized(true),
   _onConnect(NULL),
   _onMessage(NULL),
   _onError(NULL)
@@ -108,6 +109,7 @@ void MongooseMqttClient::eventHandler(struct mg_connection *nc, int ev, void *p)
     case MG_EV_CLOSE: {
       DBUGF("Connection %p closed", nc);
       _nc = NULL;
+      _connected = false;
       break;
     }
   }
@@ -127,6 +129,11 @@ bool MongooseMqttClient::connect(MongooseMqttProtocol protocol, const char *serv
 #endif
 
     Mongoose.getDefaultOpts(&opts, secure);
+#if MG_ENABLE_SSL
+    if(!_reject_unauthorized) {
+      opts.ssl_ca_cert = "*";
+    }
+#endif
 
     const char *err;
     opts.error_string = &err;

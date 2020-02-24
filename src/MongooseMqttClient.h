@@ -35,6 +35,7 @@ class MongooseMqttClient
     bool _will_retain;
     struct mg_connection *_nc;
     bool _connected;
+    bool _reject_unauthorized; 
 
     MongooseMqttConnectionHandler _onConnect;
     MongooseMqttMessageHandler _onMessage;
@@ -64,6 +65,10 @@ class MongooseMqttClient
     _will_retain = retain;
   }
 
+  void setRejectUnauthorized(bool reject) {
+    _reject_unauthorized = reject;
+  }
+
 #ifdef ARDUINO
   bool connect(String &server, String &client_id, MongooseMqttConnectionHandler onConnect) {
     return connect(MQTT_MQTT, server.c_str(), client_id.c_str(), onConnect);
@@ -82,7 +87,7 @@ class MongooseMqttClient
   bool disconnect();
 
   bool connected() {
-    return _connected;
+    return _nc &&  _connected;
   }
 
   void onMessage(MongooseMqttMessageHandler fnHandler) {
