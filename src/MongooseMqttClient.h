@@ -104,22 +104,22 @@ class MongooseMqttClient
   }
 #endif
 
-  bool publish(const char *topic, const char *payload, bool retain = false) {
-    return publish(topic, mg_mk_str(payload), retain);
+  bool publish(const char *topic, const char *payload, bool retain = false, int qos=MG_MQTT_QOS(0)) {
+    return publish(topic, mg_mk_str(payload), retain, qos);
   }
-  bool publish(const char *topic, MongooseString payload, bool retain = false) {
-    return publish(topic, payload.toMgStr(), retain);
+  bool publish(const char *topic, MongooseString payload, bool retain = false, int qos=MG_MQTT_QOS(0)) {
+    return publish(topic, payload.toMgStr(), retain, qos);
   }
-  bool publish(const char *topic, mg_str payload, bool retain = false);
+  bool publish(const char *topic, mg_str payload, bool retain = false, int qos=MG_MQTT_QOS(0));
 #ifdef ARDUINO
-  bool publish(String &topic, const char *payload, bool retain = false) {
-    return publish(topic.c_str(), mg_mk_str(payload), retain);
+  bool publish(String &topic, const char *payload, bool retain = false, int qos=MG_MQTT_QOS(0)) {
+    return publish(topic.c_str(), mg_mk_str(payload), retain, qos);
   }
-  bool publish(String &topic, String &payload, bool retain = false) {
-    return publish(topic.c_str(), mg_mk_str(payload.c_str()), retain);
+  bool publish(String &topic, String &payload, bool retain = false, int qos=MG_MQTT_QOS(0)) {
+    return publish(topic.c_str(), mg_mk_str(payload.c_str()), retain, qos);
   }
-  bool publish(const char *topic, String &payload, bool retain = false) {
-    return publish(topic, mg_mk_str(payload.c_str()), retain);
+  bool publish(const char *topic, String &payload, bool retain = false, int qos=MG_MQTT_QOS(0)) {
+    return publish(topic, mg_mk_str(payload.c_str()), retain, qos);
   }
 #endif
 };
