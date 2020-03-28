@@ -110,7 +110,7 @@ void MongooseHttpClient::send(MongooseHttpClientRequest *request)
   const char *err;
   opts.error_string = &err;
 
-  mg_connection *nc = mg_connect_http_opt(Mongoose.getMgr(), eventHandler, request, opts, request->_uri, NULL, (const char *)request->_body);
+  mg_connection *nc = mg_connect_http_opt(Mongoose.getMgr(), eventHandler, request, opts, request->_uri, request->_extraHeaders, (const char *)request->_body);
   if(!nc) {
     DBUGF("Failed to connect to %s: %s", request->_uri, err);
   }
@@ -119,9 +119,18 @@ void MongooseHttpClient::send(MongooseHttpClientRequest *request)
 MongooseHttpClientRequest::MongooseHttpClientRequest(MongooseHttpClient *client, const char *uri) :
   _client(client), _onResponse(NULL), _uri(uri), _method(HTTP_GET),
   _contentType("application/x-www-form-urlencoded"), _contentLength(-1),
-  _body(NULL)
+  _body(NULL),_extraHeaders(NULL)
 {
 
+}
+
+
+MongooseHttpClientRequest::~MongooseHttpClientRequest()
+{
+  if (_extraHeaders) {
+    free(_extraHeaders);
+    _extraHeaders = NULL;
+  }
 }
 
 void MongooseHttpClientRequest::setContent(const uint8_t *content, size_t len)
@@ -132,5 +141,19 @@ void MongooseHttpClientRequest::setContent(const uint8_t *content, size_t len)
 
 bool MongooseHttpClientRequest::addHeader(const char *name, const char *value)
 {
+  size_t startLen = _extraHeaders ? strlen(_extraHeaders) : 0;
+  size_t newLen = sizeof(": \r\n");
+  newLen += strlen(name);
+  newLen += strlen(value);
+  size_t len = startLen + newLen;
+
+  char * newBuffer = (char *)realloc(_extraHeaders, len);
+  if(newBuffer)
+  {
+    snprintf(newBuffer + startLen, newLen, "%s: %s\r\n", name, value);
+    _extraHeaders = newBuffer;
+    return true;
+  }
+
   return false;
 }
