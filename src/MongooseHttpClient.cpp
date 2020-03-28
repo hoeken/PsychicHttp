@@ -150,7 +150,7 @@ bool MongooseHttpClientRequest::addHeader(const char *name, const char *value)
   char * newBuffer = (char *)realloc(_extraHeaders, len);
   if(newBuffer)
   {
-    snprintf(newBuffer + startLen, newLen, "\r\n%s: %s", name, value);
+    snprintf(newBuffer + startLen, newLen, "%s: %s\r\n", name, value);
     _extraHeaders = newBuffer;
     return true;
   }
