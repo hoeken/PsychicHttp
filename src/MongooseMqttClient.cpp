@@ -164,9 +164,9 @@ bool MongooseMqttClient::subscribe(const char *topic)
   return false;
 }
 
-bool MongooseMqttClient::publish(const char *topic, mg_str payload, bool retain)
+bool MongooseMqttClient::publish(const char *topic, mg_str payload, bool retain, int qos)
 {
-  int flags = MG_MQTT_QOS(0);
+  int flags = qos;
   if(retain) {
     flags |= MG_MQTT_RETAIN;
   }
