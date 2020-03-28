@@ -31,11 +31,11 @@ class MongooseHttpClientRequest
     const char *_contentType;
     int64_t _contentLength;
     const uint8_t *_body;
+    char *_extraHeaders;
 
   public:
     MongooseHttpClientRequest(MongooseHttpClient *client, const char *uri);
-    virtual ~MongooseHttpClientRequest() {
-    }
+    virtual ~MongooseHttpClientRequest();
 
     void setMethod(HttpRequestMethodComposite method) {
       _method = method;
