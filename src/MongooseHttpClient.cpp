@@ -49,7 +49,9 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
       if(response)
       {
         nc->user_connection_data = response;
-        request->_onResponse(response);
+        if(request->_onResponse) {
+          request->_onResponse(response);
+        }
       }
       nc->flags |= MG_F_CLOSE_IMMEDIATELY;
       break;
@@ -69,8 +71,12 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
 
     case MG_EV_CLOSE: {
       DBUGF("Connection %p closed", nc);
-      if(nc->user_connection_data) {
-        delete (MongooseHttpClientResponse *)nc->user_connection_data;
+      MongooseHttpClientResponse *response = (MongooseHttpClientResponse *)nc->user_connection_data;
+      if(request->_onClose) {
+        request->_onClose(response);
+      }
+      if(response) {
+        delete response;
         nc->user_connection_data = NULL;
       }
       delete request;
@@ -79,21 +85,31 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
   }
 }
 
-void MongooseHttpClient::get(const char *uri, MongooseHttpResponseHandler onResponse)
+void MongooseHttpClient::get(const char *uri, MongooseHttpResponseHandler onResponse, MongooseHttpResponseHandler onClose)
 {
   MongooseHttpClientRequest *request = beginRequest(uri);
   request->setMethod(HTTP_GET);
-  request->onResponse(onResponse);
+  if(NULL != onResponse) {
+    request->onResponse(onResponse);
+  }
+  if(NULL != onClose) {
+    request->onClose(onClose);
+  }
   send(request);
 }
 
-void MongooseHttpClient::post(const char* uri, const char *contentType, const char *body, MongooseHttpResponseHandler onResponse)
+void MongooseHttpClient::post(const char* uri, const char *contentType, const char *body, MongooseHttpResponseHandler onResponse, MongooseHttpResponseHandler onClose)
 {
   MongooseHttpClientRequest *request = beginRequest(uri);
   request->setMethod(HTTP_POST);
   request->setContentType(contentType);
   request->setContent(body);
-  request->onResponse(onResponse);
+  if(NULL != onResponse) {
+    request->onResponse(onResponse);
+  }
+  if(NULL != onClose) {
+    request->onClose(onClose);
+  }
   send(request);
 }
 
@@ -133,10 +149,11 @@ MongooseHttpClientRequest::~MongooseHttpClientRequest()
   }
 }
 
-void MongooseHttpClientRequest::setContent(const uint8_t *content, size_t len)
+MongooseHttpClientRequest *MongooseHttpClientRequest::setContent(const uint8_t *content, size_t len)
 {
   setContentLength(len);
   _body = content;
+  return this;
 }
 
 bool MongooseHttpClientRequest::addHeader(const char *name, const char *value)
