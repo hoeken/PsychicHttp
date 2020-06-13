@@ -3,6 +3,11 @@
 
 #ifdef ARDUINO
 #include "Arduino.h"
+
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>
+#endif
+
 #endif
 
 #include <mongoose.h>
