@@ -143,7 +143,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
         MG_EV_HTTP_MULTIPART_REQUEST == ev ? new MongooseHttpServerRequestUpload(this, nc, hm) :
 #endif
 #if MG_ENABLE_HTTP_WEBSOCKET
-        MG_EV_HTTP_MULTIPART_REQUEST == ev ? new MongooseHttpWebSocketConnection(this, nc, hm) :
+        MG_EV_WEBSOCKET_HANDSHAKE_REQUEST == ev ? new MongooseHttpWebSocketConnection(this, nc, hm) :
 #endif
                                              new MongooseHttpServerRequest(this, nc, hm);
       if(request)
