@@ -15,9 +15,67 @@
       "maintainer": true
     }
   ],
+  "examples": [
+    { 
+      "name": "esp_ota_http_server",
+      "base": "examples/esp_ota_http_server",
+      "files": [
+        "src/esp_ota_http_server.cpp"
+      ]
+    },
+    { 
+      "name": "simple_http_client",
+      "base": "examples/simple_http_client",
+      "files": [
+        "src/simple_http_client.cpp"
+      ]
+    },
+    { 
+      "name": "simple_http_server",
+      "base": "examples/simple_http_server",
+      "files": [
+        "src/simple_http_server.cpp"
+      ]
+    },
+    { 
+      "name": "simple_mqtt_client",
+      "base": "examples/simple_mqtt_client",
+      "files": [
+        "src/simple_mqtt_client.cpp"
+      ]
+    },
+    { 
+      "name": "simplest_web_server_esp",
+      "base": "examples/simplest_web_server_esp",
+      "files": [
+        "src/simplest_web_server_esp.cpp"
+      ]
+    },
+    { 
+      "name": "simplest_web_server_native",
+      "base": "examples/simplest_web_server_native",
+      "files": [
+        "src/simplest_web_server_native.cpp"
+      ]
+    },
+    { 
+      "name": "sntp_client",
+      "base": "examples/sntp_client",
+      "files": [
+        "src/sntp_client.cpp"
+      ]
+    },
+    { 
+      "name": "websocket_chat",
+      "base": "examples/websocket_chat",
+      "files": [
+        "src/websocket_chat.cpp"
+      ]
+    }
+  ],
   "version": "0.0.14",
-  "frameworks": "*",
-  "platforms": "*",
+  "frameworks": "arduino",
+  "platforms": "espressif32,espressif8266,native,windows_x86",
   "dependencies": [
     {
       "name": "Micro Debug",
