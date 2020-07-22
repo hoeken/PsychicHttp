@@ -62,7 +62,7 @@ env:
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/esp_ota_http_server
     ENV=esp-wrover-kit-secure
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/esp_ota_http_server
-    ENV=esp-wrover-kit-secure-auth
+    ENV=esp-wrover-kit-auth
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/sntp_client
     ENV=huzzah
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/sntp_client
