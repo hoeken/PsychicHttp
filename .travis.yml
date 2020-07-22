@@ -57,11 +57,11 @@ env:
     ENV=esp-wrover-kit
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/websocket_chat
     ENV=esp-wrover-kit-secure
-  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/esp_ota_server
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/esp_ota_http_server
     ENV=esp-wrover-kit
-  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/esp_ota_server
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/esp_ota_http_server
     ENV=esp-wrover-kit-secure
-  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/esp_ota_server
+  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/esp_ota_http_server
     ENV=esp-wrover-kit-secure-auth
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/sntp_client
     ENV=huzzah
