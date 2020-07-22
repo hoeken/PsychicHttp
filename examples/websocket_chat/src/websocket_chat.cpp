@@ -219,7 +219,8 @@ void setup()
     onConnect([](MongooseHttpWebSocketConnection *connection) {
       broadcast(connection, MongooseString("++ joined"));
     })->
-    onClose([](MongooseHttpWebSocketConnection *connection) {
+    onClose([](MongooseHttpServerRequest *c) {
+      MongooseHttpWebSocketConnection *connection = static_cast<MongooseHttpWebSocketConnection *>(c);
       broadcast(connection, MongooseString("++ left"));
     })->
     onFrame([](MongooseHttpWebSocketConnection *connection, int flags, uint8_t *data, size_t len) {
