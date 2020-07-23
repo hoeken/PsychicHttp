@@ -48,14 +48,14 @@
       "name": "simplest_web_server_esp",
       "base": "examples/simplest_web_server_esp",
       "files": [
-        "src/simplest_web_server_esp.cpp"
+        "src/simplest_web_server.cpp"
       ]
     },
     { 
       "name": "simplest_web_server_native",
       "base": "examples/simplest_web_server_native",
       "files": [
-        "src/simplest_web_server_native.cpp"
+        "src/simplest_web_server.cpp"
       ]
     },
     { 
