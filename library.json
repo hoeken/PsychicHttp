@@ -55,7 +55,7 @@
       "name": "simplest_web_server_native",
       "base": "examples/simplest_web_server_native",
       "files": [
-        "src/simplest_web_server.cpp"
+        "src/simplest_web_server.c"
       ]
     },
     { 
