@@ -130,7 +130,7 @@ bool MongooseMqttClient::connect(MongooseMqttProtocol protocol, const char *serv
 
     Mongoose.getDefaultOpts(&opts, secure);
 #if MG_ENABLE_SSL
-    if(!_reject_unauthorized) {
+    if(!_reject_unauthorized && secure) {
       opts.ssl_ca_cert = "*";
     }
 #endif
