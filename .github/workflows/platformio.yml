@@ -1,0 +1,51 @@
+name: Platform IO
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+    strategy:
+      matrix:
+        example:
+          # - simplest_web_server_esp
+          # - simplest_web_server_native
+          - simple_http_server
+          - simple_http_client
+          - simple_mqtt_client
+          - websocket_chat
+          - esp_ota_http_server
+          #- sntp_client
+        board:
+          - huzzah
+          - esp-wrover-kit
+          - esp-wrover-kit-secure
+
+    runs-on: ubuntu-latest
+    name: ${{ matrix.example }}-${{ matrix.board }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+
+      - name: Install Platform IO
+        run:
+          |
+          pip install -U platformio
+          platformio update
+
+      - name: Install Checked out ArduinoMongoose
+        run:
+          pio lib -g install $GITHUB_WORKSPACE/ArduinoMongoose
+
+      - name: Build example 
+        run:
+          |
+          cd examples/${{ matrix.example }}
+          pio run -e ${{ matrix.board }}
