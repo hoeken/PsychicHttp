@@ -11,32 +11,49 @@ jobs:
   build:
     strategy:
       matrix:
-        example:
-          - simplest_web_server_esp
-          - simplest_web_server_native
-          - simple_http_server
-          - simple_http_client
-          - simple_mqtt_client
-          - websocket_chat
-          - esp_ota_http_server
-          - sntp_client
         include:
-          - example: simplest_web_server_esp
-            board: [ huzzah, espwroverkit ]
-          - example: simplest_web_server_native
-            board: [ native, windows_x86 ]
-          - example: simple_http_server
-            board: [ huzzah, esp-wrover-kit, esp-wrover-kit-secure ]
-          - example: simple_http_client
-            board: [ huzzah, esp-wrover-kit, esp-wrover-kit-secure ]
-          - example: simple_mqtt_client
-            board: [ huzzah, esp-wrover-kit, esp-wrover-kit-secure ]
-          - example: websocket_chat
-            board: [ huzzah, esp-wrover-kit, esp-wrover-kit-secure ]
-          - example: esp_ota_http_server
-            board: [ esp-wrover-kit, esp-wrover-kit-secure, esp-wrover-kit-auth ]
-          - example: sntp_client
-            board: [ huzzah, esp-wrover-kit ]
+        - example: simplest_web_server_esp
+          board: huzzah
+        - example: simplest_web_server_esp
+          board: espwroverkit
+        - example: simplest_web_server_native
+          board: native
+        - example: simplest_web_server_native
+          board: windows_x86
+        - example: simple_http_server
+          board: huzzah
+        - example: simple_http_server
+          board: esp-wrover-kit
+        - example: simple_http_server
+          board: esp-wrover-kit-secure
+        - example: simple_http_client
+          board: huzzah
+        - example: simple_http_client
+          board: esp-wrover-kit
+        - example: simple_http_client
+          board: esp-wrover-kit-secure
+        - example: simple_mqtt_client
+          board: huzzah
+        - example: simple_mqtt_client
+          board: esp-wrover-kit
+        - example: simple_mqtt_client
+          board: esp-wrover-kit-secure
+        - example: websocket_chat
+          board: huzzah
+        - example: websocket_chat
+          board: esp-wrover-kit
+        - example: websocket_chat
+          board: esp-wrover-kit-secure
+        - example: esp_ota_http_server
+          board: esp-wrover-kit
+        - example: esp_ota_http_server
+          board: esp-wrover-kit-secure
+        - example: esp_ota_http_server
+          board: esp-wrover-kit-auth
+        - example: sntp_client
+          board: huzzah
+        - example: sntp_client
+          board: esp-wrover-kit
 
     runs-on: ubuntu-latest
     name: ${{ matrix.example }}-${{ matrix.board }}
