@@ -18,7 +18,7 @@ jobs:
           - simple_http_client
           - simple_mqtt_client
           - websocket_chat
-          - esp_ota_http_server
+          #- esp_ota_http_server
           #- sntp_client
         board:
           - huzzah
