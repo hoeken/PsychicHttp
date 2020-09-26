@@ -42,7 +42,7 @@ jobs:
 
       - name: Install Checked out ArduinoMongoose
         run:
-          pio lib -g install $GITHUB_WORKSPACE/ArduinoMongoose
+          pio lib -g install $GITHUB_WORKSPACE
 
       - name: Build example 
         run:
