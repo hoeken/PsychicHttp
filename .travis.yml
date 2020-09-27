@@ -18,6 +18,12 @@ language: python
 python:
   - "2.7"
 
+cache:
+  directories:
+    - "$HOME/.platformio"
+before_cache:
+  - rm -fr $HOME/.platformio/lib/ArduinoMongoose
+
 env:
 #  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_esp
 #    ENV=huzzah
