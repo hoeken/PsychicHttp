@@ -57,7 +57,7 @@ jobs:
           board: esp-wrover-kit
 
     runs-on: ubuntu-latest
-    name: ${{ matrix.example }}-${{ matrix.board }}
+    name: Build ${{ matrix.example }}-${{ matrix.board }}
 
     steps:
       - uses: actions/checkout@v2
