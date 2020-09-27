@@ -11,7 +11,28 @@ on:
 
 jobs:
   analyse:
-    name: Analyse
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        #- example: simplest_web_server_esp
+        #  board: espwroverkit
+        - example: simplest_web_server_native
+          board: native
+        #- example: simple_http_server
+        #  board: esp-wrover-kit-secure
+        #- example: simple_http_client
+        #  board: esp-wrover-kit-secure
+        #- example: simple_mqtt_client
+        #  board: esp-wrover-kit-secure
+        #- example: websocket_chat
+        #  board: esp-wrover-kit-secure
+        #- example: esp_ota_http_server
+        #  board: esp-wrover-kit-auth
+        #- example: sntp_client
+        #  board: esp-wrover-kit
+
+    name: Analyse ${{ matrix.example }}-${{ matrix.board }}
     runs-on: ubuntu-latest
 
     steps:
@@ -30,25 +51,27 @@ jobs:
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
-      # Override language selection by uncommenting this and choosing your languages
-      # with:
-      #   languages: go, javascript, csharp, python, cpp, java
+      with:
+        languages: cpp
 
-    # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
-    # If this step fails, then you should remove it and run the build manually (see below)
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
 
-    # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 https://git.io/JvXDl
+    - name: Install Platform IO
+      run:
+        |
+        pip install -U platformio
+        platformio update
 
-    # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines
-    #    and modify them (or add more) to build your code if your project
-    #    uses a compiled language
+    - name: Install Checked out ArduinoMongoose
+      run:
+        pio lib -g install $GITHUB_WORKSPACE
 
-    #- run: |
-    #   make bootstrap
-    #   make release
+    - name: Build example 
+      run:
+        |
+        cd examples/${{ matrix.example }}
+        pio run -e ${{ matrix.board }}
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
