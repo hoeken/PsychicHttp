@@ -77,6 +77,7 @@ jobs:
         platformio platform install ${{ matrix.platform }}
 
     - name: Enable CodeQL wrappers for Platform IO toolchains
+      if: ${{ matrix.platform != 'native' }}
       run:
         |
         # See https://github.com/github/securitylab/discussions/171
