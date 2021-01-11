@@ -1,3 +1,7 @@
+#if defined(ENABLE_DEBUG) && !defined(ENABLE_DEBUG_MONGOOSE_SNTP_CLIENT)
+#undef ENABLE_DEBUG
+#endif
+
 #ifdef ARDUINO
 #include <Arduino.h>
 #endif

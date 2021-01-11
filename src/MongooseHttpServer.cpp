@@ -1,3 +1,6 @@
+#if defined(ENABLE_DEBUG) && !defined(ENABLE_DEBUG_MONGOOSE_HTTP_SERVER)
+#undef ENABLE_DEBUG
+#endif
 
 #ifdef ARDUINO
 #include <Arduino.h>
