@@ -233,7 +233,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
 
 #if MG_ENABLE_HTTP_WEBSOCKET
     case MG_EV_WEBSOCKET_HANDSHAKE_DONE: {
-      if(endpoint->wsConnect)
+      if(endpoint->wsConnect && nc->flags & MG_F_IS_MongooseHttpWebSocketConnection)
       {
         MongooseHttpWebSocketConnection *c = (MongooseHttpWebSocketConnection *)nc->user_connection_data;
         endpoint->wsConnect(c);
@@ -241,7 +241,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
     } break;
 
     case MG_EV_WEBSOCKET_FRAME: {
-      if(endpoint->wsFrame)
+      if(endpoint->wsFrame && nc->flags & MG_F_IS_MongooseHttpWebSocketConnection)
       {
         MongooseHttpWebSocketConnection *c = (MongooseHttpWebSocketConnection *)nc->user_connection_data;
         struct websocket_message *wm = (struct websocket_message *)p;
@@ -268,7 +268,7 @@ void MongooseHttpServer::sendAll(MongooseHttpWebSocketConnection *from, const ch
     if (c == nc) { 
       continue; /* Don't send to the sender. */
     }
-    if (c->flags & MG_F_IS_WEBSOCKET)
+    if (c->flags & MG_F_IS_WEBSOCKET && nc->flags & MG_F_IS_MongooseHttpWebSocketConnection)
     {
       MongooseHttpWebSocketConnection *to = (MongooseHttpWebSocketConnection *)c->user_connection_data;
       if(endpoint && !to->uri().equals(endpoint)) {
@@ -772,6 +772,7 @@ size_t MongooseHttpServerResponseStream::sendBody(struct mg_connection *nc, size
 MongooseHttpWebSocketConnection::MongooseHttpWebSocketConnection(MongooseHttpServer *server, mg_connection *nc, http_message *msg) :
   MongooseHttpServerRequest(server, nc, msg)
 {
+  nc->flags |= MG_F_IS_MongooseHttpWebSocketConnection;
 }
 
 MongooseHttpWebSocketConnection::~MongooseHttpWebSocketConnection()
