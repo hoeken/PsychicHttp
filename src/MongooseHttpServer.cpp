@@ -268,7 +268,7 @@ void MongooseHttpServer::sendAll(MongooseHttpWebSocketConnection *from, const ch
     if (c == nc) { 
       continue; /* Don't send to the sender. */
     }
-    if (c->flags & MG_F_IS_WEBSOCKET && nc->flags & MG_F_IS_MongooseHttpWebSocketConnection)
+    if (c->flags & MG_F_IS_WEBSOCKET && nc && nc->flags & MG_F_IS_MongooseHttpWebSocketConnection)
     {
       MongooseHttpWebSocketConnection *to = (MongooseHttpWebSocketConnection *)c->user_connection_data;
       if(endpoint && !to->uri().equals(endpoint)) {
