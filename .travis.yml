@@ -13,10 +13,11 @@
 # * User Guide for `platformio ci` command
 #   < https://docs.platformio.org/page/userguide/cmd_ci.html >
 #
+# yaml-language-server: $schema=https://json.schemastore.org/travis.json
 
 language: python
 python:
-  - "2.7"
+  - "3.8"
 
 cache:
   directories:
@@ -25,8 +26,6 @@ before_cache:
   - rm -fr $HOME/.platformio/lib/ArduinoMongoose
 
 env:
-#  - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_esp
-#    ENV=huzzah
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_esp
     ENV=huzzah
   - EXAMPLE=$TRAVIS_BUILD_DIR/examples/simplest_web_server_esp
