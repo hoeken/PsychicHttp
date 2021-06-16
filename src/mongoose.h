@@ -613,8 +613,10 @@ typedef struct stat cs_stat_t;
 #endif
 
 #define to64(x) strtoll(x, NULL, 10)
-#define INT64_FMT PRId64
-#define INT64_X_FMT PRIx64
+//#define INT64_FMT PRId64
+#define INT64_FMT "lld"
+//#define INT64_X_FMT PRIx64
+#define INT64_X_FMT "llx"
 #define __cdecl
 #define _FILE_OFFSET_BITS 32
 
