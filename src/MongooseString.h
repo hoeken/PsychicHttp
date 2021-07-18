@@ -129,6 +129,33 @@ class MongooseString
       return 0 == compareTo(str);
     }
 
+    int compareToIgnoreCase(const mg_str &str) const
+    {
+      size_t n2 = str.len, n1 = _string.len;
+      int r = mg_ncasecmp(_string.p, str.p, (n1 < n2) ? n1 : n2);
+      if (r == 0) {
+        return n1 - n2;
+      }
+      return r;
+    }
+    int compareToIgnoreCase(const MongooseString &str) const {
+      return compareToIgnoreCase(str._string);
+    }
+    int compareToIgnoreCase(const char *str) const {
+      mg_str mgStr = mg_mk_str(str);
+      return compareToIgnoreCase(mgStr);
+    }
+
+    unsigned char equalsIgnoreCase(const mg_str &str) const {
+      return 0 == compareToIgnoreCase(str);
+    }
+    unsigned char equalsIgnoreCase(const MongooseString &str) const {
+      return 0 == compareToIgnoreCase(str);
+    }
+    unsigned char equalsIgnoreCase(const char *str) const {
+      return 0 == compareToIgnoreCase(str);
+    }
+
     unsigned char operator ==(const mg_str &str) const {
       return equals(str);
     }
