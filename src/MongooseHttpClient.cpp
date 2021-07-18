@@ -35,7 +35,23 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
 
   switch (ev) {
     case MG_EV_CONNECT: {
-      DBUGVAR(*(int *)p);
+      int connect_status = *(int *)p;
+      DBUGVAR(connect_status);
+      if(0 != connect_status) {
+        DBUGF("connect() error: %s\n", strerror(connect_status));
+      }
+      break;
+    }
+    case MG_EV_RECV: {
+      int num_bytes = *(int *)p;
+      DBUGF("MG_EV_RECV, bytes = %d", num_bytes);
+      struct mbuf &io = nc->recv_mbuf;
+      DBUGF("Buffer %p, len %d: \n%.*s", io.buf, io.len, io.len, io.buf);
+      break;
+    }
+    case MG_EV_SEND: {
+      int num_bytes = *(int *)p;
+      DBUGF("MG_EV_SEND, bytes = %d", num_bytes);
       break;
     }
     case MG_EV_HTTP_REPLY: {
@@ -160,18 +176,18 @@ MongooseHttpClientRequest *MongooseHttpClientRequest::setContent(const uint8_t *
   return this;
 }
 
-bool MongooseHttpClientRequest::addHeader(const char *name, const char *value)
+bool MongooseHttpClientRequest::addHeader(const char *name, size_t nameLength, const char *value, size_t valueLength)
 {
   size_t startLen = _extraHeaders ? strlen(_extraHeaders) : 0;
   size_t newLen = sizeof(": \r\n");
-  newLen += strlen(name);
-  newLen += strlen(value);
+  newLen += nameLength;
+  newLen += valueLength;
   size_t len = startLen + newLen;
 
   char * newBuffer = (char *)realloc(_extraHeaders, len);
   if(newBuffer)
   {
-    snprintf(newBuffer + startLen, newLen, "%s: %s\r\n", name, value);
+    snprintf(newBuffer + startLen, newLen, "%.*s: %.*s\r\n", nameLength, name, valueLength, value);
     _extraHeaders = newBuffer;
     return true;
   }

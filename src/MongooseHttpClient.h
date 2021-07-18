@@ -56,10 +56,16 @@ class MongooseHttpClientRequest
     }
     MongooseHttpClientRequest *setContent(const uint8_t *content, size_t len);
 
-    bool addHeader(const char *name, const char *value);
+    bool addHeader(const char *name, size_t nameLength, const char *value, size_t valueLength);
+    bool addHeader(const char *name, const char *value) {
+      return addHeader(name, strlen(name), value, strlen(value));
+    }
+    bool addHeader(MongooseString name, MongooseString value) {
+      return addHeader(name.c_str(), name.length(), value.c_str(), value.length());
+    }
 #ifdef ARDUINO
     bool addHeader(const String& name, const String& value) {
-      return addHeader(name.c_str(), value.c_str());
+      return addHeader(name.c_str(), name.length(), value.c_str(), value.length());
     };
 #endif
 
@@ -136,6 +142,10 @@ class MongooseHttpClientResponse {
 
     MongooseString host() {
       return headers("Host");
+    }
+
+    MongooseString contentType() {
+      return headers("Content-Type");
     }
 
     size_t contentLength() {
