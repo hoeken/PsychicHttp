@@ -34,6 +34,7 @@ class MongooseHttpServerResponseStream;
 #endif
 #if MG_ENABLE_HTTP_WEBSOCKET
 class MongooseHttpWebSocketConnection;
+#define MG_F_IS_MongooseHttpWebSocketConnection MG_F_USER_1
 #endif
 
 
