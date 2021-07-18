@@ -240,6 +240,9 @@ class MongooseHttpServerResponseBasic:
 
     void setContent(const char *content);
     void setContent(const uint8_t *content, size_t len);
+    void setContent(MongooseString &content) {
+      setContent((const uint8_t *)content.c_str(), content.length());
+    }
     virtual size_t sendBody(struct mg_connection *nc, size_t bytes);
 };
 
