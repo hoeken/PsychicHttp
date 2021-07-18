@@ -21,6 +21,9 @@ jobs:
         - example: simplest_web_server_native
           board: native
           platform: native
+        - example: simple_http_client_native
+          board: native
+          platform: native
         #- example: simple_http_server
         #  board: esp-wrover-kit-secure
         #  platform: espressif32

@@ -21,6 +21,8 @@ jobs:
           board: native
         - example: simplest_web_server_native
           board: windows_x86
+        - example: simple_http_client_native
+          board: native
         - example: simple_http_server
           board: huzzah
         - example: simple_http_server
