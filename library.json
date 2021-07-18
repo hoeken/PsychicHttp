@@ -31,6 +31,13 @@
       ]
     },
     { 
+      "name": "simple_http_client_native",
+      "base": "examples/simple_http_client_native",
+      "files": [
+        "src/simple_http_client.cpp"
+      ]
+    },
+    { 
       "name": "simple_http_server",
       "base": "examples/simple_http_server",
       "files": [
@@ -73,7 +80,7 @@
       ]
     }
   ],
-  "version": "0.0.15",
+  "version": "0.0.16",
   "frameworks": "*",
   "platforms": "espressif32,espressif8266,native,windows_x86",
   "dependencies": [
