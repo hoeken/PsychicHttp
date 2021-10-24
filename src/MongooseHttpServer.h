@@ -59,6 +59,9 @@ class MongooseHttpServerRequest {
     MongooseHttpServerRequest(MongooseHttpServer *server, mg_connection *nc, http_message *msg);
     virtual ~MongooseHttpServerRequest();
 
+    virtual bool isUpload() { return false; }
+    virtual bool isWebSocket() { return false; }
+
     HttpRequestMethodComposite method() {
       return _method;
     }
@@ -190,6 +193,8 @@ class MongooseHttpServerRequestUpload : public MongooseHttpServerRequest
     }
     virtual ~MongooseHttpServerRequestUpload() {
     }
+
+    virtual bool isUpload() { return true; }
 };
 
 class MongooseHttpServerResponse
@@ -340,6 +345,8 @@ class MongooseHttpWebSocketConnection : public MongooseHttpServerRequest
   public:
     MongooseHttpWebSocketConnection(MongooseHttpServer *server, mg_connection *nc, http_message *msg);
     virtual ~MongooseHttpWebSocketConnection();
+
+    virtual bool isWebSocket() { return true; }
 
     void send(int op, const void *data, size_t len);
     void send(const char *buf) {
