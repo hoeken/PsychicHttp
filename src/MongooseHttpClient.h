@@ -17,6 +17,7 @@ class MongooseHttpClientRequest;
 class MongooseHttpClientResponse;
 
 typedef std::function<void(MongooseHttpClientResponse *request)> MongooseHttpResponseHandler;
+typedef std::function<void()> MongooseHttpCloseHandler;
 
 class MongooseHttpClientRequest
 {
@@ -26,7 +27,7 @@ class MongooseHttpClientRequest
     MongooseHttpClient *_client;
     MongooseHttpResponseHandler _onResponse;
     MongooseHttpResponseHandler _onBody;
-    MongooseHttpResponseHandler _onClose;
+    MongooseHttpCloseHandler _onClose;
 
     const char *_uri;
     HttpRequestMethodComposite _method;
@@ -81,7 +82,7 @@ class MongooseHttpClientRequest
     }
 
     // Request may be NULL if the socket fails to connect
-    MongooseHttpClientRequest *onClose(MongooseHttpResponseHandler handler) {
+    MongooseHttpClientRequest *onClose(MongooseHttpCloseHandler handler) {
       _onClose = handler;
       return this;
     }
@@ -174,20 +175,20 @@ class MongooseHttpClient
     MongooseHttpClientRequest *beginRequest(const char *uri);
     void send(MongooseHttpClientRequest *request);
 
-    void get(const char* uri, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpResponseHandler onClose = NULL);
-    void post(const char* uri, const char *contentType, const char *body, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpResponseHandler onClose = NULL);
+    void get(const char* uri, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpCloseHandler onClose = NULL);
+    void post(const char* uri, const char *contentType, const char *body, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpCloseHandler onClose = NULL);
 
 #ifdef ARDUINO
-    void get(String &uri, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpResponseHandler onClose = NULL) {
+    void get(String &uri, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpCloseHandler onClose = NULL) {
       get(uri.c_str(), onResponse, onClose);
     }
-    void post(String &uri, const char *contentType, const char *body, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpResponseHandler onClose = NULL) {
+    void post(String &uri, const char *contentType, const char *body, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpCloseHandler onClose = NULL) {
       post(uri.c_str(), contentType, body, onResponse, onClose);
     }
-    void post(String& uri, String& contentType, const char *body, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpResponseHandler onClose = NULL) {
+    void post(String& uri, String& contentType, const char *body, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpCloseHandler onClose = NULL) {
       post(uri.c_str(), contentType.c_str(), body, onResponse, onClose);
     }
-    void post(String &uri, String& contentType, String& body, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpResponseHandler onClose = NULL) {
+    void post(String &uri, String& contentType, String& body, MongooseHttpResponseHandler onResponse = NULL, MongooseHttpCloseHandler onClose = NULL) {
       post(uri.c_str(), contentType.c_str(), body.c_str(), onResponse, onClose);
     }
 #endif // ARDUINO

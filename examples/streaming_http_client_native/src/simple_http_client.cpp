@@ -89,6 +89,7 @@ void printHeaders(MongooseHttpClientResponse *response)
       (int)response->headerNames(i).length(), (const char *)response->headerNames(i), 
       (int)response->headerValues(i).length(), (const char *)response->headerValues(i));
   }
+  printf("\n");
 }
 
 int main(int argc, char *argv[])
@@ -124,10 +125,11 @@ int main(int argc, char *argv[])
         printHeaders(response);
       }
       if (response->body().length() > 0) {
-        printf("%.*s\n", (int)response->body().length(), response->body().c_str());
+        fwrite(response->body().c_str(), response->body().length(), 1, stdout);
+        fflush(stdout);
       }
     })->
-    onClose([](MongooseHttpClientResponse *response) {
+    onClose([]() {
       run = false;
     });
 

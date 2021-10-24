@@ -65,27 +65,20 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
       struct http_message *hm = (struct http_message *) p;
       mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr),
                           MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_PORT);
-      DBUGF("HTTP %s from %s", MG_EV_HTTP_REPLY == ev ? "reply" : "chunk", addr);
+      DBUGF("HTTP %s from %s, body %zu @ %p", 
+        MG_EV_HTTP_REPLY == ev ? "reply" : "chunk",
+        addr, hm->body.len, hm->body.p);
 
-      MongooseHttpClientResponse *response = NULL;
-      DBUGF("User data %p", nc->user_connection_data);
-      if(NULL == nc->user_connection_data) 
-      {
-        response = new MongooseHttpClientResponse(hm);
-        nc->user_connection_data = response;
-      } else {
-        response = (MongooseHttpClientResponse *)nc->user_connection_data;
-      }
-
+      MongooseHttpClientResponse response(hm);
       if(MG_EV_HTTP_CHUNK == ev)
       {
-        if(response && request->_onBody) {
-          request->_onBody(response);
+        if(request->_onBody) {
+          request->_onBody(&response);
           nc->flags |= MG_F_DELETE_CHUNK;
         }
       } else {
-        if(response && request->_onResponse) {
-          request->_onResponse(response);
+        if(request->_onResponse) {
+          request->_onResponse(&response);
         }
         nc->flags |= MG_F_CLOSE_IMMEDIATELY;
       }
@@ -95,13 +88,8 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
 
     case MG_EV_CLOSE: {
       DBUGF("Connection %p closed", nc);
-      MongooseHttpClientResponse *response = (MongooseHttpClientResponse *)nc->user_connection_data;
       if(request->_onClose) {
-        request->_onClose(response);
-      }
-      if(response) {
-        delete response;
-        nc->user_connection_data = NULL;
+        request->_onClose();
       }
       delete request;
       break;
@@ -109,7 +97,7 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
   }
 }
 
-void MongooseHttpClient::get(const char *uri, MongooseHttpResponseHandler onResponse, MongooseHttpResponseHandler onClose)
+void MongooseHttpClient::get(const char *uri, MongooseHttpResponseHandler onResponse, MongooseHttpCloseHandler onClose)
 {
   MongooseHttpClientRequest *request = beginRequest(uri);
   request->setMethod(HTTP_GET);
@@ -122,7 +110,7 @@ void MongooseHttpClient::get(const char *uri, MongooseHttpResponseHandler onResp
   send(request);
 }
 
-void MongooseHttpClient::post(const char* uri, const char *contentType, const char *body, MongooseHttpResponseHandler onResponse, MongooseHttpResponseHandler onClose)
+void MongooseHttpClient::post(const char* uri, const char *contentType, const char *body, MongooseHttpResponseHandler onResponse, MongooseHttpCloseHandler onClose)
 {
   MongooseHttpClientRequest *request = beginRequest(uri);
   request->setMethod(HTTP_POST);
