@@ -13,7 +13,7 @@
 #include "MongooseCore.h"
 #include "MongooseHttpClient.h"
 
-MongooseHttpClient::MongooseHttpClient() 
+MongooseHttpClient::MongooseHttpClient()
 {
 
 }
@@ -33,7 +33,8 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
 {
   if (ev != MG_EV_POLL) { DBUGF("%s %p: %d", __PRETTY_FUNCTION__, nc, ev); }
 
-  switch (ev) {
+  switch (ev)
+  {
     case MG_EV_CONNECT: {
       int connect_status = *(int *)p;
       DBUGVAR(connect_status);
@@ -42,52 +43,55 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
       }
       break;
     }
+
     case MG_EV_RECV: {
       int num_bytes = *(int *)p;
       DBUGF("MG_EV_RECV, bytes = %d", num_bytes);
-      struct mbuf &io = nc->recv_mbuf;
-      DBUGF("Buffer %p, len %d: \n%.*s", io.buf, io.len, io.len, io.buf);
+      //struct mbuf &io = nc->recv_mbuf;
+      //DBUGF("Buffer %p, len %d: \n%.*s", io.buf, io.len, io.len, io.buf);
       break;
     }
+
     case MG_EV_SEND: {
       int num_bytes = *(int *)p;
       DBUGF("MG_EV_SEND, bytes = %d", num_bytes);
       break;
     }
-    case MG_EV_HTTP_REPLY: {
+
+    case MG_EV_HTTP_CHUNK:
+    case MG_EV_HTTP_REPLY:
+    {
       char addr[32];
       struct http_message *hm = (struct http_message *) p;
       mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr),
                           MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_PORT);
-      DBUGF("HTTP reply from %s", addr);
+      DBUGF("HTTP %s from %s", MG_EV_HTTP_REPLY == ev ? "reply" : "chunk", addr);
 
-      if(nc->user_connection_data) {
-        delete (MongooseHttpClientResponse *)nc->user_connection_data;
-        nc->user_connection_data = NULL;
-      }
-      MongooseHttpClientResponse *response = new MongooseHttpClientResponse(hm);
-      if(response)
+      MongooseHttpClientResponse *response = NULL;
+      DBUGF("User data %p", nc->user_connection_data);
+      if(NULL == nc->user_connection_data) 
       {
+        response = new MongooseHttpClientResponse(hm);
         nc->user_connection_data = response;
-        if(request->_onResponse) {
+      } else {
+        response = (MongooseHttpClientResponse *)nc->user_connection_data;
+      }
+
+      if(MG_EV_HTTP_CHUNK == ev)
+      {
+        if(response && request->_onBody) {
+          request->_onBody(response);
+          nc->flags |= MG_F_DELETE_CHUNK;
+        }
+      } else {
+        if(response && request->_onResponse) {
           request->_onResponse(response);
         }
+        nc->flags |= MG_F_CLOSE_IMMEDIATELY;
       }
-      nc->flags |= MG_F_CLOSE_IMMEDIATELY;
+
       break;
     }
-
-//    case MG_EV_POLL:
-//    case MG_EV_SEND:
-//    {
-//      if(nc->user_connection_data)
-//      {
-//        MongooseHttpClientResponse *request = (MongooseHttpClientResponse *)nc->user_connection_data;
-//        request->sendBody();
-//      }
-//
-//      break;
-//    }
 
     case MG_EV_CLOSE: {
       DBUGF("Connection %p closed", nc);
@@ -153,9 +157,16 @@ void MongooseHttpClient::send(MongooseHttpClientRequest *request)
 }
 
 MongooseHttpClientRequest::MongooseHttpClientRequest(MongooseHttpClient *client, const char *uri) :
-  _client(client), _onResponse(NULL), _uri(uri), _method(HTTP_GET),
-  _contentType("application/x-www-form-urlencoded"), _contentLength(-1),
-  _body(NULL),_extraHeaders(NULL)
+  _client(client),
+  _onResponse(NULL),
+  _onBody(NULL),
+  _onClose(NULL),
+  _uri(uri),
+  _method(HTTP_GET),
+  _contentType("application/x-www-form-urlencoded"),
+  _contentLength(-1),
+  _body(NULL),
+  _extraHeaders(NULL)
 {
 
 }
@@ -187,7 +198,7 @@ bool MongooseHttpClientRequest::addHeader(const char *name, size_t nameLength, c
   char * newBuffer = (char *)realloc(_extraHeaders, len);
   if(newBuffer)
   {
-    snprintf(newBuffer + startLen, newLen, "%.*s: %.*s\r\n", nameLength, name, valueLength, value);
+    snprintf(newBuffer + startLen, newLen, "%.*s: %.*s\r\n", (int)nameLength, name, (int)valueLength, value);
     _extraHeaders = newBuffer;
     return true;
   }

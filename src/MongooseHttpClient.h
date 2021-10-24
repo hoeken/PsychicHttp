@@ -25,6 +25,7 @@ class MongooseHttpClientRequest
   private:
     MongooseHttpClient *_client;
     MongooseHttpResponseHandler _onResponse;
+    MongooseHttpResponseHandler _onBody;
     MongooseHttpResponseHandler _onClose;
 
     const char *_uri;
@@ -71,6 +72,11 @@ class MongooseHttpClientRequest
 
     MongooseHttpClientRequest *onResponse(MongooseHttpResponseHandler handler) {
       _onResponse = handler;
+      return this;
+    }
+
+    MongooseHttpClientRequest *onBody(MongooseHttpResponseHandler handler) {
+      _onBody = handler;
       return this;
     }
 
