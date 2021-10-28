@@ -65,7 +65,7 @@ void MongooseHttpClient::eventHandler(struct mg_connection *nc, MongooseHttpClie
       struct http_message *hm = (struct http_message *) p;
       mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr),
                           MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_PORT);
-      DBUGF("HTTP %s from %s, body %zu @ %p", 
+      DBUGF("HTTP %s from %s, body %zu @ %p",
         MG_EV_HTTP_REPLY == ev ? "reply" : "chunk",
         addr, hm->body.len, hm->body.p);
 
@@ -139,7 +139,9 @@ void MongooseHttpClient::send(MongooseHttpClientRequest *request)
   opts.error_string = &err;
 
   mg_connection *nc = mg_connect_http_opt(Mongoose.getMgr(), eventHandler, request, opts, request->_uri, request->_extraHeaders, (const char *)request->_body);
-  if(!nc) {
+  if(nc) {
+    request->_nc = nc;
+  } else {
     DBUGF("Failed to connect to %s: %s", request->_uri, err);
   }
 }
@@ -192,4 +194,11 @@ bool MongooseHttpClientRequest::addHeader(const char *name, size_t nameLength, c
   }
 
   return false;
+}
+
+void MongooseHttpClientRequest::abort()
+{
+  if (_nc) {
+    _nc->flags |= MG_F_CLOSE_IMMEDIATELY;
+  }
 }

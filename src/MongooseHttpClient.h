@@ -36,6 +36,8 @@ class MongooseHttpClientRequest
     const uint8_t *_body;
     char *_extraHeaders;
 
+    mg_connection *_nc;
+
   public:
     MongooseHttpClientRequest(MongooseHttpClient *client, const char *uri);
     virtual ~MongooseHttpClientRequest();
@@ -86,6 +88,8 @@ class MongooseHttpClientRequest
       _onClose = handler;
       return this;
     }
+
+    void abort();
 };
 
 class MongooseHttpClientResponse {
