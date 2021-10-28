@@ -159,9 +159,7 @@ class MongooseHttpClientResponse {
       return headers("Content-Type");
     }
 
-    size_t contentLength() {
-      return _msg->body.len;
-    }
+    size_t contentLength();
 };
 
 class MongooseHttpClient

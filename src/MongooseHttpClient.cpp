@@ -202,3 +202,11 @@ void MongooseHttpClientRequest::abort()
     _nc->flags |= MG_F_CLOSE_IMMEDIATELY;
   }
 }
+
+size_t MongooseHttpClientResponse::contentLength() {
+  MongooseString content_length = headers("Content-Length");
+  if(content_length != NULL) {
+    return atoll(content_length.c_str());
+  }
+  return _msg->body.len;
+}
