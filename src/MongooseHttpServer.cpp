@@ -714,7 +714,7 @@ void MongooseHttpServerResponseBasic::setContent(const uint8_t *content, size_t 
 
 size_t MongooseHttpServerResponseBasic::sendBody(struct mg_connection *nc, size_t bytes)
 {
-  size_t send = min(len, bytes);
+  size_t send = std::min(len, bytes);
 
   mg_send(nc, ptr, send);
 
@@ -753,7 +753,7 @@ size_t MongooseHttpServerResponseStream::write(uint8_t data)
 
 size_t MongooseHttpServerResponseStream::sendBody(struct mg_connection *nc, size_t bytes)
 {
-  size_t send = min(_content.len, bytes);
+  size_t send = std::min(_content.len, bytes);
 
   mg_send(nc, _content.buf, send);
 
