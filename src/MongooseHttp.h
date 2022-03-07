@@ -23,10 +23,6 @@
 #define ARDUINO_MONGOOSE_SEND_BUFFER_SIZE 256
 #endif
 
-#ifndef min
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-#endif
-
 typedef enum {
   HTTP_GET     = 0b00000001,
   HTTP_POST    = 0b00000010,
