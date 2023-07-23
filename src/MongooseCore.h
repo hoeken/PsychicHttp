@@ -8,15 +8,20 @@
 
 #include "mongoose.h"
 
+#include <functional>
+
 #ifndef ARDUINO_MONGOOSE_DEFAULT_ROOT_CA
 #define ARDUINO_MONGOOSE_DEFAULT_ROOT_CA ""
 #endif
+
+typedef std::function<const char *(void)> ArduinoMongooseGetRootCaCallback;
 
 class MongooseCore
 {
   private:
 #if MG_ENABLE_SSL
     const char *_rootCa;
+    ArduinoMongooseGetRootCaCallback _rootCaCallback;
 #endif
 #ifdef ARDUINO
     String _nameserver;
@@ -37,6 +42,10 @@ class MongooseCore
 #if MG_ENABLE_SSL
     void setRootCa(const char *rootCa) {
       _rootCa = rootCa;
+    }
+
+    void setRootCaCallback(ArduinoMongooseGetRootCaCallback callback) {
+      _rootCaCallback = callback;
     }
 #endif
 
