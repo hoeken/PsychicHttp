@@ -15,6 +15,8 @@ MongooseMqttClient::MongooseMqttClient() :
   _client_id(NULL),
   _username(NULL),
   _password(NULL),
+  _cert(NULL),
+  _key(NULL),
   _will_topic(NULL),
   _will_message(NULL),
   _will_retain(false),
@@ -134,8 +136,15 @@ bool MongooseMqttClient::connect(MongooseMqttProtocol protocol, const char *serv
 
     Mongoose.getDefaultOpts(&opts, secure);
 #if MG_ENABLE_SSL
-    if(!_reject_unauthorized && secure) {
-      opts.ssl_ca_cert = "*";
+    if(secure)
+    {
+      if(!_reject_unauthorized) {
+        opts.ssl_ca_cert = "*";
+      }
+      if(_cert && _key) {
+        opts.ssl_cert = _cert;
+        opts.ssl_key = _key;
+      }
     }
 #endif
 

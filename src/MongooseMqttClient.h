@@ -30,6 +30,8 @@ class MongooseMqttClient
     const char *_client_id;
     const char *_username;
     const char *_password;
+    const char *_cert;
+    const char *_key;
     const char *_will_topic;
     const char *_will_message;
     bool _will_retain;
@@ -57,6 +59,11 @@ class MongooseMqttClient
   void setCredentials(const char *username, const char *password) {
     _username = username;
     _password = password;
+  }
+
+  void setCertificate(const char *cert, const char *key) {
+    _cert = cert;
+    _key = key;
   }
 
   void setLastWillAndTestimment(const char *topic, const char *message, bool retain = false) {
