@@ -16,6 +16,7 @@ class MongooseMqttClient;
 typedef std::function<void()> MongooseMqttConnectionHandler;
 typedef std::function<void(const MongooseString topic, const MongooseString payload)> MongooseMqttMessageHandler;
 typedef std::function<void(int retCode)> MongooseMqttErrorHandler;
+typedef std::function<void()> MongooseMqttCloseHandler;
 
 typedef enum {
   MQTT_MQTT = 0,
@@ -42,6 +43,7 @@ class MongooseMqttClient
     MongooseMqttConnectionHandler _onConnect;
     MongooseMqttMessageHandler _onMessage;
     MongooseMqttErrorHandler _onError;
+    MongooseMqttCloseHandler _onClose;
 
   protected:
     static void eventHandler(struct mg_connection *nc, int ev, void *p, void *u);
@@ -102,6 +104,9 @@ class MongooseMqttClient
   }
   void onError(MongooseMqttErrorHandler fnHandler) {
     _onError = fnHandler;
+  }
+  void onClose(MongooseMqttCloseHandler fnHandler) {
+    _onClose = fnHandler;
   }
 
   bool subscribe(const char *topic);

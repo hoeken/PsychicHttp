@@ -25,7 +25,8 @@ MongooseMqttClient::MongooseMqttClient() :
   _reject_unauthorized(true),
   _onConnect(NULL),
   _onMessage(NULL),
-  _onError(NULL)
+  _onError(NULL),
+  _onClose(NULL)
 {
 
 }
@@ -114,6 +115,9 @@ void MongooseMqttClient::eventHandler(struct mg_connection *nc, int ev, void *p)
 
     case MG_EV_CLOSE: {
       DBUGF("Connection %p closed", nc);
+      if(_onClose) {
+        _onClose();
+      }
       _nc = NULL;
       _connected = false;
       break;
