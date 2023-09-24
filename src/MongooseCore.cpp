@@ -4,7 +4,9 @@
 #ifdef ARDUINO
 #ifdef ESP32
 #include <WiFi.h>
+#ifdef ENABLE_WIRED_ETHERNET
 #include <ETH.h>
+#endif
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
 #endif
@@ -63,7 +65,7 @@ void MongooseCore::ipConfigChanged()
 #ifdef ARDUINO
 #if defined(ESP32) || defined(ESP8266)
   IPAddress dns = WiFi.dnsIP(0);
-#if defined(ESP32)
+#if defined(ESP32) && defined(ENABLE_WIRED_ETHERNET)
   if(0 == dns) {
     dns = ETH.dnsIP(0);
   }
