@@ -16,6 +16,7 @@ class MongooseMqttClient;
 typedef std::function<void()> MongooseMqttConnectionHandler;
 typedef std::function<void(const MongooseString topic, const MongooseString payload)> MongooseMqttMessageHandler;
 typedef std::function<void(int retCode)> MongooseMqttErrorHandler;
+typedef std::function<void()> MongooseMqttCloseHandler;
 
 typedef enum {
   MQTT_MQTT = 0,
@@ -30,6 +31,8 @@ class MongooseMqttClient
     const char *_client_id;
     const char *_username;
     const char *_password;
+    const char *_cert;
+    const char *_key;
     const char *_will_topic;
     const char *_will_message;
     bool _will_retain;
@@ -40,6 +43,7 @@ class MongooseMqttClient
     MongooseMqttConnectionHandler _onConnect;
     MongooseMqttMessageHandler _onMessage;
     MongooseMqttErrorHandler _onError;
+    MongooseMqttCloseHandler _onClose;
 
   protected:
     static void eventHandler(struct mg_connection *nc, int ev, void *p, void *u);
@@ -57,6 +61,11 @@ class MongooseMqttClient
   void setCredentials(const char *username, const char *password) {
     _username = username;
     _password = password;
+  }
+
+  void setCertificate(const char *cert, const char *key) {
+    _cert = cert;
+    _key = key;
   }
 
   void setLastWillAndTestimment(const char *topic, const char *message, bool retain = false) {
@@ -95,6 +104,9 @@ class MongooseMqttClient
   }
   void onError(MongooseMqttErrorHandler fnHandler) {
     _onError = fnHandler;
+  }
+  void onClose(MongooseMqttCloseHandler fnHandler) {
+    _onClose = fnHandler;
   }
 
   bool subscribe(const char *topic);

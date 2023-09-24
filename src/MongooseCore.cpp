@@ -13,6 +13,7 @@
 MongooseCore::MongooseCore() : 
 #if MG_ENABLE_SSL
   _rootCa(ARDUINO_MONGOOSE_DEFAULT_ROOT_CA),
+  _rootCaCallback([this]() -> const char * { return _rootCa; }),
 #endif
 #ifdef ARDUINO
   _nameserver(""),
@@ -49,7 +50,7 @@ void MongooseCore::getDefaultOpts(struct mg_connect_opts *opts, bool secure)
 
 #if MG_ENABLE_SSL
   if(secure) {
-    opts->ssl_ca_cert = _rootCa;
+    opts->ssl_ca_cert = _rootCaCallback();
   }
 #else
   (void)secure;
