@@ -38,13 +38,6 @@
       ]
     },
     {
-      "name": "streaming_http_client_native",
-      "base": "examples/streaming_http_client_native",
-      "files": [
-        "src/simple_http_client.cpp"
-      ]
-    },
-    {
       "name": "simple_http_server",
       "base": "examples/simple_http_server",
       "files": [
