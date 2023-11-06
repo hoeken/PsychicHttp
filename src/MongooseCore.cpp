@@ -1,17 +1,6 @@
 
 #include "MongooseCore.h"
 
-#ifdef ARDUINO
-#ifdef ESP32
-#include <WiFi.h>
-#ifdef ENABLE_WIRED_ETHERNET
-#include <ETH.h>
-#endif
-#elif defined(ESP8266)
-#include <ESP8266WiFi.h>
-#endif
-#endif // ARDUINO
-
 MongooseCore::MongooseCore() : 
 #if MG_ENABLE_SSL
   _rootCa(ARDUINO_MONGOOSE_DEFAULT_ROOT_CA),

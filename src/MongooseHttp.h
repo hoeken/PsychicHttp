@@ -1,15 +1,7 @@
 #ifndef MongooseHttp_h
 #define MongooseHttp_h
 
-#ifdef ARDUINO
-#include "Arduino.h"
-#endif
-
-#include <mongoose.h>
-
-#include <functional>
-
-#include "MongooseString.h"
+#include "MongooseCore.h"
 
 #ifndef ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH
 #define ARDUINO_MONGOOSE_PARAM_BUFFER_LENGTH 128

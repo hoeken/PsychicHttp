@@ -1,12 +1,6 @@
 #ifndef MongooseString_h
 #define MongooseString_h
 
-#ifdef ARDUINO
-#include "Arduino.h"
-#endif
-
-#include "mongoose.h"
-
 class MongooseString
 {
   private:

@@ -1,16 +1,7 @@
 #ifndef MongooseHttpClient_h
 #define MongooseHttpClient_h
 
-#ifdef ARDUINO
-#include "Arduino.h"
-#endif
-
-#include <mongoose.h>
-
-#include <functional>
-
-#include "MongooseString.h"
-#include "MongooseHttp.h"
+#include "MongooseCore.h"
 
 class MongooseHttpClient;
 class MongooseHttpClientRequest;

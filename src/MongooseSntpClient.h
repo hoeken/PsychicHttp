@@ -1,17 +1,9 @@
 #ifndef MongooseSntpClient_h
 #define MongooseSntpClient_h
 
-#ifdef ARDUINO
-#include "Arduino.h"
-#endif
-
-#include <mongoose.h>
+#include "MongooseCore.h"
 
 #if MG_ENABLE_SNTP
-
-#include <functional>
-
-#include "MongooseString.h"
 
 class MongooseSntpClient;
 

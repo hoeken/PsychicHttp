@@ -1,21 +1,7 @@
 #ifndef MongooseHttpServer_h
 #define MongooseHttpServer_h
 
-#ifdef ARDUINO
-#include "Arduino.h"
-
-#if defined(ESP8266)
-#include <ESP8266WiFi.h>
-#endif
-
-#endif
-
-#include <mongoose.h>
-
-#include <functional>
-
-#include "MongooseString.h"
-#include "MongooseHttp.h"
+#include "MongooseCore.h"
 
 // Make a copy of the HTTP header so it is avalible outside of the onReceive
 // callback. Setting to 0 will save some runtime memory but accessing the HTTP
@@ -36,7 +22,6 @@ class MongooseHttpServerResponseStream;
 class MongooseHttpWebSocketConnection;
 #define MG_F_IS_MongooseHttpWebSocketConnection MG_F_USER_1
 #endif
-
 
 class MongooseHttpServerRequest {
   friend MongooseHttpServer;

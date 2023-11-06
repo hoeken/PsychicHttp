@@ -2,13 +2,6 @@
 #undef ENABLE_DEBUG
 #endif
 
-#ifdef ARDUINO
-#include <Arduino.h>
-#endif
-
-#include <MicroDebug.h>
-
-#include "MongooseCore.h"
 #include "MongooseMqttClient.h"
 
 MongooseMqttClient::MongooseMqttClient() :

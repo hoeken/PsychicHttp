@@ -1,15 +1,7 @@
 #ifndef MongooseMqttClient_h
 #define MongooseMqttClient_h
 
-#ifdef ARDUINO
-#include "Arduino.h"
-#endif
-
-#include <mongoose.h>
-
-#include <functional>
-
-#include "MongooseString.h"
+#include "MongooseCore.h"
 
 class MongooseMqttClient;
 

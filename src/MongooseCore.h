@@ -2,13 +2,37 @@
 #define MongooseCore_h
 
 #ifdef ARDUINO
-#include <Arduino.h>
-#include <IPAddress.h>
+  #include "Arduino.h"
+  #include <IPAddress.h>
+  #ifdef ESP32
+    #include <WiFi.h>
+    #ifdef ENABLE_WIRED_ETHERNET
+      #include <ETH.h>
+    #endif
+  #elif defined(ESP8266)
+    #include <ESP8266WiFi.h>
+  #endif
 #endif // ARDUINO
 
-#include "mongoose.h"
+#if defined(ARDUINO) && !defined(CS_PLATFORM)
+  #ifdef ESP32
+    #define CS_PLATFORM CS_P_ESP32
+    #define START_ESP_WIFI
+  #elif defined(ESP8266)
+    #define CS_PLATFORM CS_P_ESP8266
+    #define MG_ESP8266
+    #undef LWIP_COMPAT_SOCKETS
+    #define LWIP_COMPAT_SOCKETS 0
+  #else
+    #error Platform not supported
+  #endif
+#endif
 
+#include "mongoose.h"
 #include <functional>
+#include "MongooseString.h"
+#include "MongooseHTTP.h"
+#include <MicroDebug.h>
 
 #ifndef ARDUINO_MONGOOSE_DEFAULT_ROOT_CA
 #define ARDUINO_MONGOOSE_DEFAULT_ROOT_CA ""
