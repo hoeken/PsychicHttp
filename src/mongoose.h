@@ -61,20 +61,6 @@
 #define CS_P_STM32 16
 /* Next id: 18 */
 
-#if defined(ARDUINO) && !defined(CS_PLATFORM)
-#ifdef ESP32
-#define CS_PLATFORM CS_P_ESP32
-#define START_ESP_WIFI
-#elif defined(ESP8266)
-#define CS_PLATFORM CS_P_ESP8266
-#define MG_ESP8266
-#undef LWIP_COMPAT_SOCKETS
-#define LWIP_COMPAT_SOCKETS 0
-#else
-#error Platform not supported
-#endif
-#endif
-
 /* If not specified explicitly, we guess platform by defines. */
 #ifndef CS_PLATFORM
 
@@ -235,7 +221,7 @@
 #include <windows.h>
 #include <process.h>
 
-#if defined(_MSC_VER) && _MSC_VER < 1700
+#if _MSC_VER < 1700
 typedef int bool;
 #else
 #include <stdbool.h>
@@ -613,10 +599,8 @@ typedef struct stat cs_stat_t;
 #endif
 
 #define to64(x) strtoll(x, NULL, 10)
-//#define INT64_FMT PRId64
-#define INT64_FMT "lld"
-//#define INT64_X_FMT PRIx64
-#define INT64_X_FMT "llx"
+#define INT64_FMT PRId64
+#define INT64_X_FMT PRIx64
 #define __cdecl
 #define _FILE_OFFSET_BITS 32
 
@@ -3623,7 +3607,7 @@ struct {								\
 #endif
 
 #ifndef MG_ENABLE_CALLBACK_USERDATA
-#define MG_ENABLE_CALLBACK_USERDATA 1
+#define MG_ENABLE_CALLBACK_USERDATA 0
 #endif
 
 #if MG_ENABLE_CALLBACK_USERDATA
@@ -3950,7 +3934,6 @@ struct mg_connection {
   void (*proto_data_destructor)(void *proto_data);
   mg_event_handler_t handler; /* Event handler function */
   void *user_data;            /* User-specific data */
-  void *user_connection_data; /* User-specific data */
   union {
     void *v;
     /*
@@ -6599,17 +6582,11 @@ uint32_t mg_coap_compose(struct mg_coap_message *cm, struct mbuf *io);
 /* Failed to get time from server (timeout etc) */
 #define MG_SNTP_FAILED (MG_SNTP_EVENT_BASE + 3)
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
 struct mg_sntp_message {
   /* if server sends this flags, user should not send requests to it */
   int kiss_of_death;
   /* usual mg_time */
   double time;
-  /* usual timeval */
-  struct timeval tv;
 };
 
 /* Establishes connection to given sntp server */
@@ -6630,12 +6607,7 @@ void mg_sntp_send_request(struct mg_connection *c);
  */
 struct mg_connection *mg_sntp_get_time(struct mg_mgr *mgr,
                                        mg_event_handler_t event_handler,
-                                       const char *sntp_server_name
-                                       MG_UD_ARG(void *user_data));
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
+                                       const char *sntp_server_name);
 
 #endif
 

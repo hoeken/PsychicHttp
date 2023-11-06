@@ -1,0 +1,40 @@
+@@ -3950,7 +3934,6 @@ struct mg_connection {
+   void (*proto_data_destructor)(void *proto_data);
+   mg_event_handler_t handler; /* Event handler function */
+   void *user_data;            /* User-specific data */
+-  void *user_connection_data; /* User-specific data */
+   union {
+     void *v;
+     /*
+@@ -6599,17 +6582,11 @@ uint32_t mg_coap_compose(struct mg_coap_message *cm, struct mbuf *io);
+ /* Failed to get time from server (timeout etc) */
+ #define MG_SNTP_FAILED (MG_SNTP_EVENT_BASE + 3)
+ 
+-#ifdef __cplusplus
+-extern "C" {
+-#endif /* __cplusplus */
+-
+ struct mg_sntp_message {
+   /* if server sends this flags, user should not send requests to it */
+   int kiss_of_death;
+   /* usual mg_time */
+   double time;
+-  /* usual timeval */
+-  struct timeval tv;
+ };
+ 
+ /* Establishes connection to given sntp server */
+@@ -6630,12 +6607,7 @@ void mg_sntp_send_request(struct mg_connection *c);
+  */
+ struct mg_connection *mg_sntp_get_time(struct mg_mgr *mgr,
+                                        mg_event_handler_t event_handler,
+-                                       const char *sntp_server_name
+-                                       MG_UD_ARG(void *user_data));
+-
+-#ifdef __cplusplus
+-}
+-#endif /* __cplusplus */
++                                       const char *sntp_server_name);
+ 
+ #endif
+ 

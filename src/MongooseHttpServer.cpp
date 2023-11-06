@@ -128,9 +128,9 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
       DBUGF("HTTP request from %s: %.*s %.*s", addr, (int) hm->method.len,
              hm->method.p, (int) hm->uri.len, hm->uri.p);
 
-      if(nc->user_connection_data) {
-        delete (MongooseHttpServerRequest *)nc->user_connection_data;
-        nc->user_connection_data = NULL;
+      if(nc->user_data) {
+        delete (MongooseHttpServerRequest *)nc->user_data;
+        nc->user_data = NULL;
       }
       MongooseHttpServerRequest *request = 
 #if MG_ENABLE_HTTP_STREAMING_MULTIPART
@@ -142,7 +142,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
                                              new MongooseHttpServerRequest(this, nc, hm);
       if(request)
       {
-        nc->user_connection_data = request;
+        nc->user_data = request;
 
         if(endpoint->request) 
         {
@@ -165,11 +165,11 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
     case MG_EV_HTTP_PART_DATA:
     case MG_EV_HTTP_PART_END:
     {
-      DBUGF("nc->user_connection_data = %p", nc->user_connection_data);
-      if(nc->user_connection_data)
+      DBUGF("nc->user_data = %p", nc->user_data);
+      if(nc->user_data)
       {
         struct mg_http_multipart_part *mp = (struct mg_http_multipart_part *) p;
-        MongooseHttpServerRequestUpload *request = (MongooseHttpServerRequestUpload *)nc->user_connection_data;
+        MongooseHttpServerRequestUpload *request = (MongooseHttpServerRequestUpload *)nc->user_data;
  
         if(!request->_responseSent && endpoint->upload) {
           mp->num_data_consumed = endpoint->upload(request, ev, MongooseString(mg_mk_str(mp->file_name)), 
@@ -185,9 +185,9 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
     case MG_EV_POLL:
     case MG_EV_SEND:
     {
-      if(nc->user_connection_data)
+      if(nc->user_data)
       {
-        MongooseHttpServerRequest *request = (MongooseHttpServerRequest *)nc->user_connection_data;
+        MongooseHttpServerRequest *request = (MongooseHttpServerRequest *)nc->user_data;
         if(request->responseSent()) {
           request->sendBody();
         }
@@ -208,16 +208,16 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
 
     case MG_EV_CLOSE: {
       DBUGF("Connection %p closed", nc);
-      if(nc->user_connection_data) 
+      if(nc->user_data) 
       {
-        MongooseHttpServerRequest *request = (MongooseHttpServerRequest *)nc->user_connection_data;
+        MongooseHttpServerRequest *request = (MongooseHttpServerRequest *)nc->user_data;
 
         if(endpoint->close) {
           endpoint->close(request);
         }
 
         delete request;
-        nc->user_connection_data = NULL;
+        nc->user_data = NULL;
       } 
       break;
     }
@@ -226,7 +226,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
     case MG_EV_WEBSOCKET_HANDSHAKE_DONE: {
       if(endpoint->wsConnect && nc->flags & MG_F_IS_MongooseHttpWebSocketConnection)
       {
-        MongooseHttpWebSocketConnection *c = (MongooseHttpWebSocketConnection *)nc->user_connection_data;
+        MongooseHttpWebSocketConnection *c = (MongooseHttpWebSocketConnection *)nc->user_data;
         endpoint->wsConnect(c);
       }
     } break;
@@ -234,7 +234,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
     case MG_EV_WEBSOCKET_FRAME: {
       if(endpoint->wsFrame && nc->flags & MG_F_IS_MongooseHttpWebSocketConnection)
       {
-        MongooseHttpWebSocketConnection *c = (MongooseHttpWebSocketConnection *)nc->user_connection_data;
+        MongooseHttpWebSocketConnection *c = (MongooseHttpWebSocketConnection *)nc->user_data;
         struct websocket_message *wm = (struct websocket_message *)p;
         endpoint->wsFrame(c, wm->flags, wm->data, wm->size);
       }
@@ -261,7 +261,7 @@ void MongooseHttpServer::sendAll(MongooseHttpWebSocketConnection *from, const ch
     }
     if (c->flags & MG_F_IS_WEBSOCKET && c->flags & MG_F_IS_MongooseHttpWebSocketConnection)
     {
-      MongooseHttpWebSocketConnection *to = (MongooseHttpWebSocketConnection *)c->user_connection_data;
+      MongooseHttpWebSocketConnection *to = (MongooseHttpWebSocketConnection *)c->user_data;
       if(endpoint && !to->uri().equals(endpoint)) {
         continue;
       }

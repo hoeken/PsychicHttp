@@ -28,6 +28,8 @@
   #endif
 #endif
 
+#define MG_ENABLE_CALLBACK_USERDATA 1
+
 #include "mongoose.h"
 #include <functional>
 #include "MongooseString.h"

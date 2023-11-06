@@ -1,10 +1,7 @@
 #include "mongoose.h"
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_internal.h"
+#line 1 "mongoose/src/mg_internal.h"
 #endif
-
-#undef poll
-
 /*
  * Copyright (c) 2014 Cesanta Software Limited
  * All rights reserved
@@ -165,7 +162,7 @@ MG_INTERNAL int mg_sntp_parse_reply(const char *buf, int len,
 
 #endif /* CS_MONGOOSE_SRC_INTERNAL_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/mg_mem.h"
+#line 1 "common/mg_mem.h"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -213,7 +210,7 @@ extern "C" {
 
 #endif /* CS_COMMON_MG_MEM_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/cs_base64.c"
+#line 1 "common/cs_base64.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -433,7 +430,7 @@ int cs_base64_decode(const unsigned char *s, int len, char *dst, int *dec_len) {
 
 #endif /* EXCLUDE_COMMON */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/cs_dbg.h"
+#line 1 "common/cs_dbg.h"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -584,7 +581,7 @@ void cs_log_printf(const char *fmt, ...) PRINTF_LIKE(1, 2);
 
 #endif /* CS_COMMON_CS_DBG_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/cs_dbg.c"
+#line 1 "common/cs_dbg.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -730,7 +727,7 @@ void cs_log_set_level(enum cs_log_level level) {
 #endif
 }
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/cs_dirent.h"
+#line 1 "common/cs_dirent.h"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -784,7 +781,7 @@ struct dirent *readdir(DIR *dir);
 
 #endif /* CS_COMMON_CS_DIRENT_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/cs_dirent.c"
+#line 1 "common/cs_dirent.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -895,7 +892,7 @@ struct dirent *readdir(DIR *d) {
 /* ISO C requires a translation unit to contain at least one declaration */
 typedef int cs_dirent_dummy;
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/cs_time.c"
+#line 1 "common/cs_time.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -993,7 +990,7 @@ double cs_timegm(const struct tm *tm) {
   return rt < 0 ? -1 : (double) rt;
 }
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/cs_endian.h"
+#line 1 "common/cs_endian.h"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -1040,7 +1037,7 @@ extern "C" {
 
 #endif /* CS_COMMON_CS_ENDIAN_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/cs_md5.c"
+#line 1 "common/cs_md5.c"
 #endif
 /*
  * This code implements the MD5 message-digest algorithm.
@@ -1254,7 +1251,7 @@ void cs_md5_final(unsigned char digest[16], cs_md5_ctx *ctx) {
 #endif /* CS_DISABLE_MD5 */
 #endif /* EXCLUDE_COMMON */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/cs_sha1.c"
+#line 1 "common/cs_sha1.c"
 #endif
 /* Copyright(c) By Steve Reid <steve@edmweb.com> */
 /* 100% Public Domain */
@@ -1510,7 +1507,7 @@ void cs_hmac_sha1(const unsigned char *key, size_t keylen,
 
 #endif /* EXCLUDE_COMMON */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/mbuf.c"
+#line 1 "common/mbuf.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -1664,7 +1661,7 @@ void mbuf_move(struct mbuf *from, struct mbuf *to) {
 
 #endif /* EXCLUDE_COMMON */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/mg_str.c"
+#line 1 "common/mg_str.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -1828,7 +1825,7 @@ int mg_str_starts_with(struct mg_str s, struct mg_str prefix) {
   return (mg_strcmp(sp, prefix) == 0);
 }
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/str_util.c"
+#line 1 "common/str_util.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -2363,7 +2360,7 @@ size_t mg_match_prefix(const char *pattern, int pattern_len, const char *str) {
 
 #endif /* EXCLUDE_COMMON */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_net.c"
+#line 1 "mongoose/src/mg_net.c"
 #endif
 /*
  * Copyright (c) 2014 Cesanta Software Limited
@@ -3567,7 +3564,7 @@ double mg_time(void) {
   return cs_time();
 }
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_net_if_socket.h"
+#line 1 "mongoose/src/mg_net_if_socket.h"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -3595,7 +3592,7 @@ extern const struct mg_iface_vtable mg_socket_iface_vtable;
 
 #endif /* CS_MONGOOSE_SRC_NET_IF_SOCKET_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_net_if_socks.h"
+#line 1 "mongoose/src/mg_net_if_socks.h"
 #endif
 /*
 * Copyright (c) 2014-2017 Cesanta Software Limited
@@ -3620,7 +3617,7 @@ extern const struct mg_iface_vtable mg_socks_iface_vtable;
 #endif /* MG_ENABLE_SOCKS */
 #endif /* CS_MONGOOSE_SRC_NET_IF_SOCKS_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_net_if.c"
+#line 1 "mongoose/src/mg_net_if.c"
 #endif
 /* Amalgamated: #include "mg_net_if.h" */
 /* Amalgamated: #include "mg_internal.h" */
@@ -3676,7 +3673,7 @@ double mg_mgr_min_timer(const struct mg_mgr *mgr) {
   return min_timer;
 }
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_net_if_null.c"
+#line 1 "mongoose/src/mg_net_if_null.c"
 #endif
 /*
  * Copyright (c) 2018 Cesanta Software Limited
@@ -3820,7 +3817,7 @@ const struct mg_iface_vtable mg_null_iface_vtable = MG_NULL_IFACE_VTABLE;
 const struct mg_iface_vtable mg_default_iface_vtable = MG_NULL_IFACE_VTABLE;
 #endif /* MG_NET_IF == MG_NET_IF_NULL */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_net_if_socket.c"
+#line 1 "mongoose/src/mg_net_if_socket.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -4405,7 +4402,7 @@ const struct mg_iface_vtable mg_default_iface_vtable = MG_SOCKET_IFACE_VTABLE;
 
 #endif /* MG_ENABLE_NET_IF_SOCKET */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_net_if_socks.c"
+#line 1 "mongoose/src/mg_net_if_socks.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -4645,7 +4642,7 @@ struct mg_iface *mg_socks_mk_iface(struct mg_mgr *mgr, const char *proxy_addr) {
 
 #endif
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_ssl_if_openssl.c"
+#line 1 "mongoose/src/mg_ssl_if_openssl.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -5045,7 +5042,7 @@ const char *mg_set_ssl(struct mg_connection *nc, const char *cert,
 
 #endif /* MG_ENABLE_SSL && MG_SSL_IF == MG_SSL_IF_OPENSSL */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_ssl_if_mbedtls.c"
+#line 1 "mongoose/src/mg_ssl_if_mbedtls.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -5062,7 +5059,6 @@ const char *mg_set_ssl(struct mg_connection *nc, const char *cert,
 #include <mbedtls/ssl_internal.h>
 #include <mbedtls/x509_crt.h>
 #include <mbedtls/version.h>
-#include <mbedtls/error.h>
 
 static void mg_ssl_mbed_log(void *ctx, int level, const char *file, int line,
                             const char *str) {
@@ -5253,9 +5249,7 @@ static enum mg_ssl_if_result mg_ssl_if_mbed_err(struct mg_connection *nc,
     nc->flags |= MG_F_CLOSE_IMMEDIATELY;
     res = MG_SSL_OK;
   } else {
-    char buffer[256];
-    mbedtls_strerror(ret, buffer, 256);
-    LOG(LL_ERROR, ("%p mbedTLS error: -0x%04x: %s", nc, -ret, buffer));
+    LOG(LL_ERROR, ("%p mbedTLS error: -0x%04x", nc, -ret));
     nc->flags |= MG_F_CLOSE_IMMEDIATELY;
     res = MG_SSL_ERROR;
   }
@@ -5386,7 +5380,7 @@ static enum mg_ssl_if_result mg_use_ca_cert(struct mg_ssl_if_ctx *ctx,
   ca_cert = strdup(ca_cert);
   mbedtls_ssl_conf_ca_chain_file(ctx->conf, ca_cert, NULL);
 #else
-  if (mbedtls_x509_crt_parse(ctx->ca_cert, (uint8_t *)ca_cert, strlen(ca_cert) + 1) < 0) {
+  if (mbedtls_x509_crt_parse_file(ctx->ca_cert, ca_cert) != 0) {
     return MG_SSL_ERROR;
   }
   mbedtls_ssl_conf_ca_chain(ctx->conf, ctx->ca_cert, NULL);
@@ -5406,11 +5400,11 @@ static enum mg_ssl_if_result mg_use_cert(struct mg_ssl_if_ctx *ctx,
   mbedtls_x509_crt_init(ctx->cert);
   ctx->key = (mbedtls_pk_context *) MG_CALLOC(1, sizeof(*ctx->key));
   mbedtls_pk_init(ctx->key);
-  if (mbedtls_x509_crt_parse(ctx->cert, (uint8_t *)cert, strlen(cert) + 1) < 0) {
+  if (mbedtls_x509_crt_parse_file(ctx->cert, cert) != 0) {
     MG_SET_PTRPTR(err_msg, "Invalid SSL cert");
     return MG_SSL_ERROR;
   }
-  if (mbedtls_pk_parse_key(ctx->key, (uint8_t *)key, strlen(key) + 1, NULL, 0) < 0) {
+  if (mbedtls_pk_parse_keyfile(ctx->key, key, NULL) != 0) {
     MG_SET_PTRPTR(err_msg, "Invalid SSL key");
     return MG_SSL_ERROR;
   }
@@ -5560,7 +5554,7 @@ int mg_ssl_if_mbed_random(void *ctx, unsigned char *buf, size_t len) {
 
 #endif /* MG_ENABLE_SSL && MG_SSL_IF == MG_SSL_IF_MBEDTLS */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_uri.c"
+#line 1 "mongoose/src/mg_uri.c"
 #endif
 /*
  * Copyright (c) 2014 Cesanta Software Limited
@@ -5824,7 +5818,7 @@ out:
   return result;
 }
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_http.c"
+#line 1 "mongoose/src/mg_http.c"
 #endif
 /*
  * Copyright (c) 2014 Cesanta Software Limited
@@ -6001,9 +5995,6 @@ struct mg_http_proto_data {
   struct mg_http_proto_data_chuncked chunk;
   struct mg_http_endpoint *endpoints;
   mg_event_handler_t endpoint_handler;
-#if MG_ENABLE_CALLBACK_USERDATA
-  void *user_data;
-#endif
   struct mg_reverse_proxy_data reverse_proxy_data;
   size_t rcvd; /* How many bytes we have received. */
 };
@@ -6580,13 +6571,11 @@ void mg_http_handler(struct mg_connection *nc, int ev,
       mp.var_name = pd->mp_stream.var_name;
       mp.file_name = pd->mp_stream.file_name;
       mg_call(nc, (pd->endpoint_handler ? pd->endpoint_handler : nc->handler),
-              (pd->endpoint_handler ? pd->user_data : nc->user_data),
-              MG_EV_HTTP_PART_END, &mp);
+              nc->user_data, MG_EV_HTTP_PART_END, &mp);
       mp.var_name = NULL;
       mp.file_name = NULL;
       mg_call(nc, (pd->endpoint_handler ? pd->endpoint_handler : nc->handler),
-              (pd->endpoint_handler ? pd->user_data : nc->user_data),
-              MG_EV_HTTP_MULTIPART_REQUEST_END, &mp);
+              nc->user_data, MG_EV_HTTP_MULTIPART_REQUEST_END, &mp);
     } else
 #endif
         if (io->len > 0 &&
@@ -6603,7 +6592,7 @@ void mg_http_handler(struct mg_connection *nc, int ev,
     }
     pd->rcvd = 0;
     if (pd->endpoint_handler != NULL && pd->endpoint_handler != nc->handler) {
-      mg_call(nc, pd->endpoint_handler, pd->user_data, ev, NULL);
+      mg_call(nc, pd->endpoint_handler, nc->user_data, ev, NULL);
     }
   }
 
@@ -6822,7 +6811,6 @@ static void mg_http_multipart_begin(struct mg_connection *nc,
     ep = mg_http_get_endpoint_handler(nc->listener, &hm->uri);
     if (ep != NULL) {
       pd->endpoint_handler = ep->handler;
-      pd->user_data = ep->user_data;
     }
 
     mg_http_call_endpoint_handler(nc, MG_EV_HTTP_MULTIPART_REQUEST, hm);
@@ -6848,7 +6836,7 @@ static size_t mg_http_multipart_call_handler(struct mg_connection *c, int ev,
   mp.data.p = data;
   mp.data.len = data_len;
   mp.num_data_consumed = data_len;
-  mg_call(c, pd->endpoint_handler, pd->user_data, ev, &mp);
+  mg_call(c, pd->endpoint_handler, c->user_data, ev, &mp);
   pd->mp_stream.user_data = mp.user_data;
   pd->mp_stream.data_avail = (mp.num_data_consumed != data_len);
   return mp.num_data_consumed;
@@ -7453,13 +7441,9 @@ int mg_get_http_var(const struct mg_str *buf, const char *name, char *dst,
     dst[0] = '\0';
 
     for (p = buf->p; p + name_len < e; p++) {
-      if ((p == buf->p || p[-1] == '&') && 
-          (p[name_len] == '=' || p[name_len] == '&') &&
+      if ((p == buf->p || p[-1] == '&') && p[name_len] == '=' &&
           !mg_ncasecmp(name, p, name_len)) {
-        p += name_len;
-        if('=' == *p) {
-          p++;
-        }
+        p += name_len + 1;
         s = (const char *) memchr(p, '&', (size_t)(e - p));
         if (s == NULL) {
           s = e;
@@ -8939,7 +8923,6 @@ static void mg_http_call_endpoint_handler(struct mg_connection *nc, int ev,
       pd->endpoint_handler = ep->handler;
 #if MG_ENABLE_CALLBACK_USERDATA
       user_data = ep->user_data;
-      pd->user_data = ep->user_data;
 #endif
     }
   }
@@ -8960,7 +8943,7 @@ void mg_register_http_endpoint(struct mg_connection *nc, const char *uri_path,
 
 #endif /* MG_ENABLE_HTTP */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_http_cgi.c"
+#line 1 "mongoose/src/mg_http_cgi.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -9476,7 +9459,7 @@ MG_INTERNAL void mg_http_free_proto_data_cgi(struct mg_http_proto_data_cgi *d) {
 
 #endif /* MG_ENABLE_HTTP && MG_ENABLE_HTTP_CGI */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_http_ssi.c"
+#line 1 "mongoose/src/mg_http_ssi.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -9672,7 +9655,7 @@ MG_INTERNAL void mg_handle_ssi_request(struct mg_connection *nc,
 
 #endif /* MG_ENABLE_HTTP_SSI && MG_ENABLE_HTTP && MG_ENABLE_FILESYSTEM */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_http_webdav.c"
+#line 1 "mongoose/src/mg_http_webdav.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -9944,7 +9927,7 @@ MG_INTERNAL void mg_handle_put(struct mg_connection *nc, const char *path,
 
 #endif /* MG_ENABLE_HTTP && MG_ENABLE_HTTP_WEBDAV */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_http_websocket.c"
+#line 1 "mongoose/src/mg_http_websocket.c"
 #endif
 /*
  * Copyright (c) 2014 Cesanta Software Limited
@@ -10466,7 +10449,7 @@ struct mg_connection *mg_connect_ws(
 }
 #endif /* MG_ENABLE_HTTP && MG_ENABLE_HTTP_WEBSOCKET */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_util.c"
+#line 1 "mongoose/src/mg_util.c"
 #endif
 /*
  * Copyright (c) 2014 Cesanta Software Limited
@@ -10813,7 +10796,7 @@ struct mg_str mg_url_encode(const struct mg_str src) {
   return mg_url_encode_opt(src, mg_mk_str("._-$,;~()/"), 0);
 }
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_mqtt.c"
+#line 1 "mongoose/src/mg_mqtt.c"
 #endif
 /*
  * Copyright (c) 2014 Cesanta Software Limited
@@ -11327,7 +11310,7 @@ void mg_mqtt_disconnect(struct mg_connection *nc) {
 
 #endif /* MG_ENABLE_MQTT */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_mqtt_server.c"
+#line 1 "mongoose/src/mg_mqtt_server.c"
 #endif
 /*
  * Copyright (c) 2014 Cesanta Software Limited
@@ -11524,7 +11507,7 @@ struct mg_mqtt_session *mg_mqtt_next(struct mg_mqtt_broker *brk,
 
 #endif /* MG_ENABLE_MQTT_BROKER */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_dns.c"
+#line 1 "mongoose/src/mg_dns.c"
 #endif
 /*
  * Copyright (c) 2014 Cesanta Software Limited
@@ -11904,7 +11887,7 @@ void mg_set_protocol_dns(struct mg_connection *nc) {
 
 #endif /* MG_ENABLE_DNS */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_dns_server.c"
+#line 1 "mongoose/src/mg_dns_server.c"
 #endif
 /*
  * Copyright (c) 2014 Cesanta Software Limited
@@ -11978,7 +11961,7 @@ int mg_dns_reply_record(struct mg_dns_reply *reply,
 
 #endif /* MG_ENABLE_DNS_SERVER */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_resolv.c"
+#line 1 "mongoose/src/mg_resolv.c"
 #endif
 /*
  * Copyright (c) 2014 Cesanta Software Limited
@@ -12273,7 +12256,7 @@ void mg_set_nameserver(struct mg_mgr *mgr, const char *nameserver) {
 
 #endif /* MG_ENABLE_ASYNC_RESOLVER */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_coap.c"
+#line 1 "mongoose/src/mg_coap.c"
 #endif
 /*
  * Copyright (c) 2015 Cesanta Software Limited
@@ -12873,7 +12856,7 @@ int mg_set_protocol_coap(struct mg_connection *nc) {
 
 #endif /* MG_ENABLE_COAP */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_sntp.c"
+#line 1 "mongoose/src/mg_sntp.c"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
@@ -13015,11 +12998,8 @@ MG_INTERNAL int mg_sntp_parse_reply(const char *buf, int len,
 #endif
 
   mg_ntp_to_tv(trsm_ts_T3, &tv);
-  
-  msg->tv.tv_sec = tv.tv_sec + (delay / 1000000);
-  msg->tv.tv_usec = tv.tv_usec + (delay % 1000000);
 
-  msg->time = (double) msg->tv.tv_sec + (((double) msg->tv.tv_usec + delay) / 1000000.0);
+  msg->time = (double) tv.tv_sec + (((double) tv.tv_usec + delay) / 1000000.0);
 
   return 0;
 }
@@ -13099,9 +13079,6 @@ cleanup:
 
 struct sntp_data {
   mg_event_handler_t hander;
-#if MG_ENABLE_CALLBACK_USERDATA
-  void *user_data;
-#endif
   int count;
 };
 
@@ -13115,7 +13092,7 @@ static void mg_sntp_util_ev_handler(struct mg_connection *c, int ev,
   switch (ev) {
     case MG_EV_CONNECT:
       if (*(int *) ev_data != 0) {
-        mg_call(c, sd->hander, sd->user_data, MG_SNTP_FAILED, NULL);
+        mg_call(c, sd->hander, c->user_data, MG_SNTP_FAILED, NULL);
         break;
       }
     /* fallthrough */
@@ -13125,20 +13102,19 @@ static void mg_sntp_util_ev_handler(struct mg_connection *c, int ev,
         mg_set_timer(c, mg_time() + 10);
         sd->count++;
       } else {
-        mg_call(c, sd->hander, sd->user_data, MG_SNTP_FAILED, NULL);
+        mg_call(c, sd->hander, c->user_data, MG_SNTP_FAILED, NULL);
         c->flags |= MG_F_CLOSE_IMMEDIATELY;
       }
       break;
     case MG_SNTP_MALFORMED_REPLY:
-      mg_call(c, sd->hander, sd->user_data, MG_SNTP_FAILED, NULL);
+      mg_call(c, sd->hander, c->user_data, MG_SNTP_FAILED, NULL);
       c->flags |= MG_F_CLOSE_IMMEDIATELY;
       break;
     case MG_SNTP_REPLY:
-      mg_call(c, sd->hander, sd->user_data, MG_SNTP_REPLY, ev_data);
+      mg_call(c, sd->hander, c->user_data, MG_SNTP_REPLY, ev_data);
       c->flags |= MG_F_CLOSE_IMMEDIATELY;
       break;
     case MG_EV_CLOSE:
-      mg_call(c, sd->hander, sd->user_data, MG_EV_CLOSE, NULL);
       MG_FREE(user_data);
       c->user_data = NULL;
       break;
@@ -13147,7 +13123,7 @@ static void mg_sntp_util_ev_handler(struct mg_connection *c, int ev,
 
 struct mg_connection *mg_sntp_get_time(struct mg_mgr *mgr,
                                        mg_event_handler_t event_handler,
-                                       const char *sntp_server_name MG_UD_ARG(void *user_data)) {
+                                       const char *sntp_server_name) {
   struct mg_connection *c;
   struct sntp_data *sd = (struct sntp_data *) MG_CALLOC(1, sizeof(*sd));
   if (sd == NULL) {
@@ -13162,10 +13138,6 @@ struct mg_connection *mg_sntp_get_time(struct mg_mgr *mgr,
   }
 
   sd->hander = event_handler;
-#if MG_ENABLE_CALLBACK_USERDATA
-  sd->user_data = user_data;  
-#endif
-
 #if !MG_ENABLE_CALLBACK_USERDATA
   c->user_data = sd;
 #endif
@@ -13175,7 +13147,7 @@ struct mg_connection *mg_sntp_get_time(struct mg_mgr *mgr,
 
 #endif /* MG_ENABLE_SNTP */
 #ifdef MG_MODULE_LINES
-#line 1 "src/mg_socks.c"
+#line 1 "mongoose/src/mg_socks.c"
 #endif
 /*
  * Copyright (c) 2017 Cesanta Software Limited
@@ -13337,7 +13309,7 @@ void mg_set_protocol_socks(struct mg_connection *c) {
 }
 #endif
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/cc3200/cc3200_libc.c"
+#line 1 "common/platforms/cc3200/cc3200_libc.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -13455,7 +13427,7 @@ int _isatty(int fd) {
 
 #endif /* CS_PLATFORM == CS_P_CC3200 */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/msp432/msp432_libc.c"
+#line 1 "common/platforms/msp432/msp432_libc.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -13488,7 +13460,7 @@ int gettimeofday(struct timeval *tp, void *tzp) {
 
 #endif /* CS_PLATFORM == CS_P_MSP432 */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/nrf5/nrf5_libc.c"
+#line 1 "common/platforms/nrf5/nrf5_libc.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -13517,7 +13489,7 @@ int gettimeofday(struct timeval *tp, void *tzp) {
 }
 #endif
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/simplelink/sl_fs_slfs.h"
+#line 1 "common/platforms/simplelink/sl_fs_slfs.h"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -13568,7 +13540,7 @@ void fs_slfs_unset_file_flags(const char *name);
 
 #endif /* CS_COMMON_PLATFORMS_SIMPLELINK_SL_FS_SLFS_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/simplelink/sl_fs_slfs.c"
+#line 1 "common/platforms/simplelink/sl_fs_slfs.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -13873,7 +13845,7 @@ void fs_slfs_unset_file_flags(const char *name) {
 
 #endif /* defined(MG_FS_SLFS) || defined(CC3200_FS_SLFS) */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/simplelink/sl_fs.c"
+#line 1 "common/platforms/simplelink/sl_fs.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -14299,7 +14271,7 @@ int sl_fs_init(void) {
 #endif /* MG_NET_IF == MG_NET_IF_SIMPLELINK && (defined(MG_FS_SLFS) || \
           defined(MG_FS_SPIFFS)) */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/simplelink/sl_socket.c"
+#line 1 "common/platforms/simplelink/sl_socket.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -14362,7 +14334,7 @@ int inet_pton(int af, const char *src, void *dst) {
 
 #endif /* MG_NET_IF == MG_NET_IF_SIMPLELINK */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/simplelink/sl_mg_task.c"
+#line 1 "common/platforms/simplelink/sl_mg_task.c"
 #endif
 #if MG_NET_IF == MG_NET_IF_SIMPLELINK && !defined(MG_SIMPLELINK_NO_OSI)
 
@@ -14417,7 +14389,7 @@ void mg_run_in_task(void (*cb)(struct mg_mgr *mgr, void *arg), void *cb_arg) {
 #endif /* MG_NET_IF == MG_NET_IF_SIMPLELINK && !defined(MG_SIMPLELINK_NO_OSI) \
           */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/simplelink/sl_net_if.h"
+#line 1 "common/platforms/simplelink/sl_net_if.h"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -14457,7 +14429,7 @@ extern const struct mg_iface_vtable mg_simplelink_iface_vtable;
 
 #endif /* CS_COMMON_PLATFORMS_SIMPLELINK_SL_NET_IF_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/simplelink/sl_net_if.c"
+#line 1 "common/platforms/simplelink/sl_net_if.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -14892,7 +14864,7 @@ const struct mg_iface_vtable mg_default_iface_vtable = MG_SL_IFACE_VTABLE;
 
 #endif /* MG_ENABLE_NET_IF_SIMPLELINK */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/simplelink/sl_ssl_if.c"
+#line 1 "common/platforms/simplelink/sl_ssl_if.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -15146,7 +15118,7 @@ int sl_set_ssl_opts(int sock, struct mg_connection *nc) {
 
 #endif /* MG_ENABLE_SSL && MG_SSL_IF == MG_SSL_IF_SIMPLELINK */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/lwip/mg_lwip_net_if.h"
+#line 1 "common/platforms/lwip/mg_lwip_net_if.h"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -15214,7 +15186,7 @@ void mg_lwip_mgr_schedule_poll(struct mg_mgr *mgr);
 
 #endif /* CS_COMMON_PLATFORMS_LWIP_MG_NET_IF_LWIP_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/lwip/mg_lwip_net_if.c"
+#line 1 "common/platforms/lwip/mg_lwip_net_if.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -15935,7 +15907,7 @@ const struct mg_iface_vtable mg_default_iface_vtable = MG_LWIP_IFACE_VTABLE;
 
 #endif /* MG_ENABLE_NET_IF_LWIP_LOW_LEVEL */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/lwip/mg_lwip_ev_mgr.c"
+#line 1 "common/platforms/lwip/mg_lwip_ev_mgr.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -16107,7 +16079,7 @@ time_t mg_lwip_if_poll(struct mg_iface *iface, int timeout_ms) {
 
 #endif /* MG_NET_IF == MG_NET_IF_LWIP_LOW_LEVEL */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/wince/wince_libc.c"
+#line 1 "common/platforms/wince/wince_libc.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -16196,7 +16168,7 @@ static void mg_gmt_time_string(char *buf, size_t buf_len, time_t *t) {
 
 #endif
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/pic32/pic32_net_if.h"
+#line 1 "common/platforms/pic32/pic32_net_if.h"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -16236,7 +16208,7 @@ extern const struct mg_iface_vtable mg_pic32_iface_vtable;
 
 #endif /* CS_COMMON_PLATFORMS_PIC32_NET_IF_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/pic32/pic32_net_if.c"
+#line 1 "common/platforms/pic32/pic32_net_if.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
@@ -16543,7 +16515,7 @@ const struct mg_iface_vtable mg_default_iface_vtable = MG_PIC32_IFACE_VTABLE;
 
 #endif /* MG_ENABLE_NET_IF_PIC32 */
 #ifdef MG_MODULE_LINES
-#line 1 "src/common/platforms/windows/windows_direct.c"
+#line 1 "common/platforms/windows/windows_direct.c"
 #endif
 /*
  * Copyright (c) 2014-2018 Cesanta Software Limited
