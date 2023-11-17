@@ -16,8 +16,7 @@
 
 #if defined(ARDUINO) && !defined(CS_PLATFORM)
   #ifdef ESP32
-    #define CS_PLATFORM CS_P_ESP32
-    #define START_ESP_WIFI
+    #define ESP_PLATFORM
   #elif defined(ESP8266)
     #define CS_PLATFORM CS_P_ESP8266
     #define MG_ESP8266
@@ -28,16 +27,14 @@
   #endif
 #endif
 
-#define MG_ENABLE_CALLBACK_USERDATA 1
-
 #include "mongoose.h"
-#include <functional>
+//#include <functional>
 #include "MongooseString.h"
 #include "MongooseHTTP.h"
 #include <MicroDebug.h>
 
 #ifndef ARDUINO_MONGOOSE_DEFAULT_ROOT_CA
-#define ARDUINO_MONGOOSE_DEFAULT_ROOT_CA ""
+  #define ARDUINO_MONGOOSE_DEFAULT_ROOT_CA ""
 #endif
 
 typedef std::function<const char *(void)> ArduinoMongooseGetRootCaCallback;
@@ -45,13 +42,13 @@ typedef std::function<const char *(void)> ArduinoMongooseGetRootCaCallback;
 class MongooseCore
 {
   private:
-#if MG_ENABLE_SSL
-    const char *_rootCa;
-    ArduinoMongooseGetRootCaCallback _rootCaCallback;
-#endif
-#ifdef ARDUINO
-    String _nameserver;
-#endif // ARDUINO
+    #if MG_ENABLE_SSL
+        const char *_rootCa;
+        ArduinoMongooseGetRootCaCallback _rootCaCallback;
+    #endif
+    #ifdef ARDUINO
+        String _nameserver;
+    #endif // ARDUINO
     struct mg_mgr mgr;
 
   public:
@@ -65,16 +62,15 @@ class MongooseCore
 
     void ipConfigChanged();
 
-#if MG_ENABLE_SSL
-    void setRootCa(const char *rootCa) {
-      _rootCa = rootCa;
-    }
+    #if MG_ENABLE_SSL
+      void setRootCa(const char *rootCa) {
+        _rootCa = rootCa;
+      }
 
-    void setRootCaCallback(ArduinoMongooseGetRootCaCallback callback) {
-      _rootCaCallback = callback;
-    }
-#endif
-
+      void setRootCaCallback(ArduinoMongooseGetRootCaCallback callback) {
+        _rootCaCallback = callback;
+      }
+    #endif
 };
 
 extern MongooseCore Mongoose;
