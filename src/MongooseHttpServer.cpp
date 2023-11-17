@@ -117,9 +117,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
 #if MG_ENABLE_HTTP_STREAMING_MULTIPART
     case MG_EV_HTTP_MULTIPART_REQUEST:
 #endif
-#if MG_ENABLE_HTTP_WEBSOCKET
     case MG_EV_WEBSOCKET_HANDSHAKE_REQUEST:
-#endif
     case MG_EV_HTTP_REQUEST: {
       char addr[32];
       struct http_message *hm = (struct http_message *) p;
@@ -136,10 +134,8 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
 #if MG_ENABLE_HTTP_STREAMING_MULTIPART
         MG_EV_HTTP_MULTIPART_REQUEST == ev ? new MongooseHttpServerRequestUpload(this, nc, hm) :
 #endif
-#if MG_ENABLE_HTTP_WEBSOCKET
         MG_EV_WEBSOCKET_HANDSHAKE_REQUEST == ev ? new MongooseHttpWebSocketConnection(this, nc, hm) :
-#endif
-                                             new MongooseHttpServerRequest(this, nc, hm);
+                                                  new MongooseHttpServerRequest(this, nc, hm);
       if(request)
       {
         nc->user_data = request;
@@ -147,10 +143,7 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
         if(endpoint->request) 
         {
           endpoint->request(request);
-#if MG_ENABLE_HTTP_WEBSOCKET
         } else if(endpoint->wsFrame) {
-
-#endif
         } else {
           mg_http_send_error(nc, 404, NULL);
         }
@@ -222,7 +215,6 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
       break;
     }
 
-#if MG_ENABLE_HTTP_WEBSOCKET
     case MG_EV_WEBSOCKET_HANDSHAKE_DONE: {
       if(endpoint->wsConnect && nc->flags & MG_F_IS_MongooseHttpWebSocketConnection)
       {
@@ -243,12 +235,9 @@ void MongooseHttpServer::eventHandler(struct mg_connection *nc, int ev, void *p,
     case MG_EV_WEBSOCKET_CONTROL_FRAME: {
 
     } break;
-
-#endif    
   }
 }
 
-#if MG_ENABLE_HTTP_WEBSOCKET
 void MongooseHttpServer::sendAll(MongooseHttpWebSocketConnection *from, const char *endpoint, int op, const void *data, size_t len)
 {
   mg_mgr *mgr = Mongoose.getMgr();
@@ -270,7 +259,6 @@ void MongooseHttpServer::sendAll(MongooseHttpWebSocketConnection *from, const ch
     }
   }
 }
-#endif
 
 /// MongooseHttpServerRequest object
 
@@ -759,7 +747,6 @@ size_t MongooseHttpServerResponseStream::sendBody(struct mg_connection *nc, size
 
 #endif
 
-#if MG_ENABLE_HTTP_WEBSOCKET
 MongooseHttpWebSocketConnection::MongooseHttpWebSocketConnection(MongooseHttpServer *server, mg_connection *nc, http_message *msg) :
   MongooseHttpServerRequest(server, nc, msg)
 {
@@ -775,8 +762,6 @@ void MongooseHttpWebSocketConnection::send(int op, const void *data, size_t len)
 {
   mg_send_websocket_frame(_nc, op, data, len);
 }
-
-#endif
 
 // Mongoose event handler function, gets called by the mg_mgr_poll()
 static void http_event_callback(struct mg_connection *c, int ev, void *ev_data, void *fn_data)

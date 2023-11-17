@@ -16,12 +16,12 @@ class MongooseHttpServerRequest;
 class MongooseHttpServerResponse;
 class MongooseHttpServerResponseBasic;
 #ifdef ARDUINO
-class MongooseHttpServerResponseStream;
+  class MongooseHttpServerResponseStream;
 #endif
-#if MG_ENABLE_HTTP_WEBSOCKET
 class MongooseHttpWebSocketConnection;
-#define MG_F_IS_MongooseHttpWebSocketConnection MG_F_USER_1
-#endif
+
+//TODO: i think this is depreciated
+//#define MG_F_IS_MongooseHttpWebSocketConnection MG_F_USER_1
 
 class MongooseHttpServerRequest {
   friend MongooseHttpServer;
@@ -270,10 +270,8 @@ class MongooseHttpServerResponseBasic:
 
 typedef std::function<void(MongooseHttpServerRequest *request)> MongooseHttpRequestHandler;
 typedef std::function<size_t(MongooseHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> MongooseHttpUploadHandler;
-#if MG_ENABLE_HTTP_WEBSOCKET
 typedef std::function<void(MongooseHttpWebSocketConnection *connection)> MongooseHttpWebSocketConnectionHandler;
 typedef std::function<void(MongooseHttpWebSocketConnection *connection, int flags, uint8_t *data, size_t len)> MongooseHttpWebSocketFrameHandler;
-#endif
 
 class MongooseHttpServerEndpoint
 {
@@ -285,22 +283,17 @@ class MongooseHttpServerEndpoint
     MongooseHttpRequestHandler request;
     MongooseHttpUploadHandler upload;
     MongooseHttpRequestHandler close;
-#if MG_ENABLE_HTTP_WEBSOCKET
     MongooseHttpWebSocketConnectionHandler wsConnect;
     MongooseHttpWebSocketFrameHandler wsFrame;
-#endif
   public:
     MongooseHttpServerEndpoint(MongooseHttpServer *server, HttpRequestMethodComposite method) :
       server(server),
       method(method),
       request(NULL),
       upload(NULL),
-      close(NULL)
-#if MG_ENABLE_HTTP_WEBSOCKET
-      ,
+      close(NULL),
       wsConnect(NULL),
       wsFrame(NULL)
-#endif
     {
     }
 
@@ -319,7 +312,6 @@ class MongooseHttpServerEndpoint
       return this;
     }
 
-#if MG_ENABLE_HTTP_WEBSOCKET
     MongooseHttpServerEndpoint *onConnect(MongooseHttpWebSocketConnectionHandler handler) {
       this->wsConnect = handler;
       return this;
@@ -329,10 +321,8 @@ class MongooseHttpServerEndpoint
       this->wsFrame = handler;
       return this;
     }
-#endif
 };
 
-#if MG_ENABLE_HTTP_WEBSOCKET
 class MongooseHttpWebSocketConnection : public MongooseHttpServerRequest
 {
   friend MongooseHttpServer;
@@ -360,7 +350,6 @@ class MongooseHttpWebSocketConnection : public MongooseHttpServerRequest
       return _nc;
     }
 };
-#endif
 
 class MongooseHttpServer
 {
@@ -391,7 +380,6 @@ class MongooseHttpServer
 
     void reset();
 
-#if MG_ENABLE_HTTP_WEBSOCKET
     void sendAll(MongooseHttpWebSocketConnection *from, const char *endpoint, int op, const void *data, size_t len);
 
     void sendAll(MongooseHttpWebSocketConnection *from, int op, const void *data, size_t len) {
@@ -415,21 +403,20 @@ class MongooseHttpServer
     void sendAll(const char *endpoint, const char *buf) {
       sendAll(NULL, endpoint, WEBSOCKET_OP_TEXT, buf, strlen(buf));
     }
-#ifdef ARDUINO
-    void sendAll(MongooseHttpWebSocketConnection *from, String &str) {
-      sendAll(from, str.c_str());
-    }
-    void sendAll(String &str) {
-      sendAll(str.c_str());
-    }
-    void sendAll(MongooseHttpWebSocketConnection *from, const char *endpoint, String &str) {
-      sendAll(from, endpoint, str.c_str());
-    }
-    void sendAll(const char *endpoint, String &str) {
-      sendAll(endpoint, str.c_str());
-    }
-#endif
-#endif // MG_ENABLE_HTTP_WEBSOCKET
+    #ifdef ARDUINO
+        void sendAll(MongooseHttpWebSocketConnection *from, String &str) {
+          sendAll(from, str.c_str());
+        }
+        void sendAll(String &str) {
+          sendAll(str.c_str());
+        }
+        void sendAll(MongooseHttpWebSocketConnection *from, const char *endpoint, String &str) {
+          sendAll(from, endpoint, str.c_str());
+        }
+        void sendAll(const char *endpoint, String &str) {
+          sendAll(endpoint, str.c_str());
+        }
+    #endif
 };
 
 #endif /* _MongooseHttpServer_H_ */

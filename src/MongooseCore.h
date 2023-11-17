@@ -1,8 +1,6 @@
 #ifndef MongooseCore_h
 #define MongooseCore_h
 
-#define MG_ENABLE_HTTP_WEBSOCKET 1
-
 #ifdef ARDUINO
   #include "Arduino.h"
   #include <IPAddress.h>
