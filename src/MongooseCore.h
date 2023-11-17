@@ -18,17 +18,14 @@
   #ifdef ESP32
     #define ESP_PLATFORM
   #elif defined(ESP8266)
-    #define CS_PLATFORM CS_P_ESP8266
-    #define MG_ESP8266
-    #undef LWIP_COMPAT_SOCKETS
-    #define LWIP_COMPAT_SOCKETS 0
+    //???
   #else
     #error Platform not supported
   #endif
 #endif
 
 #include "mongoose.h"
-//#include <functional>
+#include <functional>
 #include "MongooseString.h"
 #include "MongooseHTTP.h"
 #include <MicroDebug.h>

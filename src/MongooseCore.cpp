@@ -15,8 +15,10 @@ MongooseCore::MongooseCore() :
 
 void MongooseCore::begin() 
 {
-  mgr.user_data = this;
+  //TODO: how to handle this?
+  //mgr.user_data = this;
   mg_mgr_init(&mgr);
+  mg_log_set(MG_LL_DEBUG);  // Set debug log level. Default is MG_LL_INFO
 
   ipConfigChanged();
 }
@@ -36,9 +38,11 @@ struct mg_mgr *MongooseCore::getMgr()
   return &mgr;
 }
 
+//TODO: is this function really necessary?
 void MongooseCore::getDefaultOpts(struct mg_connect_opts *opts, bool secure)
 {
-  memset(opts, 0, sizeof(*opts));
+  //TODO: is this necessary?
+  //memset(opts, 0, sizeof(*opts));
 
   #if MG_ENABLE_SSL
     if(secure) {
@@ -49,6 +53,7 @@ void MongooseCore::getDefaultOpts(struct mg_connect_opts *opts, bool secure)
   #endif
 }
 
+//TODO: is this one necessary?
 void MongooseCore::ipConfigChanged() 
 {
   #ifdef ARDUINO
@@ -60,7 +65,8 @@ void MongooseCore::ipConfigChanged()
         }
       #endif
       _nameserver = dns.toString();
-      mg_set_nameserver(&mgr, _nameserver.c_str());
+      //TODO: is this necessary?
+      //mg_set_nameserver(&mgr, _nameserver.c_str());
     #endif
   #endif // ARDUINO
 }
