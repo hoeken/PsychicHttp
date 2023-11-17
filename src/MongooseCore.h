@@ -1,6 +1,8 @@
 #ifndef MongooseCore_h
 #define MongooseCore_h
 
+#define MG_ENABLE_HTTP_WEBSOCKET 1
+
 #ifdef ARDUINO
   #include "Arduino.h"
   #include <IPAddress.h>
@@ -24,11 +26,12 @@
   #endif
 #endif
 
+#include <MicroDebug.h>
 #include "mongoose.h"
 #include <functional>
 #include "MongooseString.h"
 #include "MongooseHTTP.h"
-#include <MicroDebug.h>
+#include "MongooseHTTPServer.h"
 
 #ifndef ARDUINO_MONGOOSE_DEFAULT_ROOT_CA
   #define ARDUINO_MONGOOSE_DEFAULT_ROOT_CA ""

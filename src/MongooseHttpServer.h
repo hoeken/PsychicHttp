@@ -8,7 +8,7 @@
 // message details outside of the onReceive callback will give undefined behaviour.
 // The body may not allways be avalible even in onReceive, eg file upload
 #ifndef MG_COPY_HTTP_MESSAGE
-#define MG_COPY_HTTP_MESSAGE 1
+  #define MG_COPY_HTTP_MESSAGE 1
 #endif
 
 class MongooseHttpServer;
@@ -29,19 +29,19 @@ class MongooseHttpServerRequest {
   protected:
     MongooseHttpServer *_server;
     mg_connection *_nc;
-    http_message *_msg;
+    mg_http_message *_msg;
     HttpRequestMethodComposite _method;
     MongooseHttpServerResponse *_response;
     bool _responseSent;
 
     void sendBody();
 
-#if MG_COPY_HTTP_MESSAGE
-    http_message *duplicateMessage(http_message *);
-#endif
+    #if MG_COPY_HTTP_MESSAGE
+        mg_http_message *duplicateMessage(mg_http_message *);
+    #endif
 
   public:
-    MongooseHttpServerRequest(MongooseHttpServer *server, mg_connection *nc, http_message *msg);
+    MongooseHttpServerRequest(MongooseHttpServer *server, mg_connection *nc, mg_http_message *msg);
     virtual ~MongooseHttpServerRequest();
 
     virtual bool isUpload() { return false; }
@@ -54,6 +54,7 @@ class MongooseHttpServerRequest {
     MongooseString message() {
       return MongooseString(_msg->message);
     }
+
     MongooseString body() {
       return MongooseString(_msg->body);
     }
@@ -61,40 +62,49 @@ class MongooseHttpServerRequest {
     MongooseString methodStr() {
       return MongooseString(_msg->method);
     }
+
     MongooseString uri() {
       return MongooseString(_msg->uri);
     }
+
+    MongooseString queryString() {
+      return MongooseString(_msg->query);
+    }
+
     MongooseString proto() {
       return MongooseString(_msg->proto);
     }
 
+    //TODO: verify this
     int respCode() {
-      return _msg->resp_code;
+      return mg_http_status(_msg);
     }
+
+    //TODO: verify this
     MongooseString respStatusMsg() {
-      return MongooseString(_msg->resp_status_msg);
+      return MongooseString(_msg->message);
     }
 
-    MongooseString queryString() {
-      return MongooseString(_msg->query_string);
-    }
+    //TODO: not sure this is needed
+    // int headers() {
+    //   int i;
+    //   for (i = 0; i < MG_MAX_HTTP_HEADERS && _msg->headers[i].len > 0; i++) {
+    //   }
+    //   return i;
+    // }
 
-    int headers() {
-      int i;
-      for (i = 0; i < MG_MAX_HTTP_HEADERS && _msg->header_names[i].len > 0; i++) {
-      }
-      return i;
-    }
     MongooseString headers(const char *name) {
-      MongooseString ret(mg_get_http_header(_msg, name));
+      MongooseString ret(mg_http_get_header(_msg, name));
       return ret;
     }
-    MongooseString headerNames(int i) {
-      return MongooseString(_msg->header_names[i]);
-    }
-    MongooseString headerValues(int i) {
-      return MongooseString(_msg->header_values[i]);
-    }
+
+    //TODO: not sure this is possible
+    // MongooseString headerNames(int i) {
+    //   return MongooseString(_msg->header_names[i]);
+    // }
+    // MongooseString headerValues(int i) {
+    //   return MongooseString(_msg->header_values[i]);
+    // }
 
     MongooseString host() {
       return headers("Host");
@@ -109,15 +119,15 @@ class MongooseHttpServerRequest {
     }
 
     void redirect(const char *url);
-#ifdef ARDUINO
-    void redirect(const String& url);
-#endif
+    #ifdef ARDUINO
+        void redirect(const String& url);
+    #endif
 
     MongooseHttpServerResponseBasic *beginResponse();
 
-#ifdef ARDUINO
-    MongooseHttpServerResponseStream *beginResponseStream();
-#endif
+    #ifdef ARDUINO
+        MongooseHttpServerResponseStream *beginResponseStream();
+    #endif
 
     // Takes ownership of `response`, will delete when finished. Do not use `response` after calling
     void send(MongooseHttpServerResponse *response);
@@ -127,40 +137,40 @@ class MongooseHttpServerRequest {
 
     void send(int code);
     void send(int code, const char *contentType, const char *content="");
-#ifdef ARDUINO
-    void send(int code, const String& contentType, const String& content=String());
-#endif
+    #ifdef ARDUINO
+        void send(int code, const String& contentType, const String& content=String());
+    #endif
 
     bool hasParam(const char *name) const;
-#ifdef ARDUINO
-    bool hasParam(const String& name) const;
-    bool hasParam(const __FlashStringHelper * data) const;
-#endif
+    #ifdef ARDUINO
+        bool hasParam(const String& name) const;
+        bool hasParam(const __FlashStringHelper * data) const;
+    #endif
 
     int getParam(const char *name, char *dst, size_t dst_len) const;
-#ifdef ARDUINO
-    int getParam(const String& name, char *dst, size_t dst_len) const;
-    int getParam(const __FlashStringHelper * data, char *dst, size_t dst_len) const;
-#endif
+    #ifdef ARDUINO
+        int getParam(const String& name, char *dst, size_t dst_len) const;
+        int getParam(const __FlashStringHelper * data, char *dst, size_t dst_len) const;
+    #endif
 
-#ifdef ARDUINO
-    String getParam(const char *name) const;
-    String getParam(const String& name) const;
-    String getParam(const __FlashStringHelper * data) const;
-#endif
+    #ifdef ARDUINO
+        String getParam(const char *name) const;
+        String getParam(const String& name) const;
+        String getParam(const __FlashStringHelper * data) const;
+    #endif
 
     bool authenticate(const char * username, const char * password);
-#ifdef ARDUINO
-    bool authenticate(const String& username, const String& password) {
-      return authenticate(username.c_str(), password.c_str());
-    }
-#endif
+    #ifdef ARDUINO
+        bool authenticate(const String& username, const String& password) {
+          return authenticate(username.c_str(), password.c_str());
+        }
+    #endif
     void requestAuthentication(const char* realm);
-#ifdef ARDUINO
-    void requestAuthentication(const String& realm) {
-      requestAuthentication(realm.c_str());
-    }
-#endif
+    #ifdef ARDUINO
+        void requestAuthentication(const String& realm) {
+          requestAuthentication(realm.c_str());
+        }
+    #endif
 };
 
 class MongooseHttpServerRequestUpload : public MongooseHttpServerRequest
@@ -171,7 +181,7 @@ class MongooseHttpServerRequestUpload : public MongooseHttpServerRequest
     uint64_t index;
 
   public:
-    MongooseHttpServerRequestUpload(MongooseHttpServer *server, mg_connection *nc, http_message *msg) :
+    MongooseHttpServerRequestUpload(MongooseHttpServer *server, mg_connection *nc, mg_http_message *msg) :
       MongooseHttpServerRequest(server, nc, msg),
       index(0)
     {
@@ -204,13 +214,13 @@ class MongooseHttpServerResponse
     }
 
     bool addHeader(const char *name, const char *value);
-#ifdef ARDUINO
-    void setContentType(String &contentType) {
-      setContentType(contentType.c_str());
-    }
-    void setContentType(const __FlashStringHelper *contentType);
-    bool addHeader(const String& name, const String& value);
-#endif
+    #ifdef ARDUINO
+        void setContentType(String &contentType) {
+          setContentType(contentType.c_str());
+        }
+        void setContentType(const __FlashStringHelper *contentType);
+        bool addHeader(const String& name, const String& value);
+    #endif
 
     // send the to `nc`, return true if more to send
     virtual void sendHeaders(struct mg_connection *nc);
@@ -238,23 +248,23 @@ class MongooseHttpServerResponseBasic:
 };
 
 #ifdef ARDUINO
-class MongooseHttpServerResponseStream:
-  public MongooseHttpServerResponse,
-  public Print
-{
-  private:
-    mbuf _content;
+  class MongooseHttpServerResponseStream:
+    public MongooseHttpServerResponse,
+    public Print
+  {
+    private:
+      mg_iobuf _content;
 
-  public:
-    MongooseHttpServerResponseStream();
-    virtual ~MongooseHttpServerResponseStream();
+    public:
+      MongooseHttpServerResponseStream();
+      virtual ~MongooseHttpServerResponseStream();
 
-    size_t write(const uint8_t *data, size_t len);
-    size_t write(uint8_t data);
-  //  using Print::write;
+      size_t write(const uint8_t *data, size_t len);
+      size_t write(uint8_t data);
+    //  using Print::write;
 
-    virtual size_t sendBody(struct mg_connection *nc, size_t bytes);
-};
+      virtual size_t sendBody(struct mg_connection *nc, size_t bytes);
+  };
 #endif
 
 
@@ -328,7 +338,7 @@ class MongooseHttpWebSocketConnection : public MongooseHttpServerRequest
   friend MongooseHttpServer;
 
   public:
-    MongooseHttpWebSocketConnection(MongooseHttpServer *server, mg_connection *nc, http_message *msg);
+    MongooseHttpWebSocketConnection(MongooseHttpServer *server, mg_connection *nc, mg_http_message *msg);
     virtual ~MongooseHttpWebSocketConnection();
 
     virtual bool isWebSocket() { return true; }
@@ -337,14 +347,14 @@ class MongooseHttpWebSocketConnection : public MongooseHttpServerRequest
     void send(const char *buf) {
       send(WEBSOCKET_OP_TEXT, buf, strlen(buf));
     }
-#ifdef ARDUINO
-    void send(String &str) {
-      send(str.c_str());
-    }
-#endif
+    #ifdef ARDUINO
+        void send(String &str) {
+          send(str.c_str());
+        }
+    #endif
 
-    const union socket_address *getRemoteAddress() {
-      return &(_nc->sa);
+    const mg_addr *getRemoteAddress() {
+      return &(_nc->rem);
     }
     const mg_connection *getConnection() {
       return _nc;
