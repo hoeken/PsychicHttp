@@ -2,6 +2,7 @@
 #define MongooseHttpServer_h
 
 #include "MongooseCore.h"
+#include <http_status.h>
 
 // Make a copy of the HTTP header so it is avalible outside of the onReceive
 // callback. Setting to 0 will save some runtime memory but accessing the HTTP
@@ -267,7 +268,6 @@ class MongooseHttpServerResponseBasic:
   };
 #endif
 
-
 typedef std::function<void(MongooseHttpServerRequest *request)> MongooseHttpRequestHandler;
 typedef std::function<size_t(MongooseHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> MongooseHttpUploadHandler;
 typedef std::function<void(MongooseHttpWebSocketConnection *connection)> MongooseHttpWebSocketConnectionHandler;
@@ -365,11 +365,11 @@ class MongooseHttpServer
     MongooseHttpServer();
     ~MongooseHttpServer();
 
-    bool begin(uint16_t port);
+    void begin(uint16_t port);
 
-#if MG_ENABLE_SSL
-    bool begin(uint16_t port, const char *cert, const char *private_key);
-#endif
+    #if MG_ENABLE_SSL
+      void begin(uint16_t port, const char *cert, const char *private_key);
+    #endif
 
     MongooseHttpServerEndpoint *on(const char* uri);
     MongooseHttpServerEndpoint *on(const char* uri, HttpRequestMethodComposite method);
@@ -404,19 +404,22 @@ class MongooseHttpServer
       sendAll(NULL, endpoint, WEBSOCKET_OP_TEXT, buf, strlen(buf));
     }
     #ifdef ARDUINO
-        void sendAll(MongooseHttpWebSocketConnection *from, String &str) {
-          sendAll(from, str.c_str());
-        }
-        void sendAll(String &str) {
-          sendAll(str.c_str());
-        }
-        void sendAll(MongooseHttpWebSocketConnection *from, const char *endpoint, String &str) {
-          sendAll(from, endpoint, str.c_str());
-        }
-        void sendAll(const char *endpoint, String &str) {
-          sendAll(endpoint, str.c_str());
-        }
+      void sendAll(MongooseHttpWebSocketConnection *from, String &str) {
+        sendAll(from, str.c_str());
+      }
+      void sendAll(String &str) {
+        sendAll(str.c_str());
+      }
+      void sendAll(MongooseHttpWebSocketConnection *from, const char *endpoint, String &str) {
+        sendAll(from, endpoint, str.c_str());
+      }
+      void sendAll(const char *endpoint, String &str) {
+        sendAll(endpoint, str.c_str());
+      }
     #endif
 };
+
+static void http_event_callback(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
+//static void https_event_callback(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
 
 #endif /* _MongooseHttpServer_H_ */

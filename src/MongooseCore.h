@@ -1,6 +1,8 @@
 #ifndef MongooseCore_h
 #define MongooseCore_h
 
+#include <http_status.h>
+
 #ifdef ARDUINO
   #include "Arduino.h"
   #include <IPAddress.h>
@@ -16,7 +18,7 @@
 
 #if defined(ARDUINO) && !defined(CS_PLATFORM)
   #ifdef ESP32
-    #define ESP_PLATFORM
+    //#define ESP_PLATFORM
   #elif defined(ESP8266)
     //???
   #else

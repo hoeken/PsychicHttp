@@ -39,19 +39,19 @@ struct mg_mgr *MongooseCore::getMgr()
 }
 
 //TODO: is this function really necessary?
-void MongooseCore::getDefaultOpts(struct mg_connect_opts *opts, bool secure)
-{
-  //TODO: is this necessary?
-  //memset(opts, 0, sizeof(*opts));
+// void MongooseCore::getDefaultOpts(struct mg_connect_opts *opts, bool secure)
+// {
+//   //TODO: is this necessary?
+//   //memset(opts, 0, sizeof(*opts));
 
-  #if MG_ENABLE_SSL
-    if(secure) {
-      opts->ssl_ca_cert = _rootCaCallback();
-    }
-  #else
-    (void)secure;
-  #endif
-}
+//   #if MG_ENABLE_SSL
+//     if(secure) {
+//       opts->ssl_ca_cert = _rootCaCallback();
+//     }
+//   #else
+//     (void)secure;
+//   #endif
+// }
 
 //TODO: is this one necessary?
 void MongooseCore::ipConfigChanged() 
