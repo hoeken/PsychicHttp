@@ -89,6 +89,10 @@
       "version": "~0.0.5"
     },
     {
+      "name": "ArduinoTrace",
+      "version": "~1.2.0"
+    },
+    {
       "name" : "external-repo",
       "version": "https://github.com/hoeken/micro-http-status"
     }

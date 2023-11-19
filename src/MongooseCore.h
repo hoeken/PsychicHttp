@@ -2,6 +2,7 @@
 #define MongooseCore_h
 
 #include <http_status.h>
+#include <string> // the C++ Standard String Class
 
 #ifdef ARDUINO
   #include "Arduino.h"
@@ -26,7 +27,10 @@
   #endif
 #endif
 
+#define ENABLE_DEBUG true
+
 #include <MicroDebug.h>
+#include <ArduinoTrace.h>
 #include "mongoose.h"
 #include <functional>
 #include "MongooseString.h"

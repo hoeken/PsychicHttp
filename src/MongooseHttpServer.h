@@ -3,6 +3,7 @@
 
 #include "MongooseCore.h"
 #include <http_status.h>
+#include <list>
 
 // Make a copy of the HTTP header so it is avalible outside of the onReceive
 // callback. Setting to 0 will save some runtime memory but accessing the HTTP
@@ -15,14 +16,10 @@
 class MongooseHttpServer;
 class MongooseHttpServerRequest;
 class MongooseHttpServerResponse;
-class MongooseHttpServerResponseBasic;
 #ifdef ARDUINO
   class MongooseHttpServerResponseStream;
 #endif
 class MongooseHttpWebSocketConnection;
-
-//TODO: i think this is depreciated
-//#define MG_F_IS_MongooseHttpWebSocketConnection MG_F_USER_1
 
 class MongooseHttpServerRequest {
   friend MongooseHttpServer;
@@ -34,8 +31,6 @@ class MongooseHttpServerRequest {
     HttpRequestMethodComposite _method;
     MongooseHttpServerResponse *_response;
     bool _responseSent;
-
-    void sendBody();
 
     #if MG_COPY_HTTP_MESSAGE
         mg_http_message *duplicateMessage(mg_http_message *);
@@ -124,7 +119,7 @@ class MongooseHttpServerRequest {
         void redirect(const String& url);
     #endif
 
-    MongooseHttpServerResponseBasic *beginResponse();
+    MongooseHttpServerResponse *beginResponse();
 
     #ifdef ARDUINO
         MongooseHttpServerResponseStream *beginResponseStream();
@@ -193,14 +188,16 @@ class MongooseHttpServerRequestUpload : public MongooseHttpServerRequest
     virtual bool isUpload() { return true; }
 };
 
+
+
 class MongooseHttpServerResponse
 {
-  private:
-    int _code;
-    char *_contentType;
+  protected:
     int64_t _contentLength;
-
-    char * _headerBuffer;
+    int _code;
+    std::list<mg_http_header> headers;
+    //mg_str body;
+    const char * body;
 
   public:
     MongooseHttpServerResponse();
@@ -214,38 +211,30 @@ class MongooseHttpServerResponse
       _contentLength = contentLength;
     }
 
-    bool addHeader(const char *name, const char *value);
+    void addHeader(const char *name, const char *value);
+
     #ifdef ARDUINO
         void setContentType(String &contentType) {
           setContentType(contentType.c_str());
         }
-        void setContentType(const __FlashStringHelper *contentType);
-        bool addHeader(const String& name, const String& value);
+        void addHeader(const String& name, const String& value);
     #endif
 
-    // send the to `nc`, return true if more to send
-    virtual void sendHeaders(struct mg_connection *nc);
-
-    // send (a part of) the body to `nc`, return < `bytes` if no more to send
-    virtual size_t sendBody(struct mg_connection *nc, size_t bytes) = 0;
-};
-
-class MongooseHttpServerResponseBasic:
-  public MongooseHttpServerResponse
-{
-  private:
-    const uint8_t *ptr;
-    size_t len;
-
-  public:
-    MongooseHttpServerResponseBasic();
+    const char * getHeaderString();
 
     void setContent(const char *content);
     void setContent(const uint8_t *content, size_t len);
     void setContent(MongooseString &content) {
       setContent((const uint8_t *)content.c_str(), content.length());
     }
-    virtual size_t sendBody(struct mg_connection *nc, size_t bytes);
+
+    virtual void send(struct mg_connection *nc);
+
+    // // send the to `nc`, return true if more to send
+    // virtual void sendHeaders(struct mg_connection *nc);
+
+    // // send (a part of) the body to `nc`, return < `bytes` if no more to send
+    // virtual size_t sendBody(struct mg_connection *nc, size_t bytes) = 0;
 };
 
 #ifdef ARDUINO
@@ -262,9 +251,8 @@ class MongooseHttpServerResponseBasic:
 
       size_t write(const uint8_t *data, size_t len);
       size_t write(uint8_t data);
-    //  using Print::write;
 
-      virtual size_t sendBody(struct mg_connection *nc, size_t bytes);
+      virtual void send(struct mg_connection *nc);
   };
 #endif
 
@@ -279,6 +267,7 @@ class MongooseHttpServerEndpoint
 
   private:
     MongooseHttpServer *server;
+    MongooseString *uri;
     HttpRequestMethodComposite method;
     MongooseHttpRequestHandler request;
     MongooseHttpUploadHandler upload;
@@ -356,10 +345,11 @@ class MongooseHttpServer
   protected:
     struct mg_connection *nc;
     MongooseHttpServerEndpoint defaultEndpoint;
+    std::list<MongooseHttpServerEndpoint*> endpoints;
 
-    static void defaultEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
-    static void endpointEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
-    void eventHandler(struct mg_connection *nc, int ev, void *p, HttpRequestMethodComposite method, MongooseHttpServerEndpoint *endpoint);
+    //static void defaultEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
+    //static void endpointEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
+    static void eventHandler(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
 
   public:
     MongooseHttpServer();
@@ -419,7 +409,7 @@ class MongooseHttpServer
     #endif
 };
 
-static void http_event_callback(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
+//static void http_event_callback(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
 //static void https_event_callback(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
 
 #endif /* _MongooseHttpServer_H_ */
