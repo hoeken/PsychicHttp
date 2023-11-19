@@ -1,10 +1,10 @@
 #include "PsychicHTTP.h"
 
 PsychicHTTPServer::PsychicHTTPServer() :
-  nc(NULL),
-  defaultEndpoint(this, HTTP_ANY)
 {
-
+  //some configs
+  this->config = HTTPD_DEFAULT_CONFIG();
+  this->defaultEndpoint(this, HTTP_GET);
 }
 
 PsychicHTTPServer::~PsychicHTTPServer()
@@ -14,59 +14,61 @@ PsychicHTTPServer::~PsychicHTTPServer()
 
 void PsychicHTTPServer::begin(uint16_t port)
 {
-  char url[30];
-  sprintf(url, "http://0.0.0.0:%u", port);
+  this->config.server_port = port;
 
-  this->nc = mg_http_listen(Mongoose.getMgr(), url, eventHandler, this);
+  /* Start the httpd server */
+  if (httpd_start(&this->server, &this->config) == ESP_OK) {
+      // /* Register URI handlers */
+      // httpd_register_uri_handler(server, &uri_get);
+      // httpd_register_uri_handler(server, &uri_post);
+  }
 }
 
 void PsychicHTTPServer::begin(uint16_t port, const char *cert, const char *private_key)
 {
-  char url[30];
-  sprintf(url, "https://0.0.0.0:%u", port);
+  this->config.server_port = port;
 
-  this->nc = mg_http_listen(Mongoose.getMgr(), url, eventHandler, this);
-
-  //TODO: save our cert and private key for use in the MG_EV_ACCEPT event
-  // if (ev == MG_EV_ACCEPT) {
-  //   struct mg_tls_opts opts = {.cert = mg_unpacked("/certs/server_cert.pem"),
-  //                              .key = mg_unpacked("/certs/server_key.pem")};
-  //   mg_tls_init(c, &opts);
-  // }
-  // bind_opts.ssl_cert = cert;
-  // bind_opts.ssl_key = private_key;
-  // bind_opts.error_string = &err;
+  /* Start the httpd server */
+  if (httpd_start(&this->server, &this->config) == ESP_OK) {
+      // /* Register URI handlers */
+      // httpd_register_uri_handler(server, &uri_get);
+      // httpd_register_uri_handler(server, &uri_post);
+  }
 }
 
 PsychicHTTPServerEndpoint *PsychicHTTPServer::on(const char* uri)
 {
-  return on(uri, HTTP_ANY);
+  return on(uri, HTTP_GET);
 }
 
 PsychicHTTPServerEndpoint *PsychicHTTPServer::on(const char* uri, PsychicHTTPRequestHandler onRequest)
 {
-  return on(uri, HTTP_ANY)->onRequest(onRequest);
+  return on(uri, HTTP_GET)->onRequest(onRequest);
 }
 
-PsychicHTTPServerEndpoint *PsychicHTTPServer::on(const char* uri, HttpRequestMethodComposite method, PsychicHTTPRequestHandler onRequest)
+PsychicHTTPServerEndpoint *PsychicHTTPServer::on(const char* uri, httpd_method_t method, PsychicHTTPRequestHandler onRequest)
 {
   return on(uri, method)->onRequest(onRequest);
 }
 
-PsychicHTTPServerEndpoint *PsychicHTTPServer::on(const char* uri, HttpRequestMethodComposite method)
+PsychicHTTPServerEndpoint *PsychicHTTPServer::on(const char* uri, httpd_method_t method)
 {
   PsychicHTTPServerEndpoint *handler = new PsychicHTTPServerEndpoint(this, method);
 
-  //save our uri
-  handler->uri = new MongooseString(uri);
+  // URI handler structure
+  httpd_uri_t my_uri {
+    .uri      = uri,
+    .method   = method,
+    .handler  = handler->onRequest,
+    .user_ctx = handler
+  };
 
-  //keep a list of our handlers
-  endpoints.push_back(handler);
-
-  return handler;
+  // Register handler
+  if (httpd_register_uri_handler(this->server, &my_uri) != ESP_OK) {
+    Serial.println("Handler failed");
+  }  
 }
 
-//TODO: add this to the end of our http event handler
 void PsychicHTTPServer::onNotFound(PsychicHTTPRequestHandler fn)
 {
   defaultEndpoint.onRequest(fn);
@@ -269,24 +271,24 @@ void PsychicHTTPServer::eventHandler(struct mg_connection *c, int ev, void *ev_d
 
 void PsychicHTTPServer::sendAll(PsychicHTTPWebSocketConnection *from, const char *endpoint, int op, const void *data, size_t len)
 {
-  mg_mgr *mgr = Mongoose.getMgr();
+  // mg_mgr *mgr = Mongoose.getMgr();
 
-  const struct mg_connection *nc = from ? from->getConnection() : NULL;
-  struct mg_connection *c;
-  for (c = mgr->conns; c != NULL; c = c->next) {
-    if (c == nc) { 
-      continue; /* Don't send to the sender. */
-    }
-    if (c->is_websocket)
-    {
-      PsychicHTTPWebSocketConnection *to = (PsychicHTTPWebSocketConnection *)c->fn_data;
-      if(endpoint && !to->uri().equals(endpoint)) {
-        continue;
-      }
-      DBUGF("%.*s sending to %p", to->uri().length(), to->uri().c_str(), to);
-      to->send(op, data, len);
-    }
-  }
+  // const struct mg_connection *nc = from ? from->getConnection() : NULL;
+  // struct mg_connection *c;
+  // for (c = mgr->conns; c != NULL; c = c->next) {
+  //   if (c == nc) { 
+  //     continue; /* Don't send to the sender. */
+  //   }
+  //   if (c->is_websocket)
+  //   {
+  //     PsychicHTTPWebSocketConnection *to = (PsychicHTTPWebSocketConnection *)c->fn_data;
+  //     if(endpoint && !to->uri().equals(endpoint)) {
+  //       continue;
+  //     }
+  //     DBUGF("%.*s sending to %p", to->uri().length(), to->uri().c_str(), to);
+  //     to->send(op, data, len);
+  //   }
+  // }
 }
 
 PsychicHTTPServerRequest::PsychicHTTPServerRequest(PsychicHTTPServer *server, mg_connection *nc, mg_http_message *msg) :
@@ -317,7 +319,6 @@ PsychicHTTPServerRequest::~PsychicHTTPServerRequest()
     delete _response;
     _response = NULL;
   }
-
 }
 
 void PsychicHTTPServerRequest::redirect(const char *url)
@@ -352,14 +353,12 @@ void PsychicHTTPServerRequest::send(int code, const char *contentType, const cha
   this->send(response);
 }
 
-// IMPROVE: add a function to Mongoose to do this
 bool PsychicHTTPServerRequest::hasParam(const char *name) const
 {
   char dst[8];
   int ret = getParam(name, dst, sizeof(dst));
   return ret >= 0 || -3 == ret; 
 }
-
 
 int PsychicHTTPServerRequest::getParam(const char *name, char *dst, size_t dst_len) const
 {
@@ -368,23 +367,23 @@ int PsychicHTTPServerRequest::getParam(const char *name, char *dst, size_t dst_l
 
 bool PsychicHTTPServerRequest::authenticate(const char * username, const char * password)
 {
-  DBUGVAR(username);
-  DBUGVAR(password);
+  // DBUGVAR(username);
+  // DBUGVAR(password);
 
-  char user_buf[64];
-  char pass_buf[64];
+  // char user_buf[64];
+  // char pass_buf[64];
 
-  mg_http_creds(_msg, user_buf, sizeof(user_buf), pass_buf, sizeof(pass_buf));
+  // mg_http_creds(_msg, user_buf, sizeof(user_buf), pass_buf, sizeof(pass_buf));
 
-  DBUGVAR(user_buf);
-  DBUGVAR(pass_buf);
+  // DBUGVAR(user_buf);
+  // DBUGVAR(pass_buf);
 
-  if(0 == strcmp(username, user_buf) && 0 == strcmp(password, pass_buf))
-  {
-    return true;
-  }
+  // if(0 == strcmp(username, user_buf) && 0 == strcmp(password, pass_buf))
+  // {
+  //   return true;
+  // }
 
-  return false;
+  // return false;
 }
 
 void PsychicHTTPServerRequest::requestAuthentication(const char* realm)
@@ -392,12 +391,12 @@ void PsychicHTTPServerRequest::requestAuthentication(const char* realm)
   // https://github.com/me-no-dev/ESPAsyncWebServer/blob/master/src/WebRequest.cpp#L852
   // mg_http_send_digest_auth_request
 
-  char headers[64];
-  mg_snprintf(headers, sizeof(headers), 
-      "WWW-Authenticate: Basic realm=%s",
-      realm);
+  // char headers[64];
+  // mg_snprintf(headers, sizeof(headers), 
+  //     "WWW-Authenticate: Basic realm=%s",
+  //     realm);
 
-  mg_http_reply(_nc, 401, headers, "", NULL);
+  // mg_http_reply(_nc, 401, headers, "", NULL);
 }
 
 
@@ -414,18 +413,11 @@ PsychicHTTPServerResponse::~PsychicHTTPServerResponse()
 
 void PsychicHTTPServerResponse::addHeader(const char *name, const char *value)
 {
-  mg_http_header header;
-  header.name = mg_str(name);
-  header.value = mg_str(value);
-  headers.push_back(header);
+  // mg_http_header header;
+  // header.name = mg_str(name);
+  // header.value = mg_str(value);
+  // headers.push_back(header);
 }
-
-#ifdef ARDUINO
-void PsychicHTTPServerResponse::addHeader(const String& name, const String& value)
-{
-  return addHeader(name.c_str(), value.c_str());
-}
-#endif
 
 void PsychicHTTPServerResponse::setContentType(const char *contentType)
 {
@@ -508,37 +500,37 @@ void PsychicHTTPServerResponse::send(struct mg_connection *nc)
   }
 }
 
-#ifdef ARDUINO
-PsychicHTTPServerResponseStream::PsychicHTTPServerResponseStream()
-{
-  mg_iobuf_init(&_content, ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER, ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER);
-}
+// #ifdef ARDUINO
+// PsychicHTTPServerResponseStream::PsychicHTTPServerResponseStream()
+// {
+//   mg_iobuf_init(&_content, ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER, ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER);
+// }
 
-PsychicHTTPServerResponseStream::~PsychicHTTPServerResponseStream()
-{
-  mg_iobuf_free(&_content);
-}
+// PsychicHTTPServerResponseStream::~PsychicHTTPServerResponseStream()
+// {
+//   mg_iobuf_free(&_content);
+// }
 
-size_t PsychicHTTPServerResponseStream::write(const uint8_t *data, size_t len)
-{
-  size_t written = mg_iobuf_add(&_content, _content.len, data, len);
-  setContentLength(_content.len);
-  return written;
-}
+// size_t PsychicHTTPServerResponseStream::write(const uint8_t *data, size_t len)
+// {
+//   size_t written = mg_iobuf_add(&_content, _content.len, data, len);
+//   setContentLength(_content.len);
+//   return written;
+// }
 
-size_t PsychicHTTPServerResponseStream::write(uint8_t data)
-{
-  return write(&data, 1);
-}
+// size_t PsychicHTTPServerResponseStream::write(uint8_t data)
+// {
+//   return write(&data, 1);
+// }
 
-void PsychicHTTPServerResponseStream::send(struct mg_connection *nc)
-{
-  const char *headers = getHeaderString();
+// void PsychicHTTPServerResponseStream::send(struct mg_connection *nc)
+// {
+//   const char *headers = getHeaderString();
 
-  mg_http_reply(nc, _code, headers, body);
-}
+//   mg_http_reply(nc, _code, headers, body);
+// }
 
-#endif
+// #endif
 
 PsychicHTTPWebSocketConnection::~PsychicHTTPWebSocketConnection()
 {
@@ -547,5 +539,5 @@ PsychicHTTPWebSocketConnection::~PsychicHTTPWebSocketConnection()
 
 void PsychicHTTPWebSocketConnection::send(int op, const void *data, size_t len)
 {
-  mg_ws_send(_nc, data, len, op);
+  //mg_ws_send(_nc, data, len, op);
 }

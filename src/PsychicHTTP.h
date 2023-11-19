@@ -3,13 +3,13 @@
 
 #include <esp_http_server.h>
 #include <http_status.h>
-//#include <list>
+#include <list>
+#include <string>
 
 class PsychicHTTPServer;
 class PsychicHTTPServerRequest;
 class PsychicHTTPServerResponse;
-class PsychicHTTPServerResponseStream;
-
+//class PsychicHTTPServerResponseStream;
 class PsychicHTTPWebSocketConnection;
 
 class PsychicHTTPServerRequest {
@@ -17,24 +17,20 @@ class PsychicHTTPServerRequest {
 
   protected:
     PsychicHTTPServer *_server;
-    mg_connection *_nc;
-    mg_http_message *_msg;
-    HttpRequestMethodComposite _method;
+    // mg_connection *_nc;
+    // mg_http_message *_msg;
+    httpd_method_t _method;
     PsychicHTTPServerResponse *_response;
-    bool _responseSent;
-
-    #if MG_COPY_HTTP_MESSAGE
-        mg_http_message *duplicateMessage(mg_http_message *);
-    #endif
+    //bool _responseSent;
 
   public:
     PsychicHTTPServerRequest(PsychicHTTPServer *server, mg_connection *nc, mg_http_message *msg);
     virtual ~PsychicHTTPServerRequest();
 
-    virtual bool isUpload() { return false; }
+    //virtual bool isUpload() { return false; }
     virtual bool isWebSocket() { return false; }
 
-    HttpRequestMethodComposite method() {
+    httpd_method_t method() {
       return _method;
     }
 
@@ -109,17 +105,14 @@ class PsychicHTTPServerRequest {
 
     PsychicHTTPServerResponse *beginResponse();
 
-
     // Takes ownership of `response`, will delete when finished. Do not use `response` after calling
     void send(PsychicHTTPServerResponse *response);
-    bool responseSent() {
-      return NULL != _response;
-    }
-
     void send(int code);
     void send(int code, const char *contentType, const char *content="");
+
     bool hasParam(const char *name) const;
     int getParam(const char *name, char *dst, size_t dst_len) const;
+
     bool authenticate(const char * username, const char * password);
     void requestAuthentication(const char* realm);
 };
@@ -130,7 +123,6 @@ class PsychicHTTPServerResponse
     int64_t _contentLength;
     int _code;
     std::list<mg_http_header> headers;
-    //mg_str body;
     const char * body;
 
   public:
@@ -140,51 +132,42 @@ class PsychicHTTPServerResponse
     void setCode(int code) {
       _code = code;
     }
+
     void setContentType(const char *contentType);
     void setContentLength(int64_t contentLength) {
       _contentLength = contentLength;
     }
 
     void addHeader(const char *name, const char *value);
-
     const char * getHeaderString();
 
     void setContent(const char *content);
     void setContent(const uint8_t *content, size_t len);
-    void setContent(MongooseString &content) {
-      setContent((const uint8_t *)content.c_str(), content.length());
-    }
 
-    virtual void send(struct mg_connection *nc);
-
-    // // send the to `nc`, return true if more to send
-    // virtual void sendHeaders(struct mg_connection *nc);
-
-    // // send (a part of) the body to `nc`, return < `bytes` if no more to send
-    // virtual size_t sendBody(struct mg_connection *nc, size_t bytes) = 0;
+    void send(struct mg_connection *nc);
 };
 
-#ifdef ARDUINO
-  class PsychicHTTPServerResponseStream:
-    public PsychicHTTPServerResponse,
-    public Print
-  {
-    private:
-      mg_iobuf _content;
+// #ifdef ARDUINO
+//   class PsychicHTTPServerResponseStream:
+//     public PsychicHTTPServerResponse,
+//     public Print
+//   {
+//     private:
+//       mg_iobuf _content;
 
-    public:
-      PsychicHTTPServerResponseStream();
-      virtual ~PsychicHTTPServerResponseStream();
+//     public:
+//       PsychicHTTPServerResponseStream();
+//       virtual ~PsychicHTTPServerResponseStream();
 
-      size_t write(const uint8_t *data, size_t len);
-      size_t write(uint8_t data);
+//       size_t write(const uint8_t *data, size_t len);
+//       size_t write(uint8_t data);
 
-      virtual void send(struct mg_connection *nc);
-  };
-#endif
+//       virtual void send(struct mg_connection *nc);
+//   };
+// #endif
 
 typedef std::function<void(PsychicHTTPServerRequest *request)> PsychicHTTPRequestHandler;
-typedef std::function<size_t(PsychicHTTPServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> PsychicHTTPUploadHandler;
+//typedef std::function<size_t(PsychicHTTPServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> PsychicHTTPUploadHandler;
 typedef std::function<void(PsychicHTTPWebSocketConnection *connection)> PsychicHTTPWebSocketConnectionHandler;
 typedef std::function<void(PsychicHTTPWebSocketConnection *connection, int flags, uint8_t *data, size_t len)> PsychicHTTPWebSocketFrameHandler;
 
@@ -194,19 +177,19 @@ class PsychicHTTPServerEndpoint
 
   private:
     PsychicHTTPServer *server;
-    MongooseString *uri;
-    HttpRequestMethodComposite method;
+    std::string uri;
+    httpd_method_t method;
     PsychicHTTPRequestHandler request;
-    PsychicHTTPUploadHandler upload;
+    //PsychicHTTPUploadHandler upload;
     PsychicHTTPRequestHandler close;
     PsychicHTTPWebSocketConnectionHandler wsConnect;
     PsychicHTTPWebSocketFrameHandler wsFrame;
   public:
-    PsychicHTTPServerEndpoint(PsychicHTTPServer *server, HttpRequestMethodComposite method) :
+    PsychicHTTPServerEndpoint(PsychicHTTPServer *server, httpd_method_t method) :
       server(server),
       method(method),
       request(NULL),
-      upload(NULL),
+      //upload(NULL),
       close(NULL),
       wsConnect(NULL),
       wsFrame(NULL)
@@ -218,10 +201,10 @@ class PsychicHTTPServerEndpoint
       return this;
     }
 
-    PsychicHTTPServerEndpoint *onUpload(PsychicHTTPUploadHandler handler) {
-      this->upload = handler;
-      return this;
-    }
+    // PsychicHTTPServerEndpoint *onUpload(PsychicHTTPUploadHandler handler) {
+    //   this->upload = handler;
+    //   return this;
+    // }
 
     PsychicHTTPServerEndpoint *onClose(PsychicHTTPRequestHandler handler) {
       this->close = handler;
@@ -251,26 +234,25 @@ class PsychicHTTPWebSocketConnection : public PsychicHTTPServerRequest
 
     void send(int op, const void *data, size_t len);
     void send(const char *buf) {
-      send(WEBSOCKET_OP_TEXT, buf, strlen(buf));
+      //send(WEBSOCKET_OP_TEXT, buf, strlen(buf));
     }
 
     const mg_addr *getRemoteAddress() {
-      return &(_nc->rem);
+      //return &(_nc->rem);
     }
     const mg_connection *getConnection() {
-      return _nc;
+      //return _nc;
     }
 };
 
 class PsychicHTTPServer
 {
   protected:
-    struct mg_connection *nc;
-    PsychicHTTPServerEndpoint defaultEndpoint;
-    std::list<PsychicHTTPServerEndpoint*> endpoints;
+    httpd_handle_t server;
+    httpd_config_t config;
 
-    //static void defaultEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
-    //static void endpointEventHandler(struct mg_connection *nc, int ev, void *p, void *u);
+    PsychicHTTPServerEndpoint defaultEndpoint;
+
     static void eventHandler(struct mg_connection *c, int ev, void *ev_data, void *fn_data);
 
   public:
@@ -283,9 +265,9 @@ class PsychicHTTPServer
     void poll(int timeout_ms);
 
     PsychicHTTPServerEndpoint *on(const char* uri);
-    PsychicHTTPServerEndpoint *on(const char* uri, HttpRequestMethodComposite method);
+    PsychicHTTPServerEndpoint *on(const char* uri, httpd_method_t method);
     PsychicHTTPServerEndpoint *on(const char* uri, PsychicHTTPRequestHandler onRequest);
-    PsychicHTTPServerEndpoint *on(const char* uri, HttpRequestMethodComposite method, PsychicHTTPRequestHandler onRequest);
+    PsychicHTTPServerEndpoint *on(const char* uri, httpd_method_t method, PsychicHTTPRequestHandler onRequest);
 
     void onNotFound(PsychicHTTPRequestHandler fn);
 
