@@ -1,6 +1,7 @@
 #ifndef PsychicHTTP_h
 #define PsychicHTTP_h
 
+#include <ArduinoTrace.h>
 #include <esp_http_server.h>
 #include <http_status.h>
 #include <list>
@@ -17,91 +18,121 @@ class PsychicHTTPServerRequest {
 
   protected:
     PsychicHTTPServer *_server;
-    // mg_connection *_nc;
-    // mg_http_message *_msg;
     httpd_method_t _method;
+    httpd_req_t *_req;
     PsychicHTTPServerResponse *_response;
-    //bool _responseSent;
+
+    char * _header;
+    size_t _header_len;
+    char * _body;
+    size_t _body_len;
+    char * _query;
+    size_t _query_len;
 
   public:
-    PsychicHTTPServerRequest(PsychicHTTPServer *server, mg_connection *nc, mg_http_message *msg);
+    PsychicHTTPServerRequest(PsychicHTTPServer *server, httpd_req_t *req);
     virtual ~PsychicHTTPServerRequest();
 
-    //virtual bool isUpload() { return false; }
+    virtual bool isUpload() { return false; }
     virtual bool isWebSocket() { return false; }
 
-    httpd_method_t method() {
-      return _method;
+    http_method method() {
+      return (http_method)this->_req->method;
     }
 
-    MongooseString message() {
-      return MongooseString(_msg->message);
+    const char * methodStr() {
+      return http_method_str((http_method)this->_req->method);
     }
 
-    MongooseString body() {
-      return MongooseString(_msg->body);
+    const char * uri() {
+      return this->_req->uri;
     }
 
-    MongooseString methodStr() {
-      return MongooseString(_msg->method);
+    const char * queryString() {
+      //delete the old one if we have it
+      if (this->_query != NULL)
+        delete this->_query;
+
+      //find our size
+      this->_query_len = httpd_req_get_url_query_len(this->_req);
+
+      //if we've got one, allocated it and load it
+      if (this->_query_len)
+      {
+        this->_query = new char[this->_query_len];
+        httpd_req_get_hdr_value_str(this->_req, name, this->_query, this->_query_len);
+  
+        return this->_query;
+      }
+      else
+        return "";
     }
 
-    MongooseString uri() {
-      return MongooseString(_msg->uri);
+    const char * header(const char *name)
+    {
+      //delete the old one if we have it
+      if (this->_header != NULL)
+        delete this->_header;
+
+      //find our size
+      this->_header_len = httpd_req_get_hdr_value_len(this->_req, name);
+
+      //if we've got one, allocated it and load it
+      if (this->_header_len)
+      {
+        this->_header = new char[this->_header_len];
+        httpd_req_get_hdr_value_str(this->_req, name, this->_header, this->_header_len);
+  
+        return this->_header;
+      }
+      else
+        return "";
     }
 
-    MongooseString queryString() {
-      return MongooseString(_msg->query);
+    const char * host() {
+      return this->header("Host");
     }
 
-    MongooseString proto() {
-      return MongooseString(_msg->proto);
-    }
-
-    //TODO: verify this
-    int respCode() {
-      return mg_http_status(_msg);
-    }
-
-    //TODO: verify this
-    MongooseString respStatusMsg() {
-      return MongooseString(_msg->message);
-    }
-
-    //TODO: not sure this is needed
-    // int headers() {
-    //   int i;
-    //   for (i = 0; i < MG_MAX_HTTP_HEADERS && _msg->headers[i].len > 0; i++) {
-    //   }
-    //   return i;
-    // }
-
-    MongooseString headers(const char *name) {
-      MongooseString ret(mg_http_get_header(_msg, name));
-      return ret;
-    }
-
-    //TODO: not sure this is possible
-    // MongooseString headerNames(int i) {
-    //   return MongooseString(_msg->header_names[i]);
-    // }
-    // MongooseString headerValues(int i) {
-    //   return MongooseString(_msg->header_values[i]);
-    // }
-
-    MongooseString host() {
-      return headers("Host");
-    }
-
-    MongooseString contentType() {
-      return headers("Content-Type");
+    const char * contentType() {
+      return header("Content-Type");
     }
 
     size_t contentLength() {
-      return _msg->body.len;
+      return this->_req->content_len;
     }
 
     void redirect(const char *url);
+
+    const char * body()
+    {
+      this->_body_len = this->_req->content_len;
+
+      //if we've got one, allocated it and load it
+      if (this->_body_len)
+      {
+        this->_body = new char[this->_body_len];
+        httpd_req_get_hdr_value_str(this->_req, name, this->_body, this->_body_len);
+  
+        int ret = httpd_req_recv(this->_req, this->_body, this->_body_len);
+        if (ret <= 0) {  /* 0 return value indicates connection closed */
+          /* Check if timeout occurred */
+          if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+              /* In case of timeout one can choose to retry calling
+              * httpd_req_recv(), but to keep it simple, here we
+              * respond with an HTTP 408 (Request Timeout) error */
+              httpd_resp_send_408(this->_req);
+          }
+          /* In case of error, returning ESP_FAIL will
+          * ensure that the underlying socket is closed */
+          //TODO: how do we handle returning values from the request?
+          //return ESP_FAIL;
+        }
+
+        return this->_body;
+      }
+      else
+        return "";
+    }
 
     PsychicHTTPServerResponse *beginResponse();
 
@@ -122,7 +153,7 @@ class PsychicHTTPServerResponse
   protected:
     int64_t _contentLength;
     int _code;
-    std::list<mg_http_header> headers;
+    //std::list<mg_http_header> headers;
     const char * body;
 
   public:
@@ -196,7 +227,7 @@ class PsychicHTTPServerEndpoint
     {
     }
 
-    PsychicHTTPServerEndpoint *onRequest(PsychicHTTPRequestHandler handler) {
+    PsychicHTTPServerEndpoint *onRequest(PsychicHTTPRequestHandler *handler) {
       this->request = handler;
       return this;
     }
@@ -220,6 +251,14 @@ class PsychicHTTPServerEndpoint
       this->wsFrame = handler;
       return this;
     }
+
+    static esp_err_t endpointRequestHandler(httpd_req_t *req)
+    {
+      PsychicHTTPServerEndpoint *self = (PsychicHTTPServerEndpoint *)req->user_ctx;
+      PsychicHTTPServerRequest* request = new PsychicHTTPServerRequest(self->server, req);
+      self->request(request);
+      delete request;
+    }
 };
 
 class PsychicHTTPWebSocketConnection : public PsychicHTTPServerRequest
@@ -227,7 +266,7 @@ class PsychicHTTPWebSocketConnection : public PsychicHTTPServerRequest
   friend PsychicHTTPServer;
 
   public:
-    PsychicHTTPWebSocketConnection(PsychicHTTPServer *server, mg_connection *nc, mg_http_message *msg);
+    PsychicHTTPWebSocketConnection(PsychicHTTPServer *server, httpd_req_t *req);
     virtual ~PsychicHTTPWebSocketConnection();
 
     virtual bool isWebSocket() { return true; }
@@ -259,8 +298,10 @@ class PsychicHTTPServer
     PsychicHTTPServer();
     ~PsychicHTTPServer();
 
-    void begin(uint16_t port);
-    void begin(uint16_t port, const char *cert, const char *private_key);
+    static void destroy(void *ctx);
+
+    bool begin(uint16_t port);
+    bool begin(uint16_t port, const char *cert, const char *private_key);
 
     void poll(int timeout_ms);
 
@@ -268,6 +309,8 @@ class PsychicHTTPServer
     PsychicHTTPServerEndpoint *on(const char* uri, httpd_method_t method);
     PsychicHTTPServerEndpoint *on(const char* uri, PsychicHTTPRequestHandler onRequest);
     PsychicHTTPServerEndpoint *on(const char* uri, httpd_method_t method, PsychicHTTPRequestHandler onRequest);
+
+    static esp_err_t endpointEventHandler(httpd_req_t *req);
 
     void onNotFound(PsychicHTTPRequestHandler fn);
 

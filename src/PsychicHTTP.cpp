@@ -1,10 +1,14 @@
 #include "PsychicHTTP.h"
 
-PsychicHTTPServer::PsychicHTTPServer() :
+PsychicHTTPServer::PsychicHTTPServer()
 {
   //some configs
   this->config = HTTPD_DEFAULT_CONFIG();
-  this->defaultEndpoint(this, HTTP_GET);
+
+  this->config.global_user_ctx = this;
+  this->config.global_user_ctx_free_fn = this->destroy;
+
+  //this->defaultEndpoint(this, HTTP_GET);
 }
 
 PsychicHTTPServer::~PsychicHTTPServer()
@@ -12,29 +16,53 @@ PsychicHTTPServer::~PsychicHTTPServer()
 
 }
 
-void PsychicHTTPServer::begin(uint16_t port)
+void PsychicHTTPServer::destroy(void *ctx)
+{
+  DUMP(ctx);
+  PsychicHTTPServer *temp = (PsychicHTTPServer *)ctx;
+  delete temp;
+}
+
+bool PsychicHTTPServer::begin(uint16_t port)
+{
+  this->config.server_port = port;
+
+  /* Start the httpd server */
+  if (httpd_start(&this->server, &this->config) != ESP_OK) {
+    return true;
+    // /* Register URI handlers */
+    // httpd_register_uri_handler(server, &uri_get);
+    // httpd_register_uri_handler(server, &uri_post);
+  }
+
+  return false;
+}
+
+bool PsychicHTTPServer::begin(uint16_t port, const char *cert, const char *private_key)
 {
   this->config.server_port = port;
 
   /* Start the httpd server */
   if (httpd_start(&this->server, &this->config) == ESP_OK) {
+    return true;
       // /* Register URI handlers */
       // httpd_register_uri_handler(server, &uri_get);
       // httpd_register_uri_handler(server, &uri_post);
   }
+
+  return false;
 }
 
-void PsychicHTTPServer::begin(uint16_t port, const char *cert, const char *private_key)
-{
-  this->config.server_port = port;
+// PsychicHTTPServerEndpoint::PsychicHTTPServerEndpoint(PsychicHTTPServer *server, httpd_method_t method)
+// {
+//   this->server = server;
+//   this->method = method;
+// }
 
-  /* Start the httpd server */
-  if (httpd_start(&this->server, &this->config) == ESP_OK) {
-      // /* Register URI handlers */
-      // httpd_register_uri_handler(server, &uri_get);
-      // httpd_register_uri_handler(server, &uri_post);
-  }
-}
+// PsychicHTTPServerEndpoint::~PsychicHTTPServerEndpoint()
+// {
+
+// }
 
 PsychicHTTPServerEndpoint *PsychicHTTPServer::on(const char* uri)
 {
@@ -59,7 +87,7 @@ PsychicHTTPServerEndpoint *PsychicHTTPServer::on(const char* uri, httpd_method_t
   httpd_uri_t my_uri {
     .uri      = uri,
     .method   = method,
-    .handler  = handler->onRequest,
+    .handler  = handler->endpointRequestHandler,
     .user_ctx = handler
   };
 
@@ -76,197 +104,117 @@ void PsychicHTTPServer::onNotFound(PsychicHTTPRequestHandler fn)
 
 void PsychicHTTPServer::eventHandler(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
 {
-  PsychicHTTPServer *self = (PsychicHTTPServer *)fn_data;
-  struct mg_http_message *hm;
+//   //what kind of event is it?
+//   switch (ev)
+//   {
+//     // Connection accepted
+//     case MG_EV_ACCEPT:
+//       //Serial.println("MG_EV_ACCEPT");
+//       char addr[32];
+//       mg_snprintf(addr, sizeof(addr), "%M", mg_print_ip, &c->rem);                          
+//       DBUGF("Connection %p from %s", c, addr);
+//       break;
 
-  // if (ev != MG_EV_POLL)
-  //   DBUGF("[mg] %s %p: %d", __PRETTY_FUNCTION__, c, ev);
+//     // TLS handshake succeeded
+//     case MG_EV_TLS_HS:
+//       Serial.println("MG_EV_TLS_HS");
+//       break;
 
-  //what kind of event is it?
-  switch (ev)
-  {
-    // Error - char *error_message
-    case MG_EV_ERROR:
-      DBUGF("MG_EV_ERROR: %s", (char *)ev_data);
-      break;
+//     // Data received from socket - long *bytes_read
+//     // case MG_EV_READ: {
+//     //   Serial.println("MG_EV_READ");
+//     //   int *num_bytes = (int *)ev_data;
+//     //   DBUGF("Received %d bytes", *num_bytes);
+//     //   break;
+//     // }
 
-    // Connection created
-    case MG_EV_OPEN:
-      //Serial.println("MG_EV_OPEN");
-      break;
+//     // Data written to socket - long *bytes_written
+//     // case MG_EV_WRITE:
+//     //   Serial.println("MG_EV_WRITE");
+//     //   //TODO: old code might fit here?
+//     //   //     case MG_EV_POLL:
+//     //   //     case MG_EV_SEND:
+//     //   //     {
+//     //   //       if(nc->user_data)
+//     //   //       {
+//     //   //         PsychicHTTPServerRequest *request = (PsychicHTTPServerRequest *)nc->user_data;
+//     //   //         if(request->responseSent()) {
+//     //   //           request->sendBody();
+//     //   //         }
+//     //   //       }
+//     //   //       break;
+//     //   //     }
+//     //   break;
 
-    // mg_mgr_poll iteration
-    // dont do anything.
-    case MG_EV_POLL:
-      //Serial.println("MG_EV_POLL");
-      break;
+//     // Connection closed
+//     case MG_EV_CLOSE:
+//       DBUGF("Connection %p closed", c);
+//       // TODO: we will need to handle this for websockets
+//       // if(c->fn_data) 
+//       // {
+//       //   PsychicHTTPServerRequest *request = (PsychicHTTPServerRequest *)c->fn_data;
+//       //   // TODO: calls a member, but we're an external function 
+//       //   // if(endpoint->close) {
+//       //   //   endpoint->close(request);
+//       //   // }
+//       //   delete request;
+//       //   c->fn_data = NULL;
+//       // } 
+//       break;
 
-    // Host name is resolved
-    case MG_EV_RESOLVE:
-      Serial.println("MG_EV_RESOLVE");
-      break;
+//       // //did we match our websocket endpoint?
+//       // if (mg_http_match_uri(hm, "/ws")) {
+//       //   // Upgrade to websocket. From now on, a connection is a full-duplex
+//       //   // Websocket connection, which will receive MG_EV_WS_MSG events.
+//       //   mg_ws_upgrade(c, hm, NULL);
+//       // }
 
-    // Connection established
-    case MG_EV_CONNECT:
-      Serial.println("MG_EV_CONNECT");
-      break;
-
-    // Connection accepted
-    case MG_EV_ACCEPT:
-      //Serial.println("MG_EV_ACCEPT");
-      char addr[32];
-      mg_snprintf(addr, sizeof(addr), "%M", mg_print_ip, &c->rem);                          
-      DBUGF("Connection %p from %s", c, addr);
-      break;
-
-    // TLS handshake succeeded
-    case MG_EV_TLS_HS:
-      Serial.println("MG_EV_TLS_HS");
-      break;
-
-    // Data received from socket - long *bytes_read
-    // case MG_EV_READ: {
-    //   Serial.println("MG_EV_READ");
-    //   int *num_bytes = (int *)ev_data;
-    //   DBUGF("Received %d bytes", *num_bytes);
-    //   break;
-    // }
-
-    // Data written to socket - long *bytes_written
-    // case MG_EV_WRITE:
-    //   Serial.println("MG_EV_WRITE");
-    //   //TODO: old code might fit here?
-    //   //     case MG_EV_POLL:
-    //   //     case MG_EV_SEND:
-    //   //     {
-    //   //       if(nc->user_data)
-    //   //       {
-    //   //         PsychicHTTPServerRequest *request = (PsychicHTTPServerRequest *)nc->user_data;
-    //   //         if(request->responseSent()) {
-    //   //           request->sendBody();
-    //   //         }
-    //   //       }
-    //   //       break;
-    //   //     }
-    //   break;
-
-    // Connection closed
-    case MG_EV_CLOSE:
-      DBUGF("Connection %p closed", c);
-      // TODO: we will need to handle this for websockets
-      // if(c->fn_data) 
-      // {
-      //   PsychicHTTPServerRequest *request = (PsychicHTTPServerRequest *)c->fn_data;
-      //   // TODO: calls a member, but we're an external function 
-      //   // if(endpoint->close) {
-      //   //   endpoint->close(request);
-      //   // }
-      //   delete request;
-      //   c->fn_data = NULL;
-      // } 
-      break;
-
-    // HTTP request/response - struct mg_http_message *
-    case MG_EV_HTTP_MSG: {
-      Serial.println("MG_EV_HTTP_MSG");
-      hm = (struct mg_http_message *) ev_data;
-
-      //look to see if we have a request handler
-      bool found = false;
-      for (PsychicHTTPServerEndpoint* endpoint : self->endpoints)
-      {
-        if(mg_http_match_uri(hm, endpoint->uri->c_str()))
-        {
-          Serial.printf("%s matches\n", endpoint->uri->c_str());
-
-          if (endpoint->request != NULL)
-          {
-            found = true;
-            PsychicHTTPServerRequest* request = new PsychicHTTPServerRequest(self, c, hm);
-            endpoint->request(request);
-            delete request;
-          }
-        }
-      }
-
-      // //did we match our websocket endpoint?
-      // if (mg_http_match_uri(hm, "/ws")) {
-      //   // Upgrade to websocket. From now on, a connection is a full-duplex
-      //   // Websocket connection, which will receive MG_EV_WS_MSG events.
-      //   mg_ws_upgrade(c, hm, NULL);
-      // }
-
-      //custom handler for not found.
-      if (!found)
-      {
-        PsychicHTTPServerRequest* request = new PsychicHTTPServerRequest(self, c, hm);
-        self->defaultEndpoint.request(request);
-      }
-
-      break;
-    }
-
-    // Websocket handshake done     struct mg_http_message *
-    case MG_EV_WS_OPEN: {
-      Serial.println("MG_EV_WS_OPEN");
-      hm = (struct mg_http_message *) ev_data;
-
-      //TODO: update this
-      // if(endpoint->wsConnect && nc->flags & MG_F_IS_PsychicHTTPWebSocketConnection)
-      // {
-      //   PsychicHTTPWebSocketConnection *c = (PsychicHTTPWebSocketConnection *)nc->user_data;
-      //   endpoint->wsConnect(c);
-      // }
-
-      break;
-    }
-
-    // Websocket msg, text or bin   struct mg_ws_message *
-    case MG_EV_WS_MSG: {
-      Serial.println("MG_EV_WS_MSG");
-      // Got websocket frame. Received data is wm->data. Echo it back!
-      struct mg_ws_message *wm = (struct mg_ws_message *) ev_data;
-//       if(endpoint->wsFrame && nc->flags & MG_F_IS_PsychicHTTPWebSocketConnection)
+//       //custom handler for not found.
+//       if (!found)
 //       {
-//         PsychicHTTPWebSocketConnection *c = (PsychicHTTPWebSocketConnection *)nc->user_data;
-//         struct websocket_message *wm = (struct websocket_message *)p;
-//         endpoint->wsFrame(c, wm->flags, wm->data, wm->size);
+//         PsychicHTTPServerRequest* request = new PsychicHTTPServerRequest(self, c, hm);
+//         self->defaultEndpoint.request(request);
 //       }
-      break;
-    }
 
-    // Websocket control msg        struct mg_ws_message *
-    case MG_EV_WS_CTL: {
-      Serial.println("MG_EV_WS_CTL");
-      struct mg_ws_message *wm = (struct mg_ws_message *) ev_data;
-      break;
-    }
+//       break;
+//     }
 
-    // MQTT low-level command       struct mg_mqtt_message *
-    case MG_EV_MQTT_CMD: {
-      Serial.println("MG_EV_MQTT_CMD");
-      struct mg_mqtt_message *mm = (struct mg_mqtt_message *) ev_data;
-      break;
-    }
+//     // Websocket handshake done     struct mg_http_message *
+//     case MG_EV_WS_OPEN: {
+//       Serial.println("MG_EV_WS_OPEN");
+//       hm = (struct mg_http_message *) ev_data;
 
-    // MQTT PUBLISH received        struct mg_mqtt_message *
-    case MG_EV_MQTT_MSG: {
-      Serial.println("MG_EV_MQTT_MSG");
-      struct mg_mqtt_message *mm = (struct mg_mqtt_message *) ev_data;
-      break;
-    }
+//       //TODO: update this
+//       // if(endpoint->wsConnect && nc->flags & MG_F_IS_PsychicHTTPWebSocketConnection)
+//       // {
+//       //   PsychicHTTPWebSocketConnection *c = (PsychicHTTPWebSocketConnection *)nc->user_data;
+//       //   endpoint->wsConnect(c);
+//       // }
 
-    // MQTT CONNACK received        int *connack_status_code
-    case MG_EV_MQTT_OPEN:
-      Serial.println("MG_EV_MQTT_OPEN");
-      break;
+//       break;
+//     }
 
-    // SNTP time received           uint64_t *epoch_millis
-    case MG_EV_SNTP_TIME:
-      Serial.println("MG_EV_SNTP_TIME");
-      break;
-  }
-//}
+//     // Websocket msg, text or bin   struct mg_ws_message *
+//     case MG_EV_WS_MSG: {
+//       Serial.println("MG_EV_WS_MSG");
+//       // Got websocket frame. Received data is wm->data. Echo it back!
+//       struct mg_ws_message *wm = (struct mg_ws_message *) ev_data;
+// //       if(endpoint->wsFrame && nc->flags & MG_F_IS_PsychicHTTPWebSocketConnection)
+// //       {
+// //         PsychicHTTPWebSocketConnection *c = (PsychicHTTPWebSocketConnection *)nc->user_data;
+// //         struct websocket_message *wm = (struct websocket_message *)p;
+// //         endpoint->wsFrame(c, wm->flags, wm->data, wm->size);
+// //       }
+//       break;
+//     }
+
+//     // Websocket control msg        struct mg_ws_message *
+//     case MG_EV_WS_CTL: {
+//       Serial.println("MG_EV_WS_CTL");
+//       struct mg_ws_message *wm = (struct mg_ws_message *) ev_data;
+//       break;
+//     }
+// //}
 }
 
 void PsychicHTTPServer::sendAll(PsychicHTTPWebSocketConnection *from, const char *endpoint, int op, const void *data, size_t len)
@@ -291,26 +239,26 @@ void PsychicHTTPServer::sendAll(PsychicHTTPWebSocketConnection *from, const char
   // }
 }
 
-PsychicHTTPServerRequest::PsychicHTTPServerRequest(PsychicHTTPServer *server, mg_connection *nc, mg_http_message *msg) :
+PsychicHTTPServerRequest::PsychicHTTPServerRequest(PsychicHTTPServer *server, httpd_req_t *req) :
   _server(server),
-  _nc(nc),
+  _req(req),
   _response(NULL)
 {
-  if(0 == mg_vcasecmp(&msg->method, "GET")) {
-    _method = HTTP_GET;
-  } else if(0 == mg_vcasecmp(&msg->method, "POST")) {
-    _method = HTTP_POST;
-  } else if(0 == mg_vcasecmp(&msg->method, "DELETE")) {
-    _method = HTTP_DELETE;
-  } else if(0 == mg_vcasecmp(&msg->method, "PUT")) {
-    _method = HTTP_PUT;
-  } else if(0 == mg_vcasecmp(&msg->method, "PATCH")) {
-    _method = HTTP_PATCH;
-  } else if(0 == mg_vcasecmp(&msg->method, "HEAD")) {
-    _method = HTTP_HEAD;
-  } else if(0 == mg_vcasecmp(&msg->method, "OPTIONS")) {
-    _method = HTTP_OPTIONS;
-  }
+  // if(0 == mg_vcasecmp(&msg->method, "GET")) {
+  //   _method = HTTP_GET;
+  // } else if(0 == mg_vcasecmp(&msg->method, "POST")) {
+  //   _method = HTTP_POST;
+  // } else if(0 == mg_vcasecmp(&msg->method, "DELETE")) {
+  //   _method = HTTP_DELETE;
+  // } else if(0 == mg_vcasecmp(&msg->method, "PUT")) {
+  //   _method = HTTP_PUT;
+  // } else if(0 == mg_vcasecmp(&msg->method, "PATCH")) {
+  //   _method = HTTP_PATCH;
+  // } else if(0 == mg_vcasecmp(&msg->method, "HEAD")) {
+  //   _method = HTTP_HEAD;
+  // } else if(0 == mg_vcasecmp(&msg->method, "OPTIONS")) {
+  //   _method = HTTP_OPTIONS;
+  // }
 }
 
 PsychicHTTPServerRequest::~PsychicHTTPServerRequest()
