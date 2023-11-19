@@ -1,75 +1,26 @@
 {
-  "name": "ArduinoMongoose",
-  "keywords": "network,http,mqtt,tcp,udp,ssl,tls,sntp",
-  "description": "Arduino style wrapper around Mongoose library. HTTP client/server, MQTT client",
+  "name": "PsychicHTTP",
+  "keywords": "network,http,tcp,udp,ssl,tls",
+  "description": "Arduino style wrapper around ESP-IDF HTTP library. HTTP server with SSL + websockets",
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/jeremypoulter/ArduinoMongoose.git"
+    "url": "https://github.com/hoeken/PsychicHTTP"
   },
   "authors":
   [
     {
-      "name": "Jeremy Poulter",
-      "email": "jeremy@bigjungle.net",
+      "name": "Zach Hoeken",
+      "email": "hoeken@gmail.com",
       "maintainer": true
     }
   ],
   "examples": [
     {
-      "name": "esp_ota_http_server",
-      "base": "examples/esp_ota_http_server",
-      "files": [
-        "src/esp_ota_http_server.cpp"
-      ]
-    },
-    {
-      "name": "simple_http_client",
-      "base": "examples/simple_http_client",
-      "files": [
-        "src/simple_http_client.cpp"
-      ]
-    },
-    {
-      "name": "streaming_http_client_native",
-      "base": "examples/streaming_http_client_native",
-      "files": [
-        "src/simple_http_client.cpp"
-      ]
-    },
-    {
       "name": "simple_http_server",
       "base": "examples/simple_http_server",
       "files": [
         "src/simple_http_server.cpp"
-      ]
-    },
-    {
-      "name": "simple_mqtt_client",
-      "base": "examples/simple_mqtt_client",
-      "files": [
-        "src/simple_mqtt_client.cpp"
-      ]
-    },
-    {
-      "name": "simplest_web_server_esp",
-      "base": "examples/simplest_web_server_esp",
-      "files": [
-        "src/simplest_web_server.cpp"
-      ]
-    },
-    {
-      "name": "simplest_web_server_native",
-      "base": "examples/simplest_web_server_native",
-      "files": [
-        "src/simplest_web_server.c"
-      ]
-    },
-    {
-      "name": "sntp_client",
-      "base": "examples/sntp_client",
-      "files": [
-        "src/sntp_client.cpp"
       ]
     },
     {
@@ -80,21 +31,17 @@
       ]
     }
   ],
-  "version": "0.0.20",
+  "version": "0.0.1",
   "frameworks": "*",
-  "platforms": "espressif32,espressif8266,native,windows_x86",
+  "platforms": "espressif32",
   "dependencies": [
-    {
-      "name": "Micro Debug",
-      "version": "~0.0.5"
-    },
     {
       "name": "ArduinoTrace",
       "version": "~1.2.0"
     },
     {
-      "name" : "external-repo",
-      "version": "https://github.com/hoeken/micro-http-status"
+      "name" : "micro-http-status",
+      "version": "~1.0.3"
     }
   ]
 }
