@@ -18,7 +18,7 @@ class PsychicHttpServerRequest {
 
   protected:
     PsychicHttpServer *_server;
-    httpd_method_t _method;
+    http_method _method;
     httpd_req_t *_req;
     PsychicHttpServerResponse *_response;
 
@@ -40,6 +40,7 @@ class PsychicHttpServerRequest {
     const char * methodStr();
     const char * uri();
     const char * queryString();
+    const char * headers(const char *name);
     const char * header(const char *name);
     const char * host();
     const char * contentType();
@@ -47,8 +48,8 @@ class PsychicHttpServerRequest {
     const char * body();
     void redirect(const char *url);
 
-    bool hasParam(const char *name) const;
-    int getParam(const char *name, char *dst, size_t dst_len) const;
+    bool hasParam(const char *name);
+    int getParam(const char *name);
 
     bool authenticate(const char * username, const char * password);
     void requestAuthentication(const char* realm);
@@ -66,7 +67,6 @@ class PsychicHttpServerResponse
   protected:
     int64_t _contentLength;
     int _code;
-    //std::list<mg_http_header> headers;
     const char * body;
 
   public:
@@ -125,7 +125,7 @@ class PsychicHttpServerEndpoint
   private:
     PsychicHttpServer *server;
     std::string uri;
-    httpd_method_t method;
+    http_method method;
     PsychicHttpRequestHandler request;
     //PsychicHttpUploadHandler upload;
     PsychicHttpRequestHandler close;
@@ -133,7 +133,7 @@ class PsychicHttpServerEndpoint
     PsychicHttpWebSocketFrameHandler wsFrame;
 
   public:
-    PsychicHttpServerEndpoint(PsychicHttpServer *server, httpd_method_t method);
+    PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method);
     PsychicHttpServerEndpoint *onRequest(PsychicHttpRequestHandler handler);
     // PsychicHttpServerEndpoint *onUpload(PsychicHttpUploadHandler handler);
     PsychicHttpServerEndpoint *onConnect(PsychicHttpWebSocketConnectionHandler handler);
@@ -187,9 +187,9 @@ class PsychicHttpServer
     void stop();
 
     PsychicHttpServerEndpoint *on(const char* uri);
-    PsychicHttpServerEndpoint *on(const char* uri, httpd_method_t method);
+    PsychicHttpServerEndpoint *on(const char* uri, http_method method);
     PsychicHttpServerEndpoint *on(const char* uri, PsychicHttpRequestHandler onRequest);
-    PsychicHttpServerEndpoint *on(const char* uri, httpd_method_t method, PsychicHttpRequestHandler onRequest);
+    PsychicHttpServerEndpoint *on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest);
     void onNotFound(PsychicHttpRequestHandler fn);
 
 //    static esp_err_t endpointEventHandler(httpd_req_t *req);

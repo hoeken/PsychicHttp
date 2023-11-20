@@ -7,7 +7,7 @@
 PsychicHttpServer::PsychicHttpServer()
 {
   //some configs
-  this->config = HttpD_DEFAULT_CONFIG();
+  this->config = HTTPD_DEFAULT_CONFIG();
 
   this->config.global_user_ctx = this;
   this->config.global_user_ctx_free_fn = this->destroy;
@@ -55,7 +55,7 @@ void PsychicHttpServer::stop()
   httpd_stop(this->server);
 }
 
-// PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, httpd_method_t method)
+// PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method)
 // {
 //   this->server = server;
 //   this->method = method;
@@ -68,20 +68,20 @@ void PsychicHttpServer::stop()
 
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri)
 {
-  return on(uri, Http_GET);
+  return on(uri, HTTP_GET);
 }
 
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, PsychicHttpRequestHandler onRequest)
 {
-  return on(uri, Http_GET)->onRequest(onRequest);
+  return on(uri, HTTP_GET)->onRequest(onRequest);
 }
 
-PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, httpd_method_t method, PsychicHttpRequestHandler onRequest)
+PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest)
 {
   return on(uri, method)->onRequest(onRequest);
 }
 
-PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, httpd_method_t method)
+PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method)
 {
   PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, method);
 
@@ -96,7 +96,9 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, httpd_method_t
   // Register handler
   if (httpd_register_uri_handler(this->server, &my_uri) != ESP_OK) {
     Serial.println("Handler failed");
-  }  
+  }
+
+  return handler;
 }
 
 void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
@@ -263,7 +265,7 @@ void PsychicHttpServer::sendAll(const char *endpoint, const char *buf) {
   //sendAll(NULL, endpoint, WEBSOCKET_OP_TEXT, buf, strlen(buf));
 }
 
-PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, httpd_method_t method) :
+PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method) :
   server(server),
   method(method),
   request(NULL),
@@ -375,6 +377,11 @@ const char * PsychicHttpServerRequest::queryString() {
     return "";
 }
 
+const char * PsychicHttpServerRequest::headers(const char *name)
+{
+  return this->header(name);
+}
+
 const char * PsychicHttpServerRequest::header(const char *name)
 {
   //delete the old one if we have it
@@ -420,7 +427,7 @@ const char * PsychicHttpServerRequest::body()
     int ret = httpd_req_recv(this->_req, this->_body, this->_body_len);
     if (ret <= 0) {  /* 0 return value indicates connection closed */
       /* Check if timeout occurred */
-      if (ret == HttpD_SOCK_ERR_TIMEOUT) {
+      if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
           /* In case of timeout one can choose to retry calling
           * httpd_req_recv(), but to keep it simple, here we
           * respond with an Http 408 (Request Timeout) error */
@@ -434,8 +441,8 @@ const char * PsychicHttpServerRequest::body()
     else
       return this->_body;
   }
-  else
-    return "";
+
+  return "";
 }
 
 //TODO: implement
@@ -445,17 +452,19 @@ void PsychicHttpServerRequest::redirect(const char *url)
 }
 
 //TODO: implement
-bool PsychicHttpServerRequest::hasParam(const char *name) const
+bool PsychicHttpServerRequest::hasParam(const char *name)
 {
   // char dst[8];
   // int ret = getParam(name, dst, sizeof(dst));
   // return ret >= 0 || -3 == ret; 
+  return false;
 }
 
 //TODO: implement
-int PsychicHttpServerRequest::getParam(const char *name, char *dst, size_t dst_len) const
+int PsychicHttpServerRequest::getParam(const char *name)
 {
   //return mg_http_get_var((Http_GET == _method) ? (&_msg->query) : (&_msg->body), name, dst, dst_len);
+  return 0;
 }
 
 //TODO: implement
@@ -477,7 +486,7 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
   //   return true;
   // }
 
-  // return false;
+  return false;
 }
 
 //TODO: implement
@@ -582,6 +591,8 @@ const char * PsychicHttpServerResponse::getHeaderString()
   // }
 
   // return h.c_str();
+
+  return "";
 }
 
 const char * PsychicHttpServerResponse::getContent()

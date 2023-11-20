@@ -1,11 +1,11 @@
 {
-  "name": "PsychicHTTP",
+  "name": "PsychicHttp",
   "keywords": "network,http,tcp,udp,ssl,tls",
-  "description": "Arduino style wrapper around ESP-IDF HTTP library. HTTP server with SSL + websockets",
+  "description": "Arduino style wrapper around ESP-IDF HTTP library. HTTP server with SSL + websockets. Works on esp32 and probably esp8266",
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/hoeken/PsychicHTTP"
+    "url": "https://github.com/hoeken/PsychicHttp"
   },
   "authors":
   [
@@ -31,7 +31,7 @@
       ]
     }
   ],
-  "version": "0.0.1",
+  "version": "1.0.0",
   "frameworks": "*",
   "platforms": "espressif32",
   "dependencies": [
