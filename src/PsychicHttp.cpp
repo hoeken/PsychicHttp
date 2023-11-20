@@ -124,6 +124,8 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 //TODO: no idea how to send a dynamic message.
 void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
 {
+  return;
+  
   //DUMP((char *)ws_pkt->payload);
   size_t max_clients = this->config.max_open_sockets;
   size_t clients = max_clients;
