@@ -12,7 +12,10 @@ PsychicHttpServer::PsychicHttpServer()
   this->config.global_user_ctx = this;
   this->config.global_user_ctx_free_fn = this->destroy;
 
-  //this->defaultEndpoint(this, Http_GET);
+  this->config.max_uri_handlers = 10;
+  this->config.stack_size = 10000;
+
+  //this->defaultEndpoint(this, HTTP_GET);
 }
 
 PsychicHttpServer::~PsychicHttpServer()
@@ -31,11 +34,10 @@ bool PsychicHttpServer::begin(uint16_t port)
   this->config.server_port = port;
 
   /* Start the httpd server */
-  if (httpd_start(&this->server, &this->config) != ESP_OK) {
+  if (httpd_start(&this->server, &this->config) != ESP_OK)
+    return false;
+  else
     return true;
-  }
-
-  return false;
 }
 
 bool PsychicHttpServer::begin(uint16_t port, const char *cert, const char *private_key)
@@ -43,28 +45,16 @@ bool PsychicHttpServer::begin(uint16_t port, const char *cert, const char *priva
   this->config.server_port = port;
 
   /* Start the httpd server */
-  if (httpd_start(&this->server, &this->config) == ESP_OK) {
+  if (httpd_start(&this->server, &this->config) == ESP_OK)
+    return false;
+  else
     return true;
-  }
-
-  return false;
 }
 
 void PsychicHttpServer::stop()
 {
   httpd_stop(this->server);
 }
-
-// PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method)
-// {
-//   this->server = server;
-//   this->method = method;
-// }
-
-// PsychicHttpServerEndpoint::~PsychicHttpServerEndpoint()
-// {
-
-// }
 
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri)
 {
@@ -84,7 +74,7 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method)
 {
   PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, method);
-
+  
   // URI handler structure
   httpd_uri_t my_uri {
     .uri      = uri,
@@ -95,131 +85,18 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
 
   // Register handler
   if (httpd_register_uri_handler(this->server, &my_uri) != ESP_OK) {
-    Serial.println("Handler failed");
+    Serial.println("PsychicHttp add endpoint failed");
   }
 
   return handler;
 }
 
+//TODO: implement this.
 void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 {
+  //httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, http_404_error_handler);
   //defaultEndpoint.onRequest(fn);
 }
-
-// void PsychicHttpServer::eventHandler(struct mg_connection *c, int ev, void *ev_data, void *fn_data)
-// {
-//   //what kind of event is it?
-//   switch (ev)
-//   {
-//     // Connection accepted
-//     case MG_EV_ACCEPT:
-//       //Serial.println("MG_EV_ACCEPT");
-//       char addr[32];
-//       mg_snprintf(addr, sizeof(addr), "%M", mg_print_ip, &c->rem);                          
-//       DBUGF("Connection %p from %s", c, addr);
-//       break;
-
-//     // TLS handshake succeeded
-//     case MG_EV_TLS_HS:
-//       Serial.println("MG_EV_TLS_HS");
-//       break;
-
-//     // Data received from socket - long *bytes_read
-//     // case MG_EV_READ: {
-//     //   Serial.println("MG_EV_READ");
-//     //   int *num_bytes = (int *)ev_data;
-//     //   DBUGF("Received %d bytes", *num_bytes);
-//     //   break;
-//     // }
-
-//     // Data written to socket - long *bytes_written
-//     // case MG_EV_WRITE:
-//     //   Serial.println("MG_EV_WRITE");
-//     //   //TODO: old code might fit here?
-//     //   //     case MG_EV_POLL:
-//     //   //     case MG_EV_SEND:
-//     //   //     {
-//     //   //       if(nc->user_data)
-//     //   //       {
-//     //   //         PsychicHttpServerRequest *request = (PsychicHttpServerRequest *)nc->user_data;
-//     //   //         if(request->responseSent()) {
-//     //   //           request->sendBody();
-//     //   //         }
-//     //   //       }
-//     //   //       break;
-//     //   //     }
-//     //   break;
-
-//     // Connection closed
-//     case MG_EV_CLOSE:
-//       DBUGF("Connection %p closed", c);
-//       // TODO: we will need to handle this for websockets
-//       // if(c->fn_data) 
-//       // {
-//       //   PsychicHttpServerRequest *request = (PsychicHttpServerRequest *)c->fn_data;
-//       //   // TODO: calls a member, but we're an external function 
-//       //   // if(endpoint->close) {
-//       //   //   endpoint->close(request);
-//       //   // }
-//       //   delete request;
-//       //   c->fn_data = NULL;
-//       // } 
-//       break;
-
-//       // //did we match our websocket endpoint?
-//       // if (mg_http_match_uri(hm, "/ws")) {
-//       //   // Upgrade to websocket. From now on, a connection is a full-duplex
-//       //   // Websocket connection, which will receive MG_EV_WS_MSG events.
-//       //   mg_ws_upgrade(c, hm, NULL);
-//       // }
-
-//       //custom handler for not found.
-//       if (!found)
-//       {
-//         PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self, c, hm);
-//         self->defaultEndpoint.request(request);
-//       }
-
-//       break;
-//     }
-
-//     // Websocket handshake done     struct mg_http_message *
-//     case MG_EV_WS_OPEN: {
-//       Serial.println("MG_EV_WS_OPEN");
-//       hm = (struct mg_http_message *) ev_data;
-
-//       //TODO: update this
-//       // if(endpoint->wsConnect && nc->flags & MG_F_IS_PsychicHttpWebSocketConnection)
-//       // {
-//       //   PsychicHttpWebSocketConnection *c = (PsychicHttpWebSocketConnection *)nc->user_data;
-//       //   endpoint->wsConnect(c);
-//       // }
-
-//       break;
-//     }
-
-//     // Websocket msg, text or bin   struct mg_ws_message *
-//     case MG_EV_WS_MSG: {
-//       Serial.println("MG_EV_WS_MSG");
-//       // Got websocket frame. Received data is wm->data. Echo it back!
-//       struct mg_ws_message *wm = (struct mg_ws_message *) ev_data;
-// //       if(endpoint->wsFrame && nc->flags & MG_F_IS_PsychicHttpWebSocketConnection)
-// //       {
-// //         PsychicHttpWebSocketConnection *c = (PsychicHttpWebSocketConnection *)nc->user_data;
-// //         struct websocket_message *wm = (struct websocket_message *)p;
-// //         endpoint->wsFrame(c, wm->flags, wm->data, wm->size);
-// //       }
-//       break;
-//     }
-
-//     // Websocket control msg        struct mg_ws_message *
-//     case MG_EV_WS_CTL: {
-//       Serial.println("MG_EV_WS_CTL");
-//       struct mg_ws_message *wm = (struct mg_ws_message *) ev_data;
-//       break;
-//     }
-// //}
-//}
 
 void PsychicHttpServer::sendAll(PsychicHttpWebSocketConnection *from, const char *endpoint, int op, const void *data, size_t len)
 {
@@ -303,6 +180,8 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onClose(PsychicHttpReques
 
 esp_err_t PsychicHttpServerEndpoint::endpointRequestHandler(httpd_req_t *req)
 {
+  DUMP(req->uri);
+
   PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
   PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self->server, req);
   esp_err_t err = self->request(request);
@@ -318,23 +197,15 @@ esp_err_t PsychicHttpServerEndpoint::endpointRequestHandler(httpd_req_t *req)
 PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req) :
   _server(server),
   _req(req),
-  _response(NULL)
+  _response(NULL),
+  _header(NULL),
+  //_body(NULL),
+  _query(NULL)
 {
-  // if(0 == mg_vcasecmp(&msg->method, "GET")) {
-  //   _method = Http_GET;
-  // } else if(0 == mg_vcasecmp(&msg->method, "POST")) {
-  //   _method = Http_POST;
-  // } else if(0 == mg_vcasecmp(&msg->method, "DELETE")) {
-  //   _method = Http_DELETE;
-  // } else if(0 == mg_vcasecmp(&msg->method, "PUT")) {
-  //   _method = Http_PUT;
-  // } else if(0 == mg_vcasecmp(&msg->method, "PATCH")) {
-  //   _method = Http_PATCH;
-  // } else if(0 == mg_vcasecmp(&msg->method, "HEAD")) {
-  //   _method = Http_HEAD;
-  // } else if(0 == mg_vcasecmp(&msg->method, "OPTIONS")) {
-  //   _method = Http_OPTIONS;
-  // }
+  //TODO: maybe automatically look up the data / read the connection?
+  TRACE();
+  this->loadBody();
+  TRACE();
 }
 
 PsychicHttpServerRequest::~PsychicHttpServerRequest()
@@ -342,6 +213,67 @@ PsychicHttpServerRequest::~PsychicHttpServerRequest()
   if(_response) {
     delete _response;
     _response = NULL;
+  }
+
+  if (_header) {
+    delete _header;
+    _header = NULL;
+    _header_len = 0;
+  }
+
+  // if (_body) {
+  //   delete _body;
+  //   _body = NULL;
+  //   _body_len = 0;
+  // }
+
+  if (_query) {
+    delete _query;
+    _query = NULL;
+    _query_len = 0;
+  }
+}
+
+void PsychicHttpServerRequest::loadBody()
+{
+  TRACE();
+  DUMP(this->_req->content_len);
+
+  this->_body = "";
+
+  /* Get header value string length and allocate memory for length + 1,
+    * extra byte for null termination */
+  if (this->_req->content_len > 0)
+  {
+    TRACE();
+    //buf = (char *)malloc(buf_len);
+    char buf[this->_req->content_len+1];
+    TRACE();
+
+    int ret = httpd_req_recv(this->_req, buf, this->_req->content_len);
+    if (ret <= 0) {  /* 0 return value indicates connection closed */
+      /* Check if timeout occurred */
+      if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+        /* In case of timeout one can choose to retry calling
+        * httpd_req_recv(), but to keep it simple, here we
+        * respond with an Http 408 (Request Timeout) error */
+        //httpd_resp_send_408(this->_req);
+        TRACE();
+      }
+      /* In case of error, returning ESP_FAIL will
+      * ensure that the underlying socket is closed */
+      //TODO: how do we handle returning values from the request?
+      //return ESP_FAIL;
+      TRACE();
+      //return;
+    }
+    buf[this->_req->content_len] = '\0';
+
+    TRACE();
+    this->_body.concat(buf);
+    TRACE();
+    //free(buf);
+    TRACE();
   }
 }
 
@@ -358,18 +290,24 @@ const char * PsychicHttpServerRequest::uri() {
 }
 
 const char * PsychicHttpServerRequest::queryString() {
+  TRACE();
   //delete the old one if we have it
   if (this->_query != NULL)
     delete this->_query;
+  TRACE();
 
   //find our size
   this->_query_len = httpd_req_get_url_query_len(this->_req);
+  TRACE();
 
   //if we've got one, allocated it and load it
   if (this->_query_len)
   {
-    this->_query = new char[this->_query_len];
+    TRACE();
+    this->_query = new char[this->_query_len+1];
+    this->_query[this->_query_len] = 0;
     httpd_req_get_url_query_str(this->_req, this->_query, this->_query_len);
+    TRACE();
 
     return this->_query;
   }
@@ -394,7 +332,9 @@ const char * PsychicHttpServerRequest::header(const char *name)
   //if we've got one, allocated it and load it
   if (this->_header_len)
   {
-    this->_header = new char[this->_header_len];
+    this->_header = new char[this->_header_len+1];
+    this->_header[this->_header_len] = 0;
+
     httpd_req_get_hdr_value_str(this->_req, name, this->_header, this->_header_len);
 
     return this->_header;
@@ -415,56 +355,55 @@ size_t PsychicHttpServerRequest::contentLength() {
   return this->_req->content_len;
 }
 
-const char * PsychicHttpServerRequest::body()
+String PsychicHttpServerRequest::body()
 {
-  this->_body_len = this->_req->content_len;
-
-  //if we've got one, allocated it and load it
-  if (this->_body_len)
-  {
-    this->_body = new char[this->_body_len];
-
-    int ret = httpd_req_recv(this->_req, this->_body, this->_body_len);
-    if (ret <= 0) {  /* 0 return value indicates connection closed */
-      /* Check if timeout occurred */
-      if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-          /* In case of timeout one can choose to retry calling
-          * httpd_req_recv(), but to keep it simple, here we
-          * respond with an Http 408 (Request Timeout) error */
-          httpd_resp_send_408(this->_req);
-      }
-      /* In case of error, returning ESP_FAIL will
-      * ensure that the underlying socket is closed */
-      //TODO: how do we handle returning values from the request?
-      //return ESP_FAIL;
-    }
-    else
-      return this->_body;
-  }
-
-  return "";
+  return this->_body;
 }
 
-//TODO: implement
 void PsychicHttpServerRequest::redirect(const char *url)
 {
+  PsychicHttpServerResponse *response = this->beginResponse();
 
+  response->setCode(301);
+  response->addHeader("Location", url);
+  
+  this->send(response);
 }
 
-//TODO: implement
-bool PsychicHttpServerRequest::hasParam(const char *name)
+bool PsychicHttpServerRequest::hasParam(const char *key)
 {
-  // char dst[8];
-  // int ret = getParam(name, dst, sizeof(dst));
-  // return ret >= 0 || -3 == ret; 
-  return false;
+  DUMP(key);
+  //a small array should be fine.
+  char value[2];
+  esp_err_t err = this->getParam(key, value);
+  DUMP((int)err);
+  //did we get anything?
+  if (err == ESP_OK || err == ESP_ERR_HTTPD_RESULT_TRUNC)
+    return true;
+  else
+    return false;
 }
 
-//TODO: implement
-int PsychicHttpServerRequest::getParam(const char *name)
+esp_err_t PsychicHttpServerRequest::getParam(const char *key, char *value)
 {
-  //return mg_http_get_var((Http_GET == _method) ? (&_msg->query) : (&_msg->body), name, dst, dst_len);
-  return 0;
+  TRACE();
+  const char *query = this->queryString();
+  DUMP(query);
+  return httpd_query_key_value(query, key, value, this->_query_len);
+}
+
+std::string PsychicHttpServerRequest::getParam(const char *key)
+{
+  std::string ret;
+
+  char value[this->_query_len];
+  TRACE();
+  esp_err_t err = this->getParam(key, value);
+  TRACE();
+  ret.append(value);
+  TRACE();
+
+  return ret;
 }
 
 //TODO: implement
@@ -505,15 +444,24 @@ void PsychicHttpServerRequest::requestAuthentication(const char* realm)
 
 PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()
 {
-  return new PsychicHttpServerResponse();
+  return new PsychicHttpServerResponse(this->_req);
 }
+
+#ifdef ARDUINO
+  PsychicHttpServerResponseStream *PsychicHttpServerRequest::beginResponseStream()
+  {
+    return new PsychicHttpServerResponseStream(this->_req);
+  }
+#endif
 
 void PsychicHttpServerRequest::send(PsychicHttpServerResponse *response)
 {
+  //TRACE();
+  //DUMP(response->getContent());
+  DUMP(response->getContentLength());
   httpd_resp_send(this->_req, response->getContent(), response->getContentLength());
 }
 
-//what is this?
 void PsychicHttpServerRequest::send(int code)
 {
   PsychicHttpServerResponse *response = this->beginResponse();
@@ -521,6 +469,17 @@ void PsychicHttpServerRequest::send(int code)
   response->setCode(code);
   response->setContentType("text/plain");
   response->setContent(http_status_reason(code));
+  
+  this->send(response);
+}
+
+void PsychicHttpServerRequest::send(const char *content)
+{
+  PsychicHttpServerResponse *response = this->beginResponse();
+
+  response->setCode(200);
+  response->setContentType("text/plain");
+  response->setContent(content);
   
   this->send(response);
 }
@@ -541,62 +500,52 @@ void PsychicHttpServerRequest::send(int code, const char *contentType, const cha
 /*  PsychicHttpServerResponse        */
 /*************************************/
 
-PsychicHttpServerResponse::PsychicHttpServerResponse() :
-  _code(200)
+PsychicHttpServerResponse::PsychicHttpServerResponse(httpd_req_t *request) :
+  _req(request)
 {
-
+  this->setCode(200);
 }
 
 PsychicHttpServerResponse::~PsychicHttpServerResponse()
 {
 }
 
-//TODO: implement
 void PsychicHttpServerResponse::addHeader(const char *name, const char *value)
 {
-  // mg_http_header header;
-  // header.name = mg_str(name);
-  // header.value = mg_str(value);
-  // headers.push_back(header);
+  httpd_resp_set_hdr(this->_req, name, value);
+}
+
+void PsychicHttpServerResponse::setCode(int code)
+{
+  //esp-idf makes you set the whole status.
+  sprintf(this->_status, "%u %s", code, http_status_reason(code));
+  DUMP(this->_status);
+  httpd_resp_set_status(this->_req, this->_status);
 }
 
 void PsychicHttpServerResponse::setContentType(const char *contentType)
 {
-  addHeader("Content-Type", contentType);
+  httpd_resp_set_type(this->_req, contentType);
 }
 
 void PsychicHttpServerResponse::setContent(const char *content)
 {
+  //DUMP(content);
   this->body = content;
+  //DUMP(this->body);
   setContentLength(strlen(content));
 }
 
 void PsychicHttpServerResponse::setContent(const uint8_t *content, size_t len)
 {
   this->body = (char *)content;
+  DUMP(this->body);
   setContentLength(len);
-}
-
-//TODO: implement
-const char * PsychicHttpServerResponse::getHeaderString()
-{
-  // std::string h = "";
-
-  // for (mg_http_header header : this->headers)
-  // {
-  //   h.append(header.name.ptr, header.name.len);
-  //   h += ": ";
-  //   h.append(header.value.ptr, header.value.len);
-  //   h += "\r\n";
-  // }
-
-  // return h.c_str();
-
-  return "";
 }
 
 const char * PsychicHttpServerResponse::getContent()
 {
+  //DUMP(this->body);
   return this->body;
 }
 
@@ -610,35 +559,28 @@ size_t PsychicHttpServerResponse::getContentLength()
 /*************************************/
 
 // #ifdef ARDUINO
-// PsychicHttpServerResponseStream::PsychicHttpServerResponseStream()
-// {
-//   mg_iobuf_init(&_content, ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER, ARDUINO_MONGOOSE_DEFAULT_STREAM_BUFFER);
-// }
+  PsychicHttpServerResponseStream::PsychicHttpServerResponseStream(httpd_req_t *request) :
+    PsychicHttpServerResponse(request)
+  {
+  }
 
-// PsychicHttpServerResponseStream::~PsychicHttpServerResponseStream()
-// {
-//   mg_iobuf_free(&_content);
-// }
+  PsychicHttpServerResponseStream::~PsychicHttpServerResponseStream()
+  {
+  }
 
-// size_t PsychicHttpServerResponseStream::write(const uint8_t *data, size_t len)
-// {
-//   size_t written = mg_iobuf_add(&_content, _content.len, data, len);
-//   setContentLength(_content.len);
-//   return written;
-// }
+  //TODO: figure out how to make this class actually write to the network directly instead of this hack.
+  size_t PsychicHttpServerResponseStream::write(const uint8_t *data, size_t len)
+  {
+    this->_content.append((char *)data);
+    this->setContentLength(this->getContentLength()+len);
 
-// size_t PsychicHttpServerResponseStream::write(uint8_t data)
-// {
-//   return write(&data, 1);
-// }
+    return len;
+  }
 
-// void PsychicHttpServerResponseStream::send(struct mg_connection *nc)
-// {
-//   const char *headers = getHeaderString();
-
-//   mg_http_reply(nc, _code, headers, body);
-// }
-
+  size_t PsychicHttpServerResponseStream::write(uint8_t data)
+  {
+    return this->write(&data, 1);
+  }
 // #endif
 
 

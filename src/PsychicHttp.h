@@ -4,13 +4,17 @@
 #include <ArduinoTrace.h>
 #include <esp_http_server.h>
 #include <http_status.h>
-#include <list>
 #include <string>
+
+#define SCRATCH_BUFSIZE (10240)
+//char scratch[SCRATCH_BUFSIZE];
 
 class PsychicHttpServer;
 class PsychicHttpServerRequest;
 class PsychicHttpServerResponse;
-//class PsychicHttpServerResponseStream;
+#ifdef ARDUINO
+  class PsychicHttpServerResponseStream;
+#endif
 class PsychicHttpWebSocketConnection;
 
 class PsychicHttpServerRequest {
@@ -24,10 +28,11 @@ class PsychicHttpServerRequest {
 
     char * _header;
     size_t _header_len;
-    char * _body;
-    size_t _body_len;
+    String _body;
     char * _query;
     size_t _query_len;
+
+    void loadBody();
 
   public:
     PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req);
@@ -45,37 +50,42 @@ class PsychicHttpServerRequest {
     const char * host();
     const char * contentType();
     size_t contentLength();
-    const char * body();
+    String body();
     void redirect(const char *url);
 
-    bool hasParam(const char *name);
-    int getParam(const char *name);
+    bool hasParam(const char *key);
+    esp_err_t getParam(const char *name, char *value);
+
+    std::string getParam(const char *name);
 
     bool authenticate(const char * username, const char * password);
     void requestAuthentication(const char* realm);
 
     PsychicHttpServerResponse *beginResponse();
+    #ifdef ARDUINO
+      PsychicHttpServerResponseStream *beginResponseStream();
+    #endif
 
     // Takes ownership of `response`, will delete when finished. Do not use `response` after calling
     void send(PsychicHttpServerResponse *response);
     void send(int code);
+    void send(const char *content);
     void send(int code, const char *contentType, const char *content="");
 };
 
 class PsychicHttpServerResponse
 {
   protected:
+    httpd_req_t *_req;
     int64_t _contentLength;
-    int _code;
+    char _status[60];
     const char * body;
 
   public:
-    PsychicHttpServerResponse();
+    PsychicHttpServerResponse(httpd_req_t *request);
     virtual ~PsychicHttpServerResponse();
 
-    void setCode(int code) {
-      _code = code;
-    }
+    void setCode(int code);
 
     void setContentType(const char *contentType);
     void setContentLength(int64_t contentLength) {
@@ -83,35 +93,30 @@ class PsychicHttpServerResponse
     }
 
     void addHeader(const char *name, const char *value);
-    const char * getHeaderString();
 
     void setContent(const char *content);
     void setContent(const uint8_t *content, size_t len);
 
     const char * getContent();
     size_t getContentLength();
-
-    void send(struct mg_connection *nc);
 };
 
-// #ifdef ARDUINO
-//   class PsychicHttpServerResponseStream:
-//     public PsychicHttpServerResponse,
-//     public Print
-//   {
-//     private:
-//       mg_iobuf _content;
+#ifdef ARDUINO
+  class PsychicHttpServerResponseStream:
+    public PsychicHttpServerResponse,
+    public Print
+  {
+    private:
+      std::string _content;
 
-//     public:
-//       PsychicHttpServerResponseStream();
-//       virtual ~PsychicHttpServerResponseStream();
+    public:
+      PsychicHttpServerResponseStream(httpd_req_t *request);
+      virtual ~PsychicHttpServerResponseStream();
 
-//       size_t write(const uint8_t *data, size_t len);
-//       size_t write(uint8_t data);
-
-//       virtual void send(struct mg_connection *nc);
-//   };
-// #endif
+      size_t write(const uint8_t *data, size_t len);
+      size_t write(uint8_t data);
+  };
+#endif
 
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
 //typedef std::function<size_t(PsychicHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpUploadHandler;
@@ -171,7 +176,6 @@ class PsychicHttpServer
 {
   protected:
     httpd_handle_t server;
-    httpd_config_t config;
 
     //TODO: is this necessary?
     //PsychicHttpServerEndpoint defaultEndpoint;
@@ -179,6 +183,8 @@ class PsychicHttpServer
   public:
     PsychicHttpServer();
     ~PsychicHttpServer();
+
+    httpd_config_t config;
 
     static void destroy(void *ctx);
 
@@ -191,11 +197,6 @@ class PsychicHttpServer
     PsychicHttpServerEndpoint *on(const char* uri, PsychicHttpRequestHandler onRequest);
     PsychicHttpServerEndpoint *on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest);
     void onNotFound(PsychicHttpRequestHandler fn);
-
-//    static esp_err_t endpointEventHandler(httpd_req_t *req);
-
-    //TODO: is this needed?
-    //void reset();
 
     void sendAll(PsychicHttpWebSocketConnection *from, const char *endpoint, int op, const void *data, size_t len);
     void sendAll(PsychicHttpWebSocketConnection *from, int op, const void *data, size_t len);
