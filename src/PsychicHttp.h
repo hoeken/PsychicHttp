@@ -174,12 +174,7 @@ class PsychicHttpWebSocketConnection : public PsychicHttpServerRequest
     esp_err_t send(httpd_ws_type_t op, const void *data, size_t len);
     esp_err_t send(const char *buf);
 
-    static void ws_async_send(void *arg);
-
-    // const char * getRemoteAddress() {
-    //   //return &(_nc->rem);
-    //   return "";
-    // }
+    //static void ws_async_send(void *arg);
 
     int getConnection() {
       return this->_fd;
@@ -218,16 +213,7 @@ class PsychicHttpServer
     void sendAll(httpd_ws_type_t op, const void *data, size_t len);
     void sendAll(const char *buf);
 
-    static void sendAsync(void *arg);
-
-    // void sendAll(PsychicHttpWebSocketConnection *from, const char *endpoint, int op, const void *data, size_t len);
-    // void sendAll(PsychicHttpWebSocketConnection *from, int op, const void *data, size_t len);
-    // void sendAll(int op, const void *data, size_t len);
-    // void sendAll(PsychicHttpWebSocketConnection *from, const char *buf);
-    // void sendAll(const char *buf);
-    // void sendAll(const char *endpoint, int op, const void *data, size_t len);
-    // void sendAll(PsychicHttpWebSocketConnection *from, const char *endpoint, const char *buf);
-    // void sendAll(const char *endpoint, const char *buf);
+    //static void sendAsync(void *arg);
 };
 
 #endif /* PsychicHttp_h */
