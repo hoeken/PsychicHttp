@@ -1,4 +1,5 @@
 #include "PsychicHttp.h"
+#include <esp_event.h>
 
 /*************************************/
 /*  PsychicHttpServer                */
@@ -79,7 +80,7 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
   httpd_uri_t my_uri {
     .uri      = uri,
     .method   = method,
-    .handler  = handler->endpointRequestHandler,
+    .handler  = handler->requestHandler,
     .user_ctx = handler
   };
 
@@ -101,7 +102,7 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
   httpd_uri_t my_uri {
     .uri      = uri,
     .method   = HTTP_GET,
-    .handler  = handler->websocketRequestHandler,
+    .handler  = handler->websocketHandler,
     .user_ctx = handler,
     .is_websocket = true
   };
@@ -110,6 +111,9 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
   if (httpd_register_uri_handler(this->server, &my_uri) != ESP_OK) {
     Serial.println("PsychicHttp add websocket failed");
   }
+
+  //TODO: figure out how to make a close handler???
+  //esp_event_handler_register(ESP_HTTP_SERVER_EVENT, HTTP_SERVER_EVENT_DISCONNECTED, this->closeHandler, this);
 
   return handler;
 }
@@ -176,32 +180,6 @@ void PsychicHttpServer::sendAll(const char *buf)
   this->sendAll(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
 
-//TODO: no idea.
-// void PsychicHttpServer::sendAsync(void *arg)
-// {
-//   TRACE();
-//   async_resp_arg *resp_arg = (async_resp_arg *)arg;
-
-//   // static const char data[resp_arg->ws_pkt->len+1];
-//   // strlcpy(data, resp_arg->ws_pkt->payload, sizeof(data));
-
-//   httpd_handle_t hd = resp_arg->hd;
-//   int fd = resp_arg->fd;
-
-//   // httpd_ws_frame_t ws_pkt;
-//   // memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-//   // ws_pkt.payload = (uint8_t*)data;
-//   // ws_pkt.len = strlen(data);
-//   // ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-
-//   // httpd_ws_send_frame_async(hd, fd, &ws_pkt);
-//   // free(resp_arg);
-
-//   DUMP(resp_arg->ws_pkt->len);
-
-//   httpd_ws_send_frame_async(hd, fd, resp_arg->ws_pkt);
-// }
-
 PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method) :
   server(server),
   method(method),
@@ -233,13 +211,13 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onFrame(PsychicHttpWebSoc
   return this;
 }
 
-//TODO: figure out close hooks
-// PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onClose(PsychicHttpRequestHandler handler) {
-//   this->close = handler;
-//   return this;
-// }
+PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onClose(PsychicHttpRequestHandler handler) {
+  Serial.println("WARNING: onClose not yet implemented");
+  this->close = handler;
+  return this;
+}
 
-esp_err_t PsychicHttpServerEndpoint::endpointRequestHandler(httpd_req_t *req)
+esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
 {
   DUMP(req->uri);
 
@@ -251,7 +229,21 @@ esp_err_t PsychicHttpServerEndpoint::endpointRequestHandler(httpd_req_t *req)
   return err;
 }
 
-esp_err_t PsychicHttpServerEndpoint::websocketRequestHandler(httpd_req_t *req)
+esp_err_t PsychicHttpServerEndpoint::closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
+{
+  TRACE();
+
+  // PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
+  // PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self->server, req);
+  // esp_err_t err = self->request(request);
+  // delete request;
+
+  // return err;
+
+  return ESP_OK;
+}
+
+esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
 {
   PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
   PsychicHttpWebSocketConnection connection(self->server, req);
@@ -331,9 +323,6 @@ PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, ht
   _server(server),
   _req(req),
   _response(NULL)
-  //_header(NULL),
-  //_body(NULL),
-  //_query(NULL)
 {
   this->loadBody();
 }
@@ -526,13 +515,6 @@ PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()
   return new PsychicHttpServerResponse(this->_req);
 }
 
-#ifdef ARDUINO
-  PsychicHttpServerResponseStream *PsychicHttpServerRequest::beginResponseStream()
-  {
-    return new PsychicHttpServerResponseStream(this->_req);
-  }
-#endif
-
 void PsychicHttpServerRequest::send(PsychicHttpServerResponse *response)
 {
   httpd_resp_send(this->_req, response->getContent(), response->getContentLength());
@@ -606,9 +588,7 @@ void PsychicHttpServerResponse::setContentType(const char *contentType)
 
 void PsychicHttpServerResponse::setContent(const char *content)
 {
-  //DUMP(content);
   this->body = content;
-  //DUMP(this->body);
   setContentLength(strlen(content));
 }
 
@@ -621,7 +601,6 @@ void PsychicHttpServerResponse::setContent(const uint8_t *content, size_t len)
 
 const char * PsychicHttpServerResponse::getContent()
 {
-  //DUMP(this->body);
   return this->body;
 }
 
@@ -629,36 +608,6 @@ size_t PsychicHttpServerResponse::getContentLength()
 {
   return this->_contentLength;
 }
-
-/*************************************/
-/*  PsychicHttpServerResponseStream  */
-/*************************************/
-
-// #ifdef ARDUINO
-  PsychicHttpServerResponseStream::PsychicHttpServerResponseStream(httpd_req_t *request) :
-    PsychicHttpServerResponse(request)
-  {
-  }
-
-  PsychicHttpServerResponseStream::~PsychicHttpServerResponseStream()
-  {
-  }
-
-  //TODO: figure out how to make this class actually write to the network directly instead of this hack.
-  size_t PsychicHttpServerResponseStream::write(const uint8_t *data, size_t len)
-  {
-    this->_content.append((char *)data);
-    this->setContentLength(this->getContentLength()+len);
-
-    return len;
-  }
-
-  size_t PsychicHttpServerResponseStream::write(uint8_t data)
-  {
-    return this->write(&data, 1);
-  }
-// #endif
-
 
 /*************************************/
 /*  PsychicHttpWebSocketConnection   */
@@ -678,12 +627,7 @@ PsychicHttpWebSocketConnection::~PsychicHttpWebSocketConnection()
 
 esp_err_t PsychicHttpWebSocketConnection::send(httpd_ws_frame_t * ws_pkt)
 {
-  //TRACE();
-
   return httpd_ws_send_frame(this->_req, ws_pkt);
-
-  // this->_packet = ws_pkt;
-  //return httpd_queue_work(this->_server, this->ws_async_send, this);
 } 
 
 esp_err_t PsychicHttpWebSocketConnection::send(httpd_ws_type_t op, const void *data, size_t len)
@@ -702,10 +646,3 @@ esp_err_t PsychicHttpWebSocketConnection::send(const char *buf)
 {
   return this->send(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
-
-// void PsychicHttpWebSocketConnection::ws_async_send(void *arg)
-// {
-//   PsychicHttpWebSocketConnection * conn = (PsychicHttpWebSocketConnection *)arg;
-
-//   httpd_ws_send_frame_async(conn->_server, conn->_fd, conn->_packet);
-// }

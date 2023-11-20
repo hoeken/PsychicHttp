@@ -2,6 +2,7 @@
 #define PsychicHttp_h
 
 #include <ArduinoTrace.h>
+#include <esp_event.h>
 #include <esp_http_server.h>
 #include <http_status.h>
 #include <string>
@@ -14,15 +15,9 @@ struct async_resp_arg {
 
 #define TAG "PsychicHttp"
 
-#define SCRATCH_BUFSIZE (10240)
-//char scratch[SCRATCH_BUFSIZE];
-
 class PsychicHttpServer;
 class PsychicHttpServerRequest;
 class PsychicHttpServerResponse;
-#ifdef ARDUINO
-  class PsychicHttpServerResponseStream;
-#endif
 class PsychicHttpWebSocketConnection;
 
 class PsychicHttpServerRequest {
@@ -33,10 +28,7 @@ class PsychicHttpServerRequest {
     http_method _method;
     httpd_req_t *_req;
     PsychicHttpServerResponse *_response;
-
-    //String _header;
     String _body;
-    //String _query;
 
     void loadBody();
 
@@ -68,9 +60,6 @@ class PsychicHttpServerRequest {
     void requestAuthentication(const char* realm);
 
     PsychicHttpServerResponse *beginResponse();
-    #ifdef ARDUINO
-      PsychicHttpServerResponseStream *beginResponseStream();
-    #endif
 
     // Takes ownership of `response`, will delete when finished. Do not use `response` after calling
     void send(PsychicHttpServerResponse *response);
@@ -107,23 +96,6 @@ class PsychicHttpServerResponse
     size_t getContentLength();
 };
 
-#ifdef ARDUINO
-  class PsychicHttpServerResponseStream:
-    public PsychicHttpServerResponse,
-    public Print
-  {
-    private:
-      std::string _content;
-
-    public:
-      PsychicHttpServerResponseStream(httpd_req_t *request);
-      virtual ~PsychicHttpServerResponseStream();
-
-      size_t write(const uint8_t *data, size_t len);
-      size_t write(uint8_t data);
-  };
-#endif
-
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
 //typedef std::function<size_t(PsychicHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpUploadHandler;
 typedef std::function<esp_err_t(PsychicHttpWebSocketConnection *connection)> PsychicHttpWebSocketConnectionHandler;
@@ -149,10 +121,11 @@ class PsychicHttpServerEndpoint
     // PsychicHttpServerEndpoint *onUpload(PsychicHttpUploadHandler handler);
     PsychicHttpServerEndpoint *onConnect(PsychicHttpWebSocketConnectionHandler handler);
     PsychicHttpServerEndpoint *onFrame(PsychicHttpWebSocketFrameHandler handler);
-    //PsychicHttpServerEndpoint *onClose(PsychicHttpRequestHandler handler);
+    PsychicHttpServerEndpoint *onClose(PsychicHttpRequestHandler handler);
 
-    static esp_err_t endpointRequestHandler(httpd_req_t *req);
-    static esp_err_t websocketRequestHandler(httpd_req_t *req);
+    static esp_err_t requestHandler(httpd_req_t *req);
+    static esp_err_t closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+    static esp_err_t websocketHandler(httpd_req_t *req);
 };
 
 class PsychicHttpWebSocketConnection : public PsychicHttpServerRequest
