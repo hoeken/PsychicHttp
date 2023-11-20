@@ -6,6 +6,14 @@
 #include <http_status.h>
 #include <string>
 
+struct async_resp_arg {
+    httpd_handle_t hd;
+    int fd;
+    httpd_ws_frame_t *ws_pkt;
+};
+
+#define TAG "PsychicHttp"
+
 #define SCRATCH_BUFSIZE (10240)
 //char scratch[SCRATCH_BUFSIZE];
 
@@ -118,8 +126,8 @@ class PsychicHttpServerResponse
 
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
 //typedef std::function<size_t(PsychicHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpUploadHandler;
-typedef std::function<void(PsychicHttpWebSocketConnection *connection)> PsychicHttpWebSocketConnectionHandler;
-typedef std::function<void(PsychicHttpWebSocketConnection *connection, int flags, uint8_t *data, size_t len)> PsychicHttpWebSocketFrameHandler;
+typedef std::function<esp_err_t(PsychicHttpWebSocketConnection *connection)> PsychicHttpWebSocketConnectionHandler;
+typedef std::function<esp_err_t(PsychicHttpWebSocketConnection *connection, httpd_ws_frame *frame)> PsychicHttpWebSocketFrameHandler;
 
 class PsychicHttpServerEndpoint
 {
@@ -141,13 +149,20 @@ class PsychicHttpServerEndpoint
     // PsychicHttpServerEndpoint *onUpload(PsychicHttpUploadHandler handler);
     PsychicHttpServerEndpoint *onConnect(PsychicHttpWebSocketConnectionHandler handler);
     PsychicHttpServerEndpoint *onFrame(PsychicHttpWebSocketFrameHandler handler);
-    PsychicHttpServerEndpoint *onClose(PsychicHttpRequestHandler handler);
+    //PsychicHttpServerEndpoint *onClose(PsychicHttpRequestHandler handler);
+
     static esp_err_t endpointRequestHandler(httpd_req_t *req);
+    static esp_err_t websocketRequestHandler(httpd_req_t *req);
 };
 
 class PsychicHttpWebSocketConnection : public PsychicHttpServerRequest
 {
   friend PsychicHttpServer;
+
+  protected:
+    httpd_handle_t _server;
+    int _fd;
+    httpd_ws_frame_t * _packet;
 
   public:
     PsychicHttpWebSocketConnection(PsychicHttpServer *server, httpd_req_t *req);
@@ -155,19 +170,20 @@ class PsychicHttpWebSocketConnection : public PsychicHttpServerRequest
 
     virtual bool isWebSocket() { return true; }
 
-    void send(int op, const void *data, size_t len);
-    void send(const char *buf) {
-      //send(WEBSOCKET_OP_TEXT, buf, strlen(buf));
-    }
+    esp_err_t send(httpd_ws_frame_t * ws_pkt);
+    esp_err_t send(httpd_ws_type_t op, const void *data, size_t len);
+    esp_err_t send(const char *buf);
 
-    const char * getRemoteAddress() {
-      //return &(_nc->rem);
-      return "";
-    }
+    static void ws_async_send(void *arg);
 
-    // const mg_connection *getConnection() {
-    //   //return _nc;
+    // const char * getRemoteAddress() {
+    //   //return &(_nc->rem);
+    //   return "";
     // }
+
+    int getConnection() {
+      return this->_fd;
+    }
 };
 
 class PsychicHttpServer
@@ -196,14 +212,22 @@ class PsychicHttpServer
     PsychicHttpServerEndpoint *on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest);
     void onNotFound(PsychicHttpRequestHandler fn);
 
-    void sendAll(PsychicHttpWebSocketConnection *from, const char *endpoint, int op, const void *data, size_t len);
-    void sendAll(PsychicHttpWebSocketConnection *from, int op, const void *data, size_t len);
-    void sendAll(int op, const void *data, size_t len);
-    void sendAll(PsychicHttpWebSocketConnection *from, const char *buf);
+    PsychicHttpServerEndpoint *websocket(const char* uri);
+
+    void sendAll(httpd_ws_frame_t * ws_pkt);
+    void sendAll(httpd_ws_type_t op, const void *data, size_t len);
     void sendAll(const char *buf);
-    void sendAll(const char *endpoint, int op, const void *data, size_t len);
-    void sendAll(PsychicHttpWebSocketConnection *from, const char *endpoint, const char *buf);
-    void sendAll(const char *endpoint, const char *buf);
+
+    static void sendAsync(void *arg);
+
+    // void sendAll(PsychicHttpWebSocketConnection *from, const char *endpoint, int op, const void *data, size_t len);
+    // void sendAll(PsychicHttpWebSocketConnection *from, int op, const void *data, size_t len);
+    // void sendAll(int op, const void *data, size_t len);
+    // void sendAll(PsychicHttpWebSocketConnection *from, const char *buf);
+    // void sendAll(const char *buf);
+    // void sendAll(const char *endpoint, int op, const void *data, size_t len);
+    // void sendAll(PsychicHttpWebSocketConnection *from, const char *endpoint, const char *buf);
+    // void sendAll(const char *endpoint, const char *buf);
 };
 
 #endif /* PsychicHttp_h */

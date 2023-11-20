@@ -91,6 +91,29 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
   return handler;
 }
 
+PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
+{
+  TRACE();
+
+  PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, HTTP_GET);
+  
+  // URI handler structure
+  httpd_uri_t my_uri {
+    .uri      = uri,
+    .method   = HTTP_GET,
+    .handler  = handler->websocketRequestHandler,
+    .user_ctx = handler,
+    .is_websocket = true
+  };
+
+  // Register handler
+  if (httpd_register_uri_handler(this->server, &my_uri) != ESP_OK) {
+    Serial.println("PsychicHttp add websocket failed");
+  }
+
+  return handler;
+}
+
 //TODO: implement this.
 void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 {
@@ -98,48 +121,81 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
   //defaultEndpoint.onRequest(fn);
 }
 
-void PsychicHttpServer::sendAll(PsychicHttpWebSocketConnection *from, const char *endpoint, int op, const void *data, size_t len)
+//TODO: no idea how to send a dynamic message.
+void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
 {
-  // mg_mgr *mgr = Mongoose.getMgr();
+  //DUMP((char *)ws_pkt->payload);
+  size_t max_clients = this->config.max_open_sockets;
+  size_t clients = max_clients;
+  int    client_fds[max_clients];
 
-  // const struct mg_connection *nc = from ? from->getConnection() : NULL;
-  // struct mg_connection *c;
-  // for (c = mgr->conns; c != NULL; c = c->next) {
-  //   if (c == nc) { 
-  //     continue; /* Don't send to the sender. */
-  //   }
-  //   if (c->is_websocket)
-  //   {
-  //     PsychicHttpWebSocketConnection *to = (PsychicHttpWebSocketConnection *)c->fn_data;
-  //     if(endpoint && !to->uri().equals(endpoint)) {
-  //       continue;
-  //     }
-  //     DBUGF("%.*s sending to %p", to->uri().length(), to->uri().c_str(), to);
-  //     to->send(op, data, len);
-  //   }
-  // }
+  if (httpd_get_client_list(this->server, &clients, client_fds) == ESP_OK)
+  {
+    for (size_t i=0; i < clients; ++i)
+    {
+      int sock = client_fds[i];
+      if (httpd_ws_get_fd_info(this->server, sock) == HTTPD_WS_CLIENT_WEBSOCKET)
+      {
+        ESP_LOGI(TAG, "Active client (fd=%d) -> sending async message", sock);
+
+        async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
+        resp_arg->hd = this->server;
+        resp_arg->fd = sock;
+        resp_arg->ws_pkt = ws_pkt;
+
+        if (httpd_queue_work(resp_arg->hd, this->sendAsync, resp_arg) != ESP_OK) {
+          ESP_LOGE(TAG, "httpd_queue_work failed!");
+          break;
+        }
+      }
+    }
+  } else {
+      ESP_LOGE(TAG, "httpd_get_client_list failed!");
+      return;
+  }
 }
 
-void PsychicHttpServer::sendAll(PsychicHttpWebSocketConnection *from, int op, const void *data, size_t len) {
-  //sendAll(from, NULL, op, data, len);
+void PsychicHttpServer::sendAll(httpd_ws_type_t op, const void *data, size_t len)
+{
+  httpd_ws_frame_t ws_pkt;
+  memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+
+  ws_pkt.payload = (uint8_t*)data;
+  ws_pkt.len = len;
+  ws_pkt.type = op;
+
+  this->sendAll(&ws_pkt);
 }
-void PsychicHttpServer::sendAll(int op, const void *data, size_t len) {
-  //sendAll(NULL, NULL, op, data, len);
+
+void PsychicHttpServer::sendAll(const char *buf)
+{
+  this->sendAll(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
-void PsychicHttpServer::sendAll(PsychicHttpWebSocketConnection *from, const char *buf) {
-  //sendAll(from, NULL, WEBSOCKET_OP_TEXT, buf, strlen(buf));
-}
-void PsychicHttpServer::sendAll(const char *buf) {
-  //sendAll(NULL, NULL, WEBSOCKET_OP_TEXT, buf, strlen(buf));
-}
-void PsychicHttpServer::sendAll(const char *endpoint, int op, const void *data, size_t len) {
-  //sendAll(NULL, endpoint, op, data, len);
-}
-void PsychicHttpServer::sendAll(PsychicHttpWebSocketConnection *from, const char *endpoint, const char *buf) {
-  //sendAll(from, endpoint, WEBSOCKET_OP_TEXT, buf, strlen(buf));
-}
-void PsychicHttpServer::sendAll(const char *endpoint, const char *buf) {
-  //sendAll(NULL, endpoint, WEBSOCKET_OP_TEXT, buf, strlen(buf));
+
+//TODO: no idea.
+void PsychicHttpServer::sendAsync(void *arg)
+{
+  TRACE();
+  async_resp_arg *resp_arg = (async_resp_arg *)arg;
+
+  // static const char data[resp_arg->ws_pkt->len+1];
+  // strlcpy(data, resp_arg->ws_pkt->payload, sizeof(data));
+
+  httpd_handle_t hd = resp_arg->hd;
+  int fd = resp_arg->fd;
+
+  // httpd_ws_frame_t ws_pkt;
+  // memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+  // ws_pkt.payload = (uint8_t*)data;
+  // ws_pkt.len = strlen(data);
+  // ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+  // httpd_ws_send_frame_async(hd, fd, &ws_pkt);
+  // free(resp_arg);
+
+  DUMP(resp_arg->ws_pkt->len);
+
+  httpd_ws_send_frame_async(hd, fd, resp_arg->ws_pkt);
 }
 
 PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method) :
@@ -173,10 +229,11 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onFrame(PsychicHttpWebSoc
   return this;
 }
 
-PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onClose(PsychicHttpRequestHandler handler) {
-  this->close = handler;
-  return this;
-}
+//TODO: figure out close hooks
+// PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onClose(PsychicHttpRequestHandler handler) {
+//   this->close = handler;
+//   return this;
+// }
 
 esp_err_t PsychicHttpServerEndpoint::endpointRequestHandler(httpd_req_t *req)
 {
@@ -188,6 +245,78 @@ esp_err_t PsychicHttpServerEndpoint::endpointRequestHandler(httpd_req_t *req)
   delete request;
 
   return err;
+}
+
+esp_err_t PsychicHttpServerEndpoint::websocketRequestHandler(httpd_req_t *req)
+{
+  PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
+  PsychicHttpWebSocketConnection connection(self->server, req);
+
+  // beginning of the ws URI handler
+  if (req->method == HTTP_GET) {
+
+      //connection hook?
+      if (self->wsConnect != NULL)
+        self->wsConnect(&connection);
+      return ESP_OK;
+  }
+
+  httpd_ws_frame_t ws_pkt;
+  memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+  ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+  uint8_t *buf = NULL;
+  /* Set max_len = 0 to get the frame len */
+  esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
+  if (ret != ESP_OK) {
+      ESP_LOGE(TAG, "httpd_ws_recv_frame failed to get frame len with %d", ret);
+      return ret;
+  }
+  ESP_LOGI(TAG, "frame len is %d", ws_pkt.len);
+  if (ws_pkt.len) {
+    /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
+    buf = (uint8_t*) calloc(1, ws_pkt.len + 1);
+    if (buf == NULL) {
+      ESP_LOGE(TAG, "Failed to calloc memory for buf");
+      return ESP_ERR_NO_MEM;
+    }
+    ws_pkt.payload = buf;
+    /* Set max_len = ws_pkt.len to get the frame payload */
+    ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
+    if (ret != ESP_OK) {
+      ESP_LOGE(TAG, "httpd_ws_recv_frame failed with %d", ret);
+      free(buf);
+      return ret;
+    }
+    ESP_LOGI(TAG, "Got packet with message: %s", ws_pkt.payload);
+  }
+  
+  // DUMP(ws_pkt.final);
+  // DUMP(ws_pkt.fragmented);
+  // DUMP(ws_pkt.len);
+  // DUMP(ws_pkt.type);
+  // DUMP((char *)ws_pkt.payload);
+
+  // If it was a PONG, update the keep-alive
+  // if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
+  //     ESP_LOGD(TAG, "Received PONG message");
+  //     free(buf);
+  //     return wss_keep_alive_client_is_active(httpd_get_global_user_ctx(req->handle), httpd_req_to_sockfd(req));
+  // }
+
+  //okay, call our frame handler.
+  if (self->wsFrame != NULL)
+    ret = self->wsFrame(&connection, &ws_pkt);
+
+  free(buf);
+
+  return ret;
+ 
+  // PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self->server, req);
+  // esp_err_t err = self->request(request);
+  // delete request;
+
+  // return err;
 }
 
 /*************************************/
@@ -462,7 +591,7 @@ void PsychicHttpServerResponse::setCode(int code)
 {
   //esp-idf makes you set the whole status.
   sprintf(this->_status, "%u %s", code, http_status_reason(code));
-  DUMP(this->_status);
+
   httpd_resp_set_status(this->_req, this->_status);
 }
 
@@ -482,7 +611,7 @@ void PsychicHttpServerResponse::setContent(const char *content)
 void PsychicHttpServerResponse::setContent(const uint8_t *content, size_t len)
 {
   this->body = (char *)content;
-  DUMP(this->body);
+
   setContentLength(len);
 }
 
@@ -531,12 +660,48 @@ size_t PsychicHttpServerResponse::getContentLength()
 /*  PsychicHttpWebSocketConnection   */
 /*************************************/
 
+PsychicHttpWebSocketConnection::PsychicHttpWebSocketConnection(PsychicHttpServer *server, httpd_req_t *req) :
+  PsychicHttpServerRequest(server, req)
+{
+  this->_server = req->handle;
+  this->_fd = httpd_req_to_sockfd(req);
+}
+
 PsychicHttpWebSocketConnection::~PsychicHttpWebSocketConnection()
 {
 
 }
 
-void PsychicHttpWebSocketConnection::send(int op, const void *data, size_t len)
+esp_err_t PsychicHttpWebSocketConnection::send(httpd_ws_frame_t * ws_pkt)
 {
-  //mg_ws_send(_nc, data, len, op);
+  //TRACE();
+
+  return httpd_ws_send_frame(this->_req, ws_pkt);
+
+  // this->_packet = ws_pkt;
+  //return httpd_queue_work(this->_server, this->ws_async_send, this);
+} 
+
+esp_err_t PsychicHttpWebSocketConnection::send(httpd_ws_type_t op, const void *data, size_t len)
+{
+  httpd_ws_frame_t ws_pkt;
+  memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+
+  ws_pkt.payload = (uint8_t*)data;
+  ws_pkt.len = len;
+  ws_pkt.type = op;
+
+  return this->send(&ws_pkt);
+}
+
+esp_err_t PsychicHttpWebSocketConnection::send(const char *buf)
+{
+  return this->send(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
+}
+
+void PsychicHttpWebSocketConnection::ws_async_send(void *arg)
+{
+  PsychicHttpWebSocketConnection * conn = (PsychicHttpWebSocketConnection *)arg;
+
+  httpd_ws_send_frame_async(conn->_server, conn->_fd, conn->_packet);
 }
