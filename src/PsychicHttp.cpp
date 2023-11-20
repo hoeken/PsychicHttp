@@ -197,15 +197,12 @@ esp_err_t PsychicHttpServerEndpoint::endpointRequestHandler(httpd_req_t *req)
 PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req) :
   _server(server),
   _req(req),
-  _response(NULL),
-  _header(NULL),
+  _response(NULL)
+  //_header(NULL),
   //_body(NULL),
-  _query(NULL)
+  //_query(NULL)
 {
-  //TODO: maybe automatically look up the data / read the connection?
-  TRACE();
   this->loadBody();
-  TRACE();
 }
 
 PsychicHttpServerRequest::~PsychicHttpServerRequest()
@@ -214,41 +211,17 @@ PsychicHttpServerRequest::~PsychicHttpServerRequest()
     delete _response;
     _response = NULL;
   }
-
-  if (_header) {
-    delete _header;
-    _header = NULL;
-    _header_len = 0;
-  }
-
-  // if (_body) {
-  //   delete _body;
-  //   _body = NULL;
-  //   _body_len = 0;
-  // }
-
-  if (_query) {
-    delete _query;
-    _query = NULL;
-    _query_len = 0;
-  }
 }
 
 void PsychicHttpServerRequest::loadBody()
 {
-  TRACE();
-  DUMP(this->_req->content_len);
-
-  this->_body = "";
+  this->_body = String();
 
   /* Get header value string length and allocate memory for length + 1,
     * extra byte for null termination */
   if (this->_req->content_len > 0)
   {
-    TRACE();
-    //buf = (char *)malloc(buf_len);
     char buf[this->_req->content_len+1];
-    TRACE();
 
     int ret = httpd_req_recv(this->_req, buf, this->_req->content_len);
     if (ret <= 0) {  /* 0 return value indicates connection closed */
@@ -269,11 +242,7 @@ void PsychicHttpServerRequest::loadBody()
     }
     buf[this->_req->content_len] = '\0';
 
-    TRACE();
     this->_body.concat(buf);
-    TRACE();
-    //free(buf);
-    TRACE();
   }
 }
 
@@ -281,73 +250,54 @@ http_method PsychicHttpServerRequest::method() {
   return (http_method)this->_req->method;
 }
 
-const char * PsychicHttpServerRequest::methodStr() {
-  return http_method_str((http_method)this->_req->method);
+String PsychicHttpServerRequest::methodStr() {
+  return String(http_method_str((http_method)this->_req->method));
 }
 
-const char * PsychicHttpServerRequest::uri() {
-  return this->_req->uri;
+String PsychicHttpServerRequest::uri() {
+  return String(this->_req->uri);
 }
 
-const char * PsychicHttpServerRequest::queryString() {
-  TRACE();
-  //delete the old one if we have it
-  if (this->_query != NULL)
-    delete this->_query;
-  TRACE();
-
-  //find our size
-  this->_query_len = httpd_req_get_url_query_len(this->_req);
-  TRACE();
+String PsychicHttpServerRequest::queryString() {
+  size_t query_len = httpd_req_get_url_query_len(this->_req);
 
   //if we've got one, allocated it and load it
-  if (this->_query_len)
+  if (query_len)
   {
-    TRACE();
-    this->_query = new char[this->_query_len+1];
-    this->_query[this->_query_len] = 0;
-    httpd_req_get_url_query_str(this->_req, this->_query, this->_query_len);
-    TRACE();
+    char query[query_len+1];
+    httpd_req_get_url_query_str(this->_req, query, sizeof(query));
 
-    return this->_query;
+    return String(query);
   }
   else
-    return "";
+    return String();
 }
 
-const char * PsychicHttpServerRequest::headers(const char *name)
+String PsychicHttpServerRequest::headers(const char *name)
 {
   return this->header(name);
 }
 
-const char * PsychicHttpServerRequest::header(const char *name)
+String PsychicHttpServerRequest::header(const char *name)
 {
-  //delete the old one if we have it
-  if (this->_header != NULL)
-    delete this->_header;
-
-  //find our size
-  this->_header_len = httpd_req_get_hdr_value_len(this->_req, name);
+  size_t header_len = httpd_req_get_hdr_value_len(this->_req, name);
 
   //if we've got one, allocated it and load it
-  if (this->_header_len)
+  if (header_len)
   {
-    this->_header = new char[this->_header_len+1];
-    this->_header[this->_header_len] = 0;
-
-    httpd_req_get_hdr_value_str(this->_req, name, this->_header, this->_header_len);
-
-    return this->_header;
+    char header[header_len+1];
+    httpd_req_get_hdr_value_str(this->_req, name, header, sizeof(header));
+    return String(header);
   }
   else
-    return "";
+    return String();
 }
 
-const char * PsychicHttpServerRequest::host() {
-  return this->header("Host");
+String PsychicHttpServerRequest::host() {
+  return String(this->header("Host"));
 }
 
-const char * PsychicHttpServerRequest::contentType() {
+String PsychicHttpServerRequest::contentType() {
   return header("Content-Type");
 }
 
@@ -372,11 +322,10 @@ void PsychicHttpServerRequest::redirect(const char *url)
 
 bool PsychicHttpServerRequest::hasParam(const char *key)
 {
-  DUMP(key);
-  //a small array should be fine.
-  char value[2];
-  esp_err_t err = this->getParam(key, value);
-  DUMP((int)err);
+  String query = this->queryString();
+  char value[query.length()];
+  esp_err_t err = httpd_query_key_value(query.c_str(), key, value, query.length());
+
   //did we get anything?
   if (err == ESP_OK || err == ESP_ERR_HTTPD_RESULT_TRUNC)
     return true;
@@ -386,22 +335,19 @@ bool PsychicHttpServerRequest::hasParam(const char *key)
 
 esp_err_t PsychicHttpServerRequest::getParam(const char *key, char *value)
 {
-  TRACE();
-  const char *query = this->queryString();
-  DUMP(query);
-  return httpd_query_key_value(query, key, value, this->_query_len);
+  String query = this->queryString();
+
+  return httpd_query_key_value(query.c_str(), key, value, query.length());
 }
 
-std::string PsychicHttpServerRequest::getParam(const char *key)
+String PsychicHttpServerRequest::getParam(const char *key)
 {
-  std::string ret;
+  String ret;
 
-  char value[this->_query_len];
-  TRACE();
+  String query = this->queryString();
+  char value[query.length()];
   esp_err_t err = this->getParam(key, value);
-  TRACE();
-  ret.append(value);
-  TRACE();
+  ret.concat(value);
 
   return ret;
 }
@@ -456,9 +402,6 @@ PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()
 
 void PsychicHttpServerRequest::send(PsychicHttpServerResponse *response)
 {
-  //TRACE();
-  //DUMP(response->getContent());
-  DUMP(response->getContentLength());
   httpd_resp_send(this->_req, response->getContent(), response->getContentLength());
 }
 

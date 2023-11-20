@@ -26,11 +26,9 @@ class PsychicHttpServerRequest {
     httpd_req_t *_req;
     PsychicHttpServerResponse *_response;
 
-    char * _header;
-    size_t _header_len;
+    //String _header;
     String _body;
-    char * _query;
-    size_t _query_len;
+    //String _query;
 
     void loadBody();
 
@@ -42,13 +40,13 @@ class PsychicHttpServerRequest {
     virtual bool isWebSocket() { return false; }
 
     http_method method();
-    const char * methodStr();
-    const char * uri();
-    const char * queryString();
-    const char * headers(const char *name);
-    const char * header(const char *name);
-    const char * host();
-    const char * contentType();
+    String methodStr();
+    String uri();
+    String queryString();
+    String headers(const char *name);
+    String header(const char *name);
+    String host();
+    String contentType();
     size_t contentLength();
     String body();
     void redirect(const char *url);
@@ -56,7 +54,7 @@ class PsychicHttpServerRequest {
     bool hasParam(const char *key);
     esp_err_t getParam(const char *name, char *value);
 
-    std::string getParam(const char *name);
+    String getParam(const char *name);
 
     bool authenticate(const char * username, const char * password);
     void requestAuthentication(const char* realm);
