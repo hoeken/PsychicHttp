@@ -4,13 +4,12 @@ Info!
 
 # TODO:
 
-* get onClose working for websockets
-* get defaultEndpoint working / onNotFound
+* get onClose working for websockets - need to update to Arduino core 3 / ESP-IDF v5.1
 * implement authentication stuff
-* remove responseStream stuff
 * add cookies stuff
 * test SSL!
 
 # Long Term:
 
 * maybe add filesystem support?
+* copy other nice features from ESPAsyncServer?

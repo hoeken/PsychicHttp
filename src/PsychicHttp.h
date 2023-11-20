@@ -116,6 +116,7 @@ class PsychicHttpServerEndpoint
     PsychicHttpWebSocketFrameHandler wsFrame;
 
   public:
+    PsychicHttpServerEndpoint();
     PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method);
     PsychicHttpServerEndpoint *onRequest(PsychicHttpRequestHandler handler);
     // PsychicHttpServerEndpoint *onUpload(PsychicHttpUploadHandler handler);
@@ -124,8 +125,9 @@ class PsychicHttpServerEndpoint
     PsychicHttpServerEndpoint *onClose(PsychicHttpRequestHandler handler);
 
     static esp_err_t requestHandler(httpd_req_t *req);
-    static esp_err_t closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+    static void closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
     static esp_err_t websocketHandler(httpd_req_t *req);
+    static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
 };
 
 class PsychicHttpWebSocketConnection : public PsychicHttpServerRequest
@@ -159,13 +161,11 @@ class PsychicHttpServer
   protected:
     httpd_handle_t server;
 
-    //TODO: is this necessary?
-    //PsychicHttpServerEndpoint defaultEndpoint;
-
   public:
     PsychicHttpServer();
     ~PsychicHttpServer();
 
+    PsychicHttpServerEndpoint defaultEndpoint;
     httpd_config_t config;
 
     static void destroy(void *ctx);

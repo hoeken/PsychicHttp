@@ -1,5 +1,4 @@
 #include "PsychicHttp.h"
-#include <esp_event.h>
 
 /*************************************/
 /*  PsychicHttpServer                */
@@ -16,7 +15,7 @@ PsychicHttpServer::PsychicHttpServer()
   this->config.max_uri_handlers = 10;
   this->config.stack_size = 10000;
 
-  //this->defaultEndpoint(this, HTTP_GET);
+  this->defaultEndpoint = PsychicHttpServerEndpoint(this, HTTP_GET);
 }
 
 PsychicHttpServer::~PsychicHttpServer()
@@ -94,8 +93,6 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
 
 PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
 {
-  TRACE();
-
   PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, HTTP_GET);
   
   // URI handler structure
@@ -113,16 +110,16 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
   }
 
   //TODO: figure out how to make a close handler???
-  //esp_event_handler_register(ESP_HTTP_SERVER_EVENT, HTTP_SERVER_EVENT_DISCONNECTED, this->closeHandler, this);
+  //esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, handler->closeHandler, this);
 
   return handler;
 }
 
-//TODO: implement this.
 void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 {
-  //httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, http_404_error_handler);
-  //defaultEndpoint.onRequest(fn);
+  this->defaultEndpoint.onRequest(fn);
+
+  httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, this->defaultEndpoint.notFoundHandler);
 }
 
 void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
@@ -180,6 +177,21 @@ void PsychicHttpServer::sendAll(const char *buf)
   this->sendAll(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
 
+/*************************************/
+/*  PsychicHttpServerEndpoint        */
+/*************************************/
+
+PsychicHttpServerEndpoint::PsychicHttpServerEndpoint() :
+  server(NULL),
+  method(HTTP_GET),
+  request(NULL),
+  //upload(NULL),
+  close(NULL),
+  wsConnect(NULL),
+  wsFrame(NULL)
+{
+}
+
 PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method) :
   server(server),
   method(method),
@@ -229,7 +241,19 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
   return err;
 }
 
-esp_err_t PsychicHttpServerEndpoint::closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
+esp_err_t PsychicHttpServerEndpoint::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
+{
+  TRACE();
+
+  PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
+  PsychicHttpServerRequest* request = new PsychicHttpServerRequest(server, req);
+  esp_err_t result = server->defaultEndpoint.request(request);
+  delete request;
+
+  return result;
+}
+
+void PsychicHttpServerEndpoint::closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
   TRACE();
 
@@ -239,8 +263,6 @@ esp_err_t PsychicHttpServerEndpoint::closeHandler(void* arg, esp_event_base_t ev
   // delete request;
 
   // return err;
-
-  return ESP_OK;
 }
 
 esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
