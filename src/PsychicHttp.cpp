@@ -5,14 +5,16 @@
 /*************************************/
 
 #if !CONFIG_HTTPD_WS_SUPPORT
-  #error This example cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
+  #error This library cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
 #endif
 
 PsychicHttpServer::PsychicHttpServer()
 {
   this->openHandler = NULL;
   this->closeHandler = NULL;
+
   this->defaultEndpoint = PsychicHttpServerEndpoint(this, HTTP_GET);
+  this->onNotFound(PsychicHttpServer::defaultNotFoundHandler);
 
   //for a regular server
   this->config = HTTPD_DEFAULT_CONFIG();
@@ -35,7 +37,8 @@ PsychicHttpServer::PsychicHttpServer()
 
 PsychicHttpServer::~PsychicHttpServer()
 {
-
+  for (PsychicHttpServerEndpoint * endpoint : this->endpoints)
+    delete(endpoint);
 }
 
 void PsychicHttpServer::destroy(void *ctx)
@@ -84,6 +87,11 @@ bool PsychicHttpServer::start()
     wss_keep_alive_set_user_ctx(keep_alive, server);
   #endif
 
+  // Register handler
+  esp_err_t ret = httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, PsychicHttpServer::notFoundHandler);
+  if (ret != ESP_OK)
+    ESP_LOGE(PH_TAG, "Add 404 handler failed (%s)", esp_err_to_name(ret)); 
+
   //how did it go?
   if (err == ESP_OK)
     return false;
@@ -123,6 +131,7 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method)
 {
   PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, method);
+  this->endpoints.push_back(handler);
   
   // URI handler structure
   httpd_uri_t my_uri {
@@ -143,7 +152,8 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
 PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
 {
   PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, HTTP_GET);
-  
+  this->endpoints.push_back(handler);
+
   // URI handler structure
   httpd_uri_t my_uri {
     .uri      = uri,
@@ -167,11 +177,26 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
 void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 {
   this->defaultEndpoint.onRequest(fn);
+}
 
-  // Register handler
-  esp_err_t ret = httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, this->defaultEndpoint.notFoundHandler);
-  if (ret != ESP_OK)
-    ESP_LOGE(PH_TAG, "Add 404 handler failed (%s)", esp_err_to_name(ret)); 
+esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
+{
+  #ifndef ENABLE_KEEPALIVE
+    PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
+    PsychicHttpServerRequest request(server, req);
+    esp_err_t result = server->defaultEndpoint.request(&request);
+
+    return result;
+  #else
+    return ESP_OK;
+  #endif
+}
+
+esp_err_t PsychicHttpServer::defaultNotFoundHandler(PsychicHttpServerRequest *request)
+{
+  request->reply(404, "text/html", "That URI does not exist.");
+
+  return ESP_OK;
 }
 
 void PsychicHttpServer::onOpen(PsychicHttpOpenHandler handler) {
@@ -317,19 +342,6 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
   esp_err_t err = self->request(&request);
 
   return err;
-}
-
-esp_err_t PsychicHttpServerEndpoint::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
-{
-  #ifndef ENABLE_KEEPALIVE
-    PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
-    PsychicHttpServerRequest request(server, req);
-    esp_err_t result = server->defaultEndpoint.request(&request);
-
-    return result;
-  #else
-    return ESP_OK;
-  #endif
 }
 
 esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
@@ -562,12 +574,13 @@ String PsychicHttpServerRequest::body()
   return this->_body;
 }
 
-void PsychicHttpServerRequest::redirect(const char *url)
+esp_err_t PsychicHttpServerRequest::redirect(const char *url)
 {
   PsychicHttpServerResponse *response = this->beginResponse();
   response->setCode(301);
   response->addHeader("Location", url);
-  response->send();
+  
+  return response->send();
 }
 
 
@@ -768,7 +781,7 @@ String PsychicHttpServerRequest::_getRandomHexString()
   return String(buffer);
 }
 
-void PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg)
+esp_err_t PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg)
 {
   //what is thy realm, sire?
   if(realm == NULL)
@@ -798,7 +811,7 @@ void PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, const 
   response->setCode(401);
   response->setContentType("text/html");
   response->setContent(authFailMsg.c_str());
-  response->send();
+  return response->send();
 }
 
 PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()
@@ -813,34 +826,37 @@ PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()
   return this->_response;
 }
 
-void PsychicHttpServerRequest::reply(int code)
+esp_err_t PsychicHttpServerRequest::reply(int code)
 {
   PsychicHttpServerResponse *response = this->beginResponse();
 
   response->setCode(code);
   response->setContentType("text/plain");
   response->setContent(http_status_reason(code));
-  response->send();
+
+  return response->send();
 }
 
-void PsychicHttpServerRequest::reply(const char *content)
+esp_err_t PsychicHttpServerRequest::reply(const char *content)
 {
   PsychicHttpServerResponse *response = this->beginResponse();
 
   response->setCode(200);
   response->setContentType("text/plain");
   response->setContent(content);
-  response->send();
+
+  return response->send();
 }
 
-void PsychicHttpServerRequest::reply(int code, const char *contentType, const char *content)
+esp_err_t PsychicHttpServerRequest::reply(int code, const char *contentType, const char *content)
 {
   PsychicHttpServerResponse *response = this->beginResponse();
 
   response->setCode(code);
   response->setContentType(contentType);
   response->setContent(content);
-  response->send();
+
+  return response->send();
 }
 
 /*************************************/
@@ -917,7 +933,7 @@ size_t PsychicHttpServerResponse::getContentLength()
   return this->_contentLength;
 }
 
-bool PsychicHttpServerResponse::send()
+esp_err_t PsychicHttpServerResponse::send()
 {
   //get our headers out of the way first
   for (HTTPHeader header : this->headers)
@@ -935,12 +951,9 @@ bool PsychicHttpServerResponse::send()
   this->headers.clear();
 
   if (err != ESP_OK)
-  {
     ESP_LOGE(PH_TAG, "Send response failed (%s)", esp_err_to_name(err));
-    return false;
-  }
-  else
-    return true;
+
+  return err;
 }
 
 /*************************************/

@@ -76,7 +76,6 @@ class PsychicHttpServerRequest {
     String contentType();
     size_t contentLength();
     String body();
-    void redirect(const char *url);
 
     String queryString();
     bool hasParam(const char *key);
@@ -86,13 +85,14 @@ class PsychicHttpServerRequest {
     String _extractParam(String& authReq, const String& param, const char delimit);
     String _getRandomHexString();
     bool authenticate(const char * username, const char * password);
-    void requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg);
+    esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg);
 
     PsychicHttpServerResponse *beginResponse();
 
-    void reply(int code);
-    void reply(const char *content);
-    void reply(int code, const char *contentType, const char *content="");
+    esp_err_t redirect(const char *url);
+    esp_err_t reply(int code);
+    esp_err_t reply(const char *content);
+    esp_err_t reply(int code, const char *contentType, const char *content="");
 };
 
 class PsychicHttpServerResponse
@@ -104,7 +104,6 @@ class PsychicHttpServerResponse
     const char * body;
 
     std::list<HTTPHeader> headers;
-    std::list<char *> cookies;
 
   public:
     PsychicHttpServerResponse(httpd_req_t *request);
@@ -126,7 +125,7 @@ class PsychicHttpServerResponse
     const char * getContent();
     size_t getContentLength();
 
-    bool send();
+    esp_err_t send();
 };
 
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
@@ -160,7 +159,6 @@ class PsychicHttpServerEndpoint
     PsychicHttpServerEndpoint *onFrame(PsychicHttpWebSocketFrameHandler handler);
 
     static esp_err_t requestHandler(httpd_req_t *req);
-    static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
     static esp_err_t websocketHandler(httpd_req_t *req);
 };
 
@@ -194,6 +192,8 @@ class PsychicHttpServer
     httpd_handle_t server;
     bool use_ssl = false;
 
+    std::list<PsychicHttpServerEndpoint *> endpoints;
+
   public:
     PsychicHttpServer();
     ~PsychicHttpServer();
@@ -221,9 +221,12 @@ class PsychicHttpServer
     PsychicHttpServerEndpoint *on(const char* uri, http_method method);
     PsychicHttpServerEndpoint *on(const char* uri, PsychicHttpRequestHandler onRequest);
     PsychicHttpServerEndpoint *on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest);
-    void onNotFound(PsychicHttpRequestHandler fn);
 
     PsychicHttpServerEndpoint *websocket(const char* uri);
+
+    void onNotFound(PsychicHttpRequestHandler fn);
+    static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
+    static esp_err_t defaultNotFoundHandler(PsychicHttpServerRequest *request);
 
     void onOpen(PsychicHttpOpenHandler handler);
     void onClose(PsychicHttpCloseHandler handler);
