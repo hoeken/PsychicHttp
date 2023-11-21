@@ -142,8 +142,6 @@ void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
         // resp_arg->fd = sock;
         // resp_arg->ws_pkt = ws_pkt;
 
-        //TRACE();
-
         httpd_ws_send_data(this->server, sock, ws_pkt);
         //httpd_ws_send_frame_async(this->server, sock, ws_pkt);
 
@@ -240,8 +238,6 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
 
 esp_err_t PsychicHttpServerEndpoint::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
 {
-  TRACE();
-
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicHttpServerRequest* request = new PsychicHttpServerRequest(server, req);
   esp_err_t result = server->defaultEndpoint.request(request);
@@ -252,8 +248,6 @@ esp_err_t PsychicHttpServerEndpoint::notFoundHandler(httpd_req_t *req, httpd_err
 
 void PsychicHttpServerEndpoint::closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
-  TRACE();
-
   // PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
   // PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self->server, req);
   // esp_err_t err = self->request(request);
@@ -479,6 +473,35 @@ void PsychicHttpServerRequest::redirect(const char *url)
   this->send(response);
 }
 
+
+bool PsychicHttpServerRequest::hasCookie(const char *key)
+{
+  char cookie[MAX_COOKIE_SIZE];
+  size_t cookieSize = MAX_COOKIE_SIZE;
+  esp_err_t err = httpd_req_get_cookie_val(this->_req, key, cookie, &cookieSize);
+
+  //did we get anything?
+  if (err == ESP_OK)
+    return true;
+  else if (err == ESP_ERR_HTTPD_RESULT_TRUNC)
+    Serial.printf("ERROR: cookie too large (%d bytes).\n", cookieSize);
+
+  return false;
+}
+
+String PsychicHttpServerRequest::getCookie(const char *key)
+{
+  char cookie[MAX_COOKIE_SIZE];
+  size_t cookieSize = MAX_COOKIE_SIZE;
+  esp_err_t err = httpd_req_get_cookie_val(this->_req, key, cookie, &cookieSize);
+
+  //did we get anything?
+  if (err == ESP_OK)
+    return String(cookie);
+  else
+    return "";
+}
+
 bool PsychicHttpServerRequest::hasParam(const char *key)
 {
   String query = this->queryString();
@@ -573,7 +596,6 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
       authReq = authReq.substring(7);
       String _username = _extractParam(authReq,F("username=\""),'\"');
       if(!_username.length() || _username != String(username)) {
-        TRACE();
         authReq = "";
         return false;
       }
@@ -687,6 +709,9 @@ PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()
 void PsychicHttpServerRequest::send(PsychicHttpServerResponse *response)
 {
   httpd_resp_send(this->_req, response->getContent(), response->getContentLength());
+
+  //free() the cookie memory.
+  response->freeCookies();
 }
 
 void PsychicHttpServerRequest::send(int code)
@@ -740,6 +765,34 @@ PsychicHttpServerResponse::~PsychicHttpServerResponse()
 void PsychicHttpServerResponse::addHeader(const char *name, const char *value)
 {
   httpd_resp_set_hdr(this->_req, name, value);
+}
+
+//WARNING: you need to call free() on the returned string pointer!!!
+char * PsychicHttpServerResponse::setCookie(const char *name, const char *value, unsigned long max_age)
+{
+  String output;
+  String v = urlEncode(value);
+  //String v = String(value);
+  output = String(name) + "=" + v;
+  output += "; SameSite=Lax";
+  output += "; Max-Age=" + String(max_age);
+
+  //make our string pointer and save it.
+  //unfortunately, esp-idf http doesnt copy our strings
+  char * out = (char *)malloc(output.length()+1);
+  strlcpy(out, output.c_str(), output.length()+1);
+  this->cookies.push_back(out);
+
+  this->addHeader("Set-Cookie", out);
+
+  return out;
+}
+
+//free all our cookie pointers since we have to keep them around.
+void PsychicHttpServerResponse::freeCookies()
+{
+  for (char * cookie : this->cookies)
+		free(cookie);
 }
 
 void PsychicHttpServerResponse::setCode(int code)

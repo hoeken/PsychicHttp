@@ -7,21 +7,17 @@
 #include <http_status.h>
 #include <string>
 #include <map>
+#include <list>
 #include <libb64/cencode.h>
 #include "esp_random.h"
 #include "MD5Builder.h"
+#include <UrlEncode.h>
 
 typedef std::map<String, String> SessionData;
-//typedef std::map<std::string, std::string> SessionData;
 
 enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
 
-struct HTTPAuthDigestData {
-  String realm;
-  String nonce;
-  String opaque;
-};
-
+#define MAX_COOKIE_SIZE 256
 #define TAG "PsychicHttp"
 
 class PsychicHttpServer;
@@ -41,10 +37,6 @@ class PsychicHttpServerRequest {
 
     SessionData *_session;
 
-    // String _snonce;  // Store noance and opaque for future comparison
-    // String _sopaque;
-    // String _srealm;  // Store the Auth realm between Calls
-
     void loadBody();
 
   public:
@@ -58,6 +50,9 @@ class PsychicHttpServerRequest {
     bool hasSessionKey(String key);
     String getSessionKey(String key);
     void setSessionKey(String key, String value);
+
+    bool hasCookie(const char * key);
+    String getCookie(const char * key);
 
     http_method method();
     String methodStr();
@@ -74,7 +69,6 @@ class PsychicHttpServerRequest {
 
     bool hasParam(const char *key);
     esp_err_t getParam(const char *name, char *value);
-
     String getParam(const char *name);
 
     String _extractParam(String& authReq, const String& param, const char delimit);
@@ -99,6 +93,8 @@ class PsychicHttpServerResponse
     char _status[60];
     const char * body;
 
+    std::list<char *> cookies;
+
   public:
     PsychicHttpServerResponse(httpd_req_t *request);
     virtual ~PsychicHttpServerResponse();
@@ -111,6 +107,8 @@ class PsychicHttpServerResponse
     }
 
     void addHeader(const char *name, const char *value);
+    char * setCookie(const char * key, const char * value, unsigned long max_age = 60*60*24*30);
+    void freeCookies();
 
     void setContent(const char *content);
     void setContent(const uint8_t *content, size_t len);
