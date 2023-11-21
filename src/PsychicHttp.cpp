@@ -105,9 +105,9 @@ void PsychicHttpServer::listen(uint16_t port, const char *cert, const char *priv
 
   this->ssl_config.port_secure = port;
   this->ssl_config.cacert_pem = (uint8_t *)cert;
-  this->ssl_config.cacert_len = strlen(cert);
+  this->ssl_config.cacert_len = strlen(cert)+1;
   this->ssl_config.prvtkey_pem = (uint8_t *)private_key;
-  this->ssl_config.prvtkey_len = strlen(private_key);
+  this->ssl_config.prvtkey_len = strlen(private_key)+1;
 }
 
 bool PsychicHttpServer::start()
