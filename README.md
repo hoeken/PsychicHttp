@@ -12,9 +12,9 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
     * key/value SessionData
     * authentication (basic and digest mode)
 * Websocket support with onConnect, onMessage, and onClose callbacks
-* HTTPS / SSL support
-* Static fileserving (SPIFFS, LittleFS, etc.)
-* File uploads 
+* HTTPS / SSL support (WIP)
+* Static fileserving (SPIFFS, LittleFS, etc.) (WIP)
+* File uploads (WIP)
 
 # TODO:
 
