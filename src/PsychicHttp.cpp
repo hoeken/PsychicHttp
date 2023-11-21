@@ -44,51 +44,6 @@ void PsychicHttpServer::destroy(void *ctx)
   delete temp;
 }
 
-//TODO: move to keep_alive.cpp
-#ifdef ENABLE_KEEPALIVE
-  struct async_resp_arg {
-    httpd_handle_t hd;
-    int fd;
-  };
-
-  static void send_ping(void *arg)
-  {
-      TRACE();
-
-      struct async_resp_arg *resp_arg = (async_resp_arg *)arg;
-      httpd_handle_t hd = resp_arg->hd;
-      int fd = resp_arg->fd;
-      httpd_ws_frame_t ws_pkt;
-      memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-      ws_pkt.payload = NULL;
-      ws_pkt.len = 0;
-      ws_pkt.type = HTTPD_WS_TYPE_PING;
-
-      httpd_ws_send_frame_async(hd, fd, &ws_pkt);
-      free(resp_arg);
-  }
-
-  bool client_not_alive_cb(wss_keep_alive_t h, int fd)
-  {
-    ESP_LOGE(PH_TAG, "Client not alive, closing fd %d", fd);
-    httpd_sess_trigger_close(wss_keep_alive_get_user_ctx(h), fd);
-    return true;
-  }
-
-  bool check_client_alive_cb(wss_keep_alive_t h, int fd)
-  {
-    ESP_LOGD(PH_TAG, "Checking if client (fd=%d) is alive", fd);
-    struct async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
-    resp_arg->hd = wss_keep_alive_get_user_ctx(h);
-    resp_arg->fd = fd;
-
-    if (httpd_queue_work(resp_arg->hd, send_ping, resp_arg) == ESP_OK) {
-      return true;
-    }
-    return false;
-  }
-#endif
-
 void PsychicHttpServer::listen(uint16_t port)
 {
   this->use_ssl = false;
@@ -358,9 +313,8 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onFrame(PsychicHttpWebSoc
 esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
 {
   PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
-  PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self->server, req);
-  esp_err_t err = self->request(request);
-  delete request;
+  PsychicHttpServerRequest request(self->server, req);
+  esp_err_t err = self->request(&request);
 
   return err;
 }
@@ -369,9 +323,8 @@ esp_err_t PsychicHttpServerEndpoint::notFoundHandler(httpd_req_t *req, httpd_err
 {
   #ifndef ENABLE_KEEPALIVE
     PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
-    PsychicHttpServerRequest* request = new PsychicHttpServerRequest(server, req);
-    esp_err_t result = server->defaultEndpoint.request(request);
-    delete request;
+    PsychicHttpServerRequest request(server, req);
+    esp_err_t result = server->defaultEndpoint.request(&request);
 
     return result;
   #else
@@ -494,6 +447,8 @@ PsychicHttpServerRequest::~PsychicHttpServerRequest()
     delete _response;
     _response = NULL;
   }
+
+  delete this->_session;
 }
 
 void PsychicHttpServerRequest::freeSession(void *ctx)
@@ -610,11 +565,9 @@ String PsychicHttpServerRequest::body()
 void PsychicHttpServerRequest::redirect(const char *url)
 {
   PsychicHttpServerResponse *response = this->beginResponse();
-
   response->setCode(301);
   response->addHeader("Location", url);
-  
-  this->send(response);
+  response->send();
 }
 
 
@@ -842,55 +795,53 @@ void PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, const 
     response->addHeader("WWW-Authenticate", authStr.c_str());
   }
 
-  this->send(401, "text/html", authFailMsg.c_str());
+  response->setCode(401);
+  response->setContentType("text/html");
+  response->setContent(authFailMsg.c_str());
+  response->send();
 }
 
 PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()
 {
-  return new PsychicHttpServerResponse(this->_req);
+  //we shouldn't need 2, but be safe.
+  if (this->_response == NULL)
+    delete(this->_response);
+ 
+  //response is garbage collected in destructor
+  this->_response = new PsychicHttpServerResponse(this->_req);
+
+  return this->_response;
 }
 
-void PsychicHttpServerRequest::send(PsychicHttpServerResponse *response)
-{
-  httpd_resp_send(this->_req, response->getContent(), response->getContentLength());
-
-  //free() the cookie memory.
-  response->freeCookies();
-}
-
-void PsychicHttpServerRequest::send(int code)
+void PsychicHttpServerRequest::reply(int code)
 {
   PsychicHttpServerResponse *response = this->beginResponse();
 
   response->setCode(code);
   response->setContentType("text/plain");
   response->setContent(http_status_reason(code));
-  
-  this->send(response);
+  response->send();
 }
 
-void PsychicHttpServerRequest::send(const char *content)
+void PsychicHttpServerRequest::reply(const char *content)
 {
   PsychicHttpServerResponse *response = this->beginResponse();
 
   response->setCode(200);
   response->setContentType("text/plain");
   response->setContent(content);
-  
-  this->send(response);
+  response->send();
 }
 
-void PsychicHttpServerRequest::send(int code, const char *contentType, const char *content)
+void PsychicHttpServerRequest::reply(int code, const char *contentType, const char *content)
 {
   PsychicHttpServerResponse *response = this->beginResponse();
 
   response->setCode(code);
   response->setContentType(contentType);
   response->setContent(content);
-  
-  this->send(response);
+  response->send();
 }
-
 
 /*************************************/
 /*  PsychicHttpServerResponse        */
@@ -906,37 +857,28 @@ PsychicHttpServerResponse::~PsychicHttpServerResponse()
 {
 }
 
-void PsychicHttpServerResponse::addHeader(const char *name, const char *value)
+void PsychicHttpServerResponse::addHeader(const char *field, const char *value)
 {
-  httpd_resp_set_hdr(this->_req, name, value);
+  HTTPHeader header;
+  header.field =(char *)malloc(strlen(field)+1);
+  header.value = (char *)malloc(strlen(value)+1);
+
+  strlcpy(header.field, field, strlen(field)+1);
+  strlcpy(header.value, value, strlen(value)+1);
+
+  this->headers.push_back(header);
 }
 
 //WARNING: you need to call free() on the returned string pointer!!!
-char * PsychicHttpServerResponse::setCookie(const char *name, const char *value, unsigned long max_age)
+void PsychicHttpServerResponse::setCookie(const char *name, const char *value, unsigned long max_age)
 {
   String output;
   String v = urlEncode(value);
-  //String v = String(value);
   output = String(name) + "=" + v;
   output += "; SameSite=Lax";
   output += "; Max-Age=" + String(max_age);
 
-  //make our string pointer and save it.
-  //unfortunately, esp-idf http doesnt copy our strings
-  char * out = (char *)malloc(output.length()+1);
-  strlcpy(out, output.c_str(), output.length()+1);
-  this->cookies.push_back(out);
-
-  this->addHeader("Set-Cookie", out);
-
-  return out;
-}
-
-//free all our cookie pointers since we have to keep them around.
-void PsychicHttpServerResponse::freeCookies()
-{
-  for (char * cookie : this->cookies)
-		free(cookie);
+  this->addHeader("Set-Cookie", output.c_str());
 }
 
 void PsychicHttpServerResponse::setCode(int code)
@@ -973,6 +915,32 @@ const char * PsychicHttpServerResponse::getContent()
 size_t PsychicHttpServerResponse::getContentLength()
 {
   return this->_contentLength;
+}
+
+bool PsychicHttpServerResponse::send()
+{
+  //get our headers out of the way first
+  for (HTTPHeader header : this->headers)
+    httpd_resp_set_hdr(this->_req, header.field, header.value);
+
+  //now send it off
+  esp_err_t err = httpd_resp_send(this->_req, this->getContent(), this->getContentLength());
+
+  //clean up our header variables.  we have to do this since httpd_resp_send doesn't store copies
+  for (HTTPHeader header : this->headers)
+  {
+    free(header.field);
+    free(header.value);
+  }
+  this->headers.clear();
+
+  if (err != ESP_OK)
+  {
+    ESP_LOGE(PH_TAG, "Send response failed (%s)", esp_err_to_name(err));
+    return false;
+  }
+  else
+    return true;
 }
 
 /*************************************/

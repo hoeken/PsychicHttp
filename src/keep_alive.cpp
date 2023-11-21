@@ -7,12 +7,16 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
+#include "PsychicHttp.h"
+#include "keep_alive.h"
+
+#ifdef ENABLE_KEEPALIVE
+
 #include <esp_log.h>
 #include <esp_system.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
-#include "keep_alive.h"
 #include "esp_timer.h"
 
 typedef enum {
@@ -228,3 +232,42 @@ void* wss_keep_alive_get_user_ctx(wss_keep_alive_t h)
 {
     return h->user_ctx;
 }
+
+static void send_ping(void *arg)
+{
+    TRACE();
+
+    struct async_resp_arg *resp_arg = (async_resp_arg *)arg;
+    httpd_handle_t hd = resp_arg->hd;
+    int fd = resp_arg->fd;
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.payload = NULL;
+    ws_pkt.len = 0;
+    ws_pkt.type = HTTPD_WS_TYPE_PING;
+
+    httpd_ws_send_frame_async(hd, fd, &ws_pkt);
+    free(resp_arg);
+}
+
+bool client_not_alive_cb(wss_keep_alive_t h, int fd)
+{
+    ESP_LOGE(PH_TAG, "Client not alive, closing fd %d", fd);
+    httpd_sess_trigger_close(wss_keep_alive_get_user_ctx(h), fd);
+    return true;
+}
+
+bool check_client_alive_cb(wss_keep_alive_t h, int fd)
+{
+    ESP_LOGD(PH_TAG, "Checking if client (fd=%d) is alive", fd);
+    struct async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
+    resp_arg->hd = wss_keep_alive_get_user_ctx(h);
+    resp_arg->fd = fd;
+
+    if (httpd_queue_work(resp_arg->hd, send_ping, resp_arg) == ESP_OK) {
+        return true;
+    }
+    return false;
+}
+
+#endif

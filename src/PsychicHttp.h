@@ -21,6 +21,12 @@
 #include <keep_alive.h>
 
 typedef std::map<String, String> SessionData;
+
+struct HTTPHeader {
+  char * field;
+  char * value;
+};
+
 enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
 
 class PsychicHttpServer;
@@ -84,11 +90,9 @@ class PsychicHttpServerRequest {
 
     PsychicHttpServerResponse *beginResponse();
 
-    // Takes ownership of `response`, will delete when finished. Do not use `response` after calling
-    void send(PsychicHttpServerResponse *response);
-    void send(int code);
-    void send(const char *content);
-    void send(int code, const char *contentType, const char *content="");
+    void reply(int code);
+    void reply(const char *content);
+    void reply(int code, const char *contentType, const char *content="");
 };
 
 class PsychicHttpServerResponse
@@ -99,6 +103,7 @@ class PsychicHttpServerResponse
     char _status[60];
     const char * body;
 
+    std::list<HTTPHeader> headers;
     std::list<char *> cookies;
 
   public:
@@ -112,15 +117,16 @@ class PsychicHttpServerResponse
       _contentLength = contentLength;
     }
 
-    void addHeader(const char *name, const char *value);
-    char * setCookie(const char * key, const char * value, unsigned long max_age = 60*60*24*30);
-    void freeCookies();
+    void addHeader(const char *field, const char *value);
+    void setCookie(const char *key, const char *value, unsigned long max_age = 60*60*24*30);
 
     void setContent(const char *content);
     void setContent(const uint8_t *content, size_t len);
 
     const char * getContent();
     size_t getContentLength();
+
+    bool send();
 };
 
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
@@ -195,9 +201,11 @@ class PsychicHttpServer
     httpd_config_t config;
     httpd_ssl_config_t ssl_config;
 
-    wss_keep_alive_config_t keep_alive_config;
-    wss_keep_alive_t keep_alive;
-
+    #ifdef ENABLE_KEEPALIVE
+      wss_keep_alive_config_t keep_alive_config;
+      wss_keep_alive_t keep_alive;
+    #endif
+    
     PsychicHttpServerEndpoint defaultEndpoint;
     PsychicHttpOpenHandler openHandler;
     PsychicHttpCloseHandler closeHandler;

@@ -10,6 +10,8 @@
 #ifndef PsychicHttp_keep_alive_h
 #define PsychicHttp_keep_alive_h
 
+#ifdef ENABLE_KEEPALIVE
+
 #include "ArduinoTrace.h"
 
 #define KEEP_ALIVE_CONFIG_DEFAULT() \
@@ -20,6 +22,11 @@
     .keep_alive_period_ms = 5000,           \
     .not_alive_after_ms = 10000,            \
 }
+
+struct async_resp_arg {
+    httpd_handle_t hd;
+    int fd;
+};
 
 struct wss_keep_alive_storage;
 typedef struct wss_keep_alive_storage* wss_keep_alive_t;
@@ -99,4 +106,5 @@ void wss_keep_alive_set_user_ctx(wss_keep_alive_t h, void *ctx);
  */
 void* wss_keep_alive_get_user_ctx(wss_keep_alive_t h);
 
+#endif //ENABLE_KEEPALIVE
 #endif //PsychicHttp_keep_alive_h
