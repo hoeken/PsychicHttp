@@ -177,7 +177,7 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
   httpd_uri_t my_uri {
     .uri      = uri,
     .method   = method,
-    .handler  = handler->requestHandler,
+    .handler  = PsychicHttpServerEndpoint::requestHandler,
     .user_ctx = handler
   };
 
@@ -197,7 +197,7 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
   httpd_uri_t my_uri {
     .uri      = uri,
     .method   = HTTP_GET,
-    .handler  = handler->websocketHandler,
+    .handler  = PsychicHttpServerEndpoint::websocketHandler,
     .user_ctx = handler,
     #ifdef ENABLE_KEEPALIVE
       .handle_ws_control_frames = true,
@@ -235,18 +235,7 @@ void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
       {
         ESP_LOGI(TAG, "Active client (fd=%d) -> sending async message", sock);
 
-        // async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
-        // resp_arg->hd = this->server;
-        // resp_arg->fd = sock;
-        // resp_arg->ws_pkt = ws_pkt;
-
         httpd_ws_send_data(this->server, sock, ws_pkt);
-        //httpd_ws_send_frame_async(this->server, sock, ws_pkt);
-
-        // if (httpd_queue_work(resp_arg->hd, this->sendAsync, resp_arg) != ESP_OK) {
-        //   ESP_LOGE(TAG, "httpd_queue_work failed!");
-        //   break;
-        // }
       }
     }
   } else {
