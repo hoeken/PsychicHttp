@@ -10,14 +10,16 @@
 
 PsychicHttpServer::PsychicHttpServer()
 {
+  this->openHandler = NULL;
+  this->closeHandler = NULL;
   this->defaultEndpoint = PsychicHttpServerEndpoint(this, HTTP_GET);
 
   //for a regular server
   this->config = HTTPD_DEFAULT_CONFIG();
   this->config.max_uri_handlers = 8;
   this->config.stack_size = 10000;
-  this->config.open_fn = PsychicHttpServerEndpoint::openHandler;
-  this->config.close_fn = PsychicHttpServerEndpoint::closeHandler;
+  this->config.open_fn = PsychicHttpServer::openCallback;
+  this->config.close_fn = PsychicHttpServer::closeCallback;
 
   #ifdef ENABLE_KEEPALIVE
     this->config.global_user_ctx = keep_alive;
@@ -217,6 +219,55 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
     ESP_LOGE(PH_TAG, "Add 404 handler failed (%s)", esp_err_to_name(ret)); 
 }
 
+void PsychicHttpServer::onOpen(PsychicHttpOpenHandler handler) {
+  this->openHandler = handler;
+}
+
+esp_err_t PsychicHttpServer::openCallback(httpd_handle_t hd, int sockfd)
+{
+  ESP_LOGI(PH_TAG, "New client connected %d", sockfd);
+
+  if (httpd_ws_get_fd_info(hd, sockfd) == HTTPD_WS_CLIENT_WEBSOCKET)
+  {
+    ESP_LOGI(PH_TAG, "Websocket connected %d", sockfd);
+  }
+
+  //do we have a callback attached?
+  PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
+  if (server->openHandler != NULL)
+    server->openHandler(hd, sockfd);
+
+  #ifdef ENABLE_KEEPALIVE
+    wss_keep_alive_t h = (wss_keep_alive_t)httpd_get_global_user_ctx(hd);
+    return wss_keep_alive_add_client(h, sockfd);
+  #else
+    return ESP_OK;
+  #endif
+}
+
+void PsychicHttpServer::onClose(PsychicHttpOpenHandler handler) {
+  this->closeHandler = handler;
+}
+
+void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
+{
+  ESP_LOGI(PH_TAG, "Client disconnected %d", sockfd);
+
+  if (httpd_ws_get_fd_info(hd, sockfd) == HTTPD_WS_CLIENT_WEBSOCKET)
+    ESP_LOGI(PH_TAG, "Websocket disconnected %d", sockfd);
+
+  //do we have a callback attached?
+  PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
+  if (server->closeHandler != NULL)
+    server->closeHandler(hd, sockfd);
+
+  #ifdef ENABLE_KEEPALIVE
+    wss_keep_alive_t h = (wss_keep_alive_t)httpd_get_global_user_ctx(hd);
+    wss_keep_alive_remove_client(h, sockfd);
+    close(sockfd);
+  #endif
+}
+
 void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
 {
   size_t max_clients = this->config.max_open_sockets;
@@ -232,7 +283,9 @@ void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
       {
         ESP_LOGI(PH_TAG, "Active client (fd=%d) -> sending async message", sock);
 
-        httpd_ws_send_data(this->server, sock, ws_pkt);
+        esp_err_t ret = httpd_ws_send_data(this->server, sock, ws_pkt);
+        if (ret != ESP_OK)
+          ESP_LOGE(PH_TAG, "httpd_ws_send_data failed with %s", esp_err_to_name(ret));
       }
     }
   } else {
@@ -267,7 +320,6 @@ PsychicHttpServerEndpoint::PsychicHttpServerEndpoint() :
   method(HTTP_GET),
   request(NULL),
   //upload(NULL),
-  close(NULL),
   wsConnect(NULL),
   wsFrame(NULL)
 {
@@ -278,7 +330,6 @@ PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, 
   method(method),
   request(NULL),
   //upload(NULL),
-  close(NULL),
   wsConnect(NULL),
   wsFrame(NULL)
 {
@@ -301,12 +352,6 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onConnect(PsychicHttpWebS
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onFrame(PsychicHttpWebSocketFrameHandler handler) {
   this->wsFrame = handler;
-  return this;
-}
-
-PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onClose(PsychicHttpRequestHandler handler) {
-  ESP_LOGW(PH_TAG, "onClose not yet implemented");
-  this->close = handler;
   return this;
 }
 
@@ -333,16 +378,6 @@ esp_err_t PsychicHttpServerEndpoint::notFoundHandler(httpd_req_t *req, httpd_err
     return ESP_OK;
   #endif
 }
-
-// void PsychicHttpServerEndpoint::closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
-// {
-//   // PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
-//   // PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self->server, req);
-//   // esp_err_t err = self->request(request);
-//   // delete request;
-
-//   // return err;
-// }
 
 esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
 {
@@ -429,32 +464,6 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
   free(buf);
 
   return ret;
-}
-
-esp_err_t PsychicHttpServerEndpoint::openHandler(httpd_handle_t hd, int sockfd)
-{
-  ESP_LOGI(PH_TAG, "New client connected %d", sockfd);
-
-  #ifdef ENABLE_KEEPALIVE
-    wss_keep_alive_t h = (wss_keep_alive_t)httpd_get_global_user_ctx(hd);
-    return wss_keep_alive_add_client(h, sockfd);
-  #else
-    return ESP_OK;
-  #endif
-}
-
-void PsychicHttpServerEndpoint::closeHandler(httpd_handle_t hd, int sockfd)
-{
-  ESP_LOGI(PH_TAG, "Client disconnected %d", sockfd);
-
-  //TODO: maybe have the websocket close call happen through this.
-  PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
-
-  #ifdef ENABLE_KEEPALIVE
-    wss_keep_alive_t h = (wss_keep_alive_t)httpd_get_global_user_ctx(hd);
-    wss_keep_alive_remove_client(h, sockfd);
-    close(sockfd);
-  #endif
 }
 
 /*************************************/

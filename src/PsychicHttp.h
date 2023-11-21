@@ -127,6 +127,8 @@ typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpR
 //typedef std::function<size_t(PsychicHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpUploadHandler;
 typedef std::function<esp_err_t(PsychicHttpWebSocketConnection *connection)> PsychicHttpWebSocketConnectionHandler;
 typedef std::function<esp_err_t(PsychicHttpWebSocketConnection *connection, httpd_ws_frame *frame)> PsychicHttpWebSocketFrameHandler;
+typedef std::function<esp_err_t(httpd_handle_t hd, int sockfd)> PsychicHttpOpenHandler;
+typedef std::function<esp_err_t(httpd_handle_t hd, int sockfd)> PsychicHttpCloseHandler;
 
 class PsychicHttpServerEndpoint
 {
@@ -136,9 +138,9 @@ class PsychicHttpServerEndpoint
     PsychicHttpServer *server;
     std::string uri;
     http_method method;
+
     PsychicHttpRequestHandler request;
     //PsychicHttpUploadHandler upload;
-    PsychicHttpRequestHandler close;
     PsychicHttpWebSocketConnectionHandler wsConnect;
     PsychicHttpWebSocketFrameHandler wsFrame;
 
@@ -150,16 +152,10 @@ class PsychicHttpServerEndpoint
     // PsychicHttpServerEndpoint *onUpload(PsychicHttpUploadHandler handler);
     PsychicHttpServerEndpoint *onConnect(PsychicHttpWebSocketConnectionHandler handler);
     PsychicHttpServerEndpoint *onFrame(PsychicHttpWebSocketFrameHandler handler);
-    PsychicHttpServerEndpoint *onClose(PsychicHttpRequestHandler handler);
 
     static esp_err_t requestHandler(httpd_req_t *req);
     static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
-
     static esp_err_t websocketHandler(httpd_req_t *req);
-    static esp_err_t openHandler(httpd_handle_t hd, int sockfd);
-    static void closeHandler(httpd_handle_t hd, int sockfd);
-    //static void closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
-
 };
 
 class PsychicHttpWebSocketConnection : public PsychicHttpServerRequest
@@ -203,6 +199,8 @@ class PsychicHttpServer
     wss_keep_alive_t keep_alive;
 
     PsychicHttpServerEndpoint defaultEndpoint;
+    PsychicHttpOpenHandler openHandler;
+    PsychicHttpCloseHandler closeHandler;
 
     static void destroy(void *ctx);
 
@@ -218,6 +216,11 @@ class PsychicHttpServer
     void onNotFound(PsychicHttpRequestHandler fn);
 
     PsychicHttpServerEndpoint *websocket(const char* uri);
+
+    void onOpen(PsychicHttpOpenHandler handler);
+    void onClose(PsychicHttpCloseHandler handler);
+    static esp_err_t openCallback(httpd_handle_t hd, int sockfd);
+    static void closeCallback(httpd_handle_t hd, int sockfd);
 
     void sendAll(httpd_ws_frame_t * ws_pkt);
     void sendAll(httpd_ws_type_t op, const void *data, size_t len);
