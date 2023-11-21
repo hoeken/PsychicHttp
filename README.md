@@ -5,10 +5,9 @@ Info!
 # TODO:
 
 * get onClose working for websockets - need to update to Arduino core 3 / ESP-IDF v5.1
-* add cookies stuff
-* test SSL!
-
-# Long Term:
-
-* maybe add filesystem support?
-* copy other nice features from ESPAsyncServer?
+* get SSL working
+* add serveStatic
+* copy other nice features from ESPAsyncServer and Arduino WebServer
+    https://github.com/me-no-dev/ESPAsyncWebServer
+    https://github.com/khoih-prog/WiFiWebServer
+    https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer

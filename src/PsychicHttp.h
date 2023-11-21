@@ -54,9 +54,11 @@ class PsychicHttpServerRequest {
     bool hasCookie(const char * key);
     String getCookie(const char * key);
 
+    String version();
     http_method method();
     String methodStr();
     String uri();
+    String url();
     String queryString();
     String headers(const char *name);
     String header(const char *name);
