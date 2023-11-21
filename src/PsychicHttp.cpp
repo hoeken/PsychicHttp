@@ -4,8 +4,6 @@
 /*  PsychicHttpServer                */
 /*************************************/
 
-//#define ENABLE_KEEPALIVE 1
-
 #if !CONFIG_HTTPD_WS_SUPPORT
   #error This example cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
 #endif
@@ -16,7 +14,7 @@ PsychicHttpServer::PsychicHttpServer()
 
   //for a regular server
   this->config = HTTPD_DEFAULT_CONFIG();
-  this->config.max_uri_handlers = 10;
+  this->config.max_uri_handlers = 8;
   this->config.stack_size = 10000;
   this->config.open_fn = PsychicHttpServerEndpoint::openHandler;
   this->config.close_fn = PsychicHttpServerEndpoint::closeHandler;
@@ -44,8 +42,7 @@ void PsychicHttpServer::destroy(void *ctx)
   delete temp;
 }
 
-/* TEMPORARY!!!   */
-
+//TODO: move to keep_alive.cpp
 #ifdef ENABLE_KEEPALIVE
   struct async_resp_arg {
     httpd_handle_t hd;
@@ -71,16 +68,14 @@ void PsychicHttpServer::destroy(void *ctx)
 
   bool client_not_alive_cb(wss_keep_alive_t h, int fd)
   {
-    Serial.printf("Client not alive, closing fd %d\n", fd);
-    ESP_LOGE(TAG, "Client not alive, closing fd %d", fd);
+    ESP_LOGE(PH_TAG, "Client not alive, closing fd %d", fd);
     httpd_sess_trigger_close(wss_keep_alive_get_user_ctx(h), fd);
     return true;
   }
 
   bool check_client_alive_cb(wss_keep_alive_t h, int fd)
   {
-    Serial.printf("Checking if client (fd=%d) is alive\n", fd);
-    ESP_LOGD(TAG, "Checking if client (fd=%d) is alive", fd);
+    ESP_LOGD(PH_TAG, "Checking if client (fd=%d) is alive", fd);
     struct async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
     resp_arg->hd = wss_keep_alive_get_user_ctx(h);
     resp_arg->fd = fd;
@@ -91,7 +86,6 @@ void PsychicHttpServer::destroy(void *ctx)
     return false;
   }
 #endif
-/* TEMPORARY END */
 
 void PsychicHttpServer::listen(uint16_t port)
 {
@@ -182,9 +176,9 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
   };
 
   // Register handler
-  if (httpd_register_uri_handler(this->server, &my_uri) != ESP_OK) {
-    Serial.println("PsychicHttp add endpoint failed");
-  }
+  esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
+  if (ret != ESP_OK)
+    ESP_LOGE(PH_TAG, "Add request handler failed (%s)", esp_err_to_name(ret));
 
   return handler;
 }
@@ -199,16 +193,16 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
     .method   = HTTP_GET,
     .handler  = PsychicHttpServerEndpoint::websocketHandler,
     .user_ctx = handler,
+    .is_websocket = true,
     #ifdef ENABLE_KEEPALIVE
       .handle_ws_control_frames = true,
     #endif
-    .is_websocket = true,
   };
 
   // Register handler
-  if (httpd_register_uri_handler(this->server, &my_uri) != ESP_OK) {
-    Serial.println("PsychicHttp add websocket failed");
-  }
+  esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
+  if (ret != ESP_OK)
+    ESP_LOGE(PH_TAG, "Add websocket handler failed (%s)", esp_err_to_name(ret));
 
   return handler;
 }
@@ -217,7 +211,10 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 {
   this->defaultEndpoint.onRequest(fn);
 
-  httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, this->defaultEndpoint.notFoundHandler);
+  // Register handler
+  esp_err_t ret = httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, this->defaultEndpoint.notFoundHandler);
+  if (ret != ESP_OK)
+    ESP_LOGE(PH_TAG, "Add 404 handler failed (%s)", esp_err_to_name(ret)); 
 }
 
 void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
@@ -233,13 +230,13 @@ void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
       int sock = client_fds[i];
       if (httpd_ws_get_fd_info(this->server, sock) == HTTPD_WS_CLIENT_WEBSOCKET)
       {
-        ESP_LOGI(TAG, "Active client (fd=%d) -> sending async message", sock);
+        ESP_LOGI(PH_TAG, "Active client (fd=%d) -> sending async message", sock);
 
         httpd_ws_send_data(this->server, sock, ws_pkt);
       }
     }
   } else {
-      ESP_LOGE(TAG, "httpd_get_client_list failed!");
+      ESP_LOGE(PH_TAG, "httpd_get_client_list failed!");
       return;
   }
 }
@@ -308,7 +305,7 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onFrame(PsychicHttpWebSoc
 }
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onClose(PsychicHttpRequestHandler handler) {
-  Serial.println("WARNING: onClose not yet implemented");
+  ESP_LOGW(PH_TAG, "onClose not yet implemented");
   this->close = handler;
   return this;
 }
@@ -352,88 +349,93 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
   PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
   PsychicHttpWebSocketConnection connection(self->server, req);
 
-  // beginning of the ws URI handler
+  // beginning of the ws URI handler and our onConnect hook
   if (req->method == HTTP_GET) {
-
-      //connection hook?
-      if (self->wsConnect != NULL)
-        self->wsConnect(&connection);
-      return ESP_OK;
+    if (self->wsConnect != NULL)
+      self->wsConnect(&connection);
+    return ESP_OK;
   }
 
+  //init our memory for storing the packet
   httpd_ws_frame_t ws_pkt;
   memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
   ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-
   uint8_t *buf = NULL;
+
   /* Set max_len = 0 to get the frame len */
   esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
   if (ret != ESP_OK) {
-      ESP_LOGE(TAG, "httpd_ws_recv_frame failed to get frame len with %d", ret);
-      return ret;
+    ESP_LOGE(PH_TAG, "httpd_ws_recv_frame failed to get frame len with %s", esp_err_to_name(ret));
+    return ret;
   }
-  ESP_LOGI(TAG, "frame len is %d", ws_pkt.len);
+
+  //okay, now try to load the packet
+  ESP_LOGI(PH_TAG, "frame len is %d", ws_pkt.len);
   if (ws_pkt.len) {
     /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
     buf = (uint8_t*) calloc(1, ws_pkt.len + 1);
     if (buf == NULL) {
-      ESP_LOGE(TAG, "Failed to calloc memory for buf");
+      ESP_LOGE(PH_TAG, "Failed to calloc memory for buf");
       return ESP_ERR_NO_MEM;
     }
     ws_pkt.payload = buf;
     /* Set max_len = ws_pkt.len to get the frame payload */
     ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
     if (ret != ESP_OK) {
-      ESP_LOGE(TAG, "httpd_ws_recv_frame failed with %d", ret);
+      ESP_LOGE(PH_TAG, "httpd_ws_recv_frame failed with %s", esp_err_to_name(ret));
       free(buf);
       return ret;
     }
-    ESP_LOGI(TAG, "Got packet with message: %s", ws_pkt.payload);
+    ESP_LOGI(PH_TAG, "Got packet with message: %s", ws_pkt.payload);
   }
   
-  // If it was a PONG, update the keep-alive
-  if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
-    ESP_LOGD(TAG, "Received PONG message");
-    free(buf);
-    return wss_keep_alive_client_is_active((wss_keep_alive_t)httpd_get_global_user_ctx(req->handle),
-      httpd_req_to_sockfd(req));
-  }
-  else if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
+  // Text messages are our payload.
+  if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
   {
     if (self->wsFrame != NULL)
       ret = self->wsFrame(&connection, &ws_pkt);
-  } 
-  else if (ws_pkt.type == HTTPD_WS_TYPE_PING)
-  {
-    // Response PONG packet to peer
-    ESP_LOGI(TAG, "Got a WS PING frame, Replying PONG");
-    ws_pkt.type = HTTPD_WS_TYPE_PONG;
-    ret = httpd_ws_send_frame(req, &ws_pkt);
   }
-  else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
-  {
-    // Response CLOSE packet with no payload to peer
-    ws_pkt.len = 0;
-    ws_pkt.payload = NULL;
-    ret = httpd_ws_send_frame(req, &ws_pkt);
-  }
+  #ifdef ENABLE_KEEPALIVE
+    // If it was a PONG, update the keep-alive
+    else if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
+      ESP_LOGD(PH_TAG, "Received PONG message");
+      free(buf);
+      return wss_keep_alive_client_is_active((wss_keep_alive_t)httpd_get_global_user_ctx(req->handle),
+        httpd_req_to_sockfd(req));
+    }
+    else if (ws_pkt.type == HTTPD_WS_TYPE_PING)
+    {
+      // Response PONG packet to peer
+      ESP_LOGI(PH_TAG, "Got a WS PING frame, Replying PONG");
+      ws_pkt.type = HTTPD_WS_TYPE_PONG;
+      ret = httpd_ws_send_frame(req, &ws_pkt);
+    }
+    else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
+    {
+      // Response CLOSE packet with no payload to peer
+      ws_pkt.len = 0;
+      ws_pkt.payload = NULL;
+      ret = httpd_ws_send_frame(req, &ws_pkt);
+    }
+  #endif
 
-  if (ret != ESP_OK) {
-    ESP_LOGE(TAG, "httpd_ws_send_frame failed with %d", ret);
-  }
-  ESP_LOGI(TAG, "ws_handler: httpd_handle_t=%p, sockfd=%d, client_info:%d", req->handle,
+  //logging housekeeping
+  if (ret != ESP_OK)
+    ESP_LOGE(PH_TAG, "httpd_ws_send_frame failed with %s", esp_err_to_name(ret));
+  ESP_LOGI(PH_TAG, "ws_handler: httpd_handle_t=%p, sockfd=%d, client_info:%d", req->handle,
     httpd_req_to_sockfd(req), httpd_ws_get_fd_info(req->handle, httpd_req_to_sockfd(req)));
 
+  //dont forget to release our buffer memory
   free(buf);
+
   return ret;
 }
 
 esp_err_t PsychicHttpServerEndpoint::openHandler(httpd_handle_t hd, int sockfd)
 {
-  Serial.printf("New client connected %d\n", sockfd);
+  ESP_LOGI(PH_TAG, "New client connected %d", sockfd);
 
   #ifdef ENABLE_KEEPALIVE
-    ESP_LOGI(TAG, "New client connected %d", sockfd);
     wss_keep_alive_t h = (wss_keep_alive_t)httpd_get_global_user_ctx(hd);
     return wss_keep_alive_add_client(h, sockfd);
   #else
@@ -443,13 +445,12 @@ esp_err_t PsychicHttpServerEndpoint::openHandler(httpd_handle_t hd, int sockfd)
 
 void PsychicHttpServerEndpoint::closeHandler(httpd_handle_t hd, int sockfd)
 {
-  Serial.printf("Client disconnected %d\n", sockfd);
+  ESP_LOGI(PH_TAG, "Client disconnected %d", sockfd);
 
   //TODO: maybe have the websocket close call happen through this.
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
 
   #ifdef ENABLE_KEEPALIVE
-    ESP_LOGI(TAG, "Client disconnected %d", sockfd);
     wss_keep_alive_t h = (wss_keep_alive_t)httpd_get_global_user_ctx(hd);
     wss_keep_alive_remove_client(h, sockfd);
     close(sockfd);
@@ -618,7 +619,7 @@ bool PsychicHttpServerRequest::hasCookie(const char *key)
   if (err == ESP_OK)
     return true;
   else if (err == ESP_ERR_HTTPD_RESULT_TRUNC)
-    Serial.printf("ERROR: cookie too large (%d bytes).\n", cookieSize);
+    ESP_LOGE(PH_TAG, "cookie too large (%d bytes).\n", cookieSize);
 
   return false;
 }
@@ -756,7 +757,7 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
         _cnonce = _extractParam(authReq, F("cnonce=\""),'\"');
       }
       String _H1 = md5str(String(username) + ':' + _realm + ':' + String(password));
-      Serial.printf("Hash of user:realm:pass=%s\n", _H1);
+      ESP_LOGD(PH_TAG, "Hash of user:realm:pass=%s", _H1);
       String _H2 = "";
       if(_method == HTTP_GET){
           _H2 = md5str(String(F("GET:")) + _uri);
@@ -769,14 +770,14 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
       }else{
           _H2 = md5str(String(F("GET:")) + _uri);
       }
-      Serial.printf("Hash of GET:uri=%s\n", _H2);
+      ESP_LOGD(PH_TAG, "Hash of GET:uri=%s", _H2);
       String _responsecheck = "";
       if(authReq.indexOf("qop=auth") != -1 || authReq.indexOf("qop=\"auth\"") != -1) {
           _responsecheck = md5str(_H1 + ':' + _nonce + ':' + _nc + ':' + _cnonce + F(":auth:") + _H2);
       } else {
           _responsecheck = md5str(_H1 + ':' + _nonce + ':' + _H2);
       }
-      Serial.printf("The Proper response=%s\n", _responsecheck);
+      ESP_LOGD(PH_TAG, "The Proper response=%s", _responsecheck);
       if(_resp == _responsecheck){
         authReq = "";
         return true;

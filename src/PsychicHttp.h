@@ -1,6 +1,11 @@
 #ifndef PsychicHttp_h
 #define PsychicHttp_h
 
+#define CORE_DEBUG_LEVEL ARDUHAL_LOG_LEVEL_WARN
+#define MAX_COOKIE_SIZE 256
+#define PH_TAG "http"
+//#define ENABLE_KEEPALIVE 1
+
 #include <ArduinoTrace.h>
 #include <esp_event.h>
 //#include <esp_http_server.h>
@@ -16,11 +21,7 @@
 #include <keep_alive.h>
 
 typedef std::map<String, String> SessionData;
-
 enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
-
-#define MAX_COOKIE_SIZE 256
-#define TAG "PsychicHttp"
 
 class PsychicHttpServer;
 class PsychicHttpServerRequest;
@@ -48,6 +49,10 @@ class PsychicHttpServerRequest {
     virtual bool isUpload() { return false; }
     virtual bool isWebSocket() { return false; }
 
+    String headers(const char *name);
+    String header(const char *name);
+    bool hasHeader(const char *name);
+
     static void freeSession(void *ctx);
     bool hasSessionKey(String key);
     String getSessionKey(String key);
@@ -61,16 +66,13 @@ class PsychicHttpServerRequest {
     String methodStr();
     String uri();
     String url();
-    String queryString();
-    String headers(const char *name);
-    String header(const char *name);
-    bool hasHeader(const char *name);
     String host();
     String contentType();
     size_t contentLength();
     String body();
     void redirect(const char *url);
 
+    String queryString();
     bool hasParam(const char *key);
     esp_err_t getParam(const char *name, char *value);
     String getParam(const char *name);
@@ -178,8 +180,6 @@ class PsychicHttpWebSocketConnection : public PsychicHttpServerRequest
     esp_err_t send(httpd_ws_frame_t * ws_pkt);
     esp_err_t send(httpd_ws_type_t op, const void *data, size_t len);
     esp_err_t send(const char *buf);
-
-    //static void ws_async_send(void *arg);
 
     int getConnection() {
       return this->_fd;
