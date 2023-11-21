@@ -436,6 +436,8 @@ PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, ht
     this->_session = new SessionData();
     req->sess_ctx = this->_session;
   }
+
+  //callback for freeing the session later
   req->free_ctx = this->freeSession;  
 
   this->loadBody();
@@ -443,12 +445,10 @@ PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, ht
 
 PsychicHttpServerRequest::~PsychicHttpServerRequest()
 {
-  if(_response) {
-    delete _response;
-    _response = NULL;
+  if(this->_response) {
+    delete this->_response;
+    this->_response = NULL;
   }
-
-  delete this->_session;
 }
 
 void PsychicHttpServerRequest::freeSession(void *ctx)
