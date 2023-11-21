@@ -124,7 +124,6 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 
 void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
 {
-  //DUMP((char *)ws_pkt->payload);
   size_t max_clients = this->config.max_open_sockets;
   size_t clients = max_clients;
   int    client_fds[max_clients];
@@ -231,8 +230,6 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onClose(PsychicHttpReques
 
 esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
 {
-  DUMP(req->uri);
-
   PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
   PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self->server, req);
   esp_err_t err = self->request(request);
@@ -309,12 +306,6 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
     ESP_LOGI(TAG, "Got packet with message: %s", ws_pkt.payload);
   }
   
-  // DUMP(ws_pkt.final);
-  // DUMP(ws_pkt.fragmented);
-  // DUMP(ws_pkt.len);
-  // DUMP(ws_pkt.type);
-  // DUMP((char *)ws_pkt.payload);
-
   // If it was a PONG, update the keep-alive
   // if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
   //     ESP_LOGD(TAG, "Received PONG message");
@@ -346,6 +337,16 @@ PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, ht
   _req(req),
   _response(NULL)
 {
+  //handle our session data
+  if (req->sess_ctx != NULL)
+    this->_session = (SessionData *)req->sess_ctx;
+  else
+  {
+    this->_session = new SessionData();
+    req->sess_ctx = this->_session;
+  }
+  req->free_ctx = this->freeSession;  
+
   this->loadBody();
 }
 
@@ -354,6 +355,15 @@ PsychicHttpServerRequest::~PsychicHttpServerRequest()
   if(_response) {
     delete _response;
     _response = NULL;
+  }
+}
+
+void PsychicHttpServerRequest::freeSession(void *ctx)
+{
+  if (ctx != NULL)
+  {
+    SessionData *session = (SessionData*)ctx;
+    delete session;
   }
 }
 
@@ -437,6 +447,11 @@ String PsychicHttpServerRequest::header(const char *name)
     return String();
 }
 
+bool PsychicHttpServerRequest::hasHeader(const char *name)
+{
+  return httpd_req_get_hdr_value_len(this->_req, name) > 0;
+}
+
 String PsychicHttpServerRequest::host() {
   return String(this->header("Host"));
 }
@@ -496,40 +511,172 @@ String PsychicHttpServerRequest::getParam(const char *key)
   return ret;
 }
 
-//TODO: implement
+bool PsychicHttpServerRequest::hasSessionKey(String key)
+{
+  return this->_session->find(key) != this->_session->end();
+}
+
+String PsychicHttpServerRequest::getSessionKey(String key)
+{
+  auto it = this->_session->find(key);
+  if (it != this->_session->end())
+    return it->second;
+  else
+    return "";
+}
+
+void PsychicHttpServerRequest::setSessionKey(String key, String value)
+{
+  this->_session->insert(std::pair<String, String>(key, value));
+}
+
+static String md5str(String &in){
+  MD5Builder md5 = MD5Builder();
+  md5.begin();
+  md5.add(in);
+  md5.calculate();
+  return md5.toString();
+}
+
 bool PsychicHttpServerRequest::authenticate(const char * username, const char * password)
 {
-  // DBUGVAR(username);
-  // DBUGVAR(password);
+  if(hasHeader("Authorization"))
+  {
+    String authReq = header("Authorization");
+    if(authReq.startsWith("Basic")){
+      authReq = authReq.substring(6);
+      authReq.trim();
+      char toencodeLen = strlen(username)+strlen(password)+1;
+      char *toencode = new char[toencodeLen + 1];
+      if(toencode == NULL){
+        authReq = "";
+        return false;
+      }
+      char *encoded = new char[base64_encode_expected_len(toencodeLen)+1];
+      if(encoded == NULL){
+        authReq = "";
+        delete[] toencode;
+        return false;
+      }
+      sprintf(toencode, "%s:%s", username, password);
+      if(base64_encode_chars(toencode, toencodeLen, encoded) > 0 && authReq.equalsConstantTime(encoded)) {
+        authReq = "";
+        delete[] toencode;
+        delete[] encoded;
+        return true;
+      }
+      delete[] toencode;
+      delete[] encoded;
+    }
+    else if(authReq.startsWith(F("Digest")))
+    {
+      authReq = authReq.substring(7);
+      String _username = _extractParam(authReq,F("username=\""),'\"');
+      if(!_username.length() || _username != String(username)) {
+        TRACE();
+        authReq = "";
+        return false;
+      }
+      // extracting required parameters for RFC 2069 simpler Digest
+      String _realm    = _extractParam(authReq, F("realm=\""),'\"');
+      String _nonce    = _extractParam(authReq, F("nonce=\""),'\"');
+      String _uri      = _extractParam(authReq, F("uri=\""),'\"');
+      String _resp = _extractParam(authReq, F("response=\""),'\"');
+      String _opaque   = _extractParam(authReq, F("opaque=\""),'\"');
 
-  // char user_buf[64];
-  // char pass_buf[64];
-
-  // mg_http_creds(_msg, user_buf, sizeof(user_buf), pass_buf, sizeof(pass_buf));
-
-  // DBUGVAR(user_buf);
-  // DBUGVAR(pass_buf);
-
-  // if(0 == strcmp(username, user_buf) && 0 == strcmp(password, pass_buf))
-  // {
-  //   return true;
-  // }
-
+      if((!_realm.length()) || (!_nonce.length()) || (!_uri.length()) || (!_resp.length()) || (!_opaque.length())) {
+        authReq = "";
+        return false;
+      }
+      if((_opaque != this->getSessionKey("opaque")) || (_nonce != this->getSessionKey("nonce")) || (_realm != this->getSessionKey("realm")))
+      {
+        authReq = "";
+        return false;
+      }
+      // parameters for the RFC 2617 newer Digest
+      String _nc,_cnonce;
+      if(authReq.indexOf("qop=auth") != -1 || authReq.indexOf("qop=\"auth\"") != -1) {
+        _nc = _extractParam(authReq, F("nc="), ',');
+        _cnonce = _extractParam(authReq, F("cnonce=\""),'\"');
+      }
+      String _H1 = md5str(String(username) + ':' + _realm + ':' + String(password));
+      Serial.printf("Hash of user:realm:pass=%s\n", _H1);
+      String _H2 = "";
+      if(_method == HTTP_GET){
+          _H2 = md5str(String(F("GET:")) + _uri);
+      }else if(_method == HTTP_POST){
+          _H2 = md5str(String(F("POST:")) + _uri);
+      }else if(_method == HTTP_PUT){
+          _H2 = md5str(String(F("PUT:")) + _uri);
+      }else if(_method == HTTP_DELETE){
+          _H2 = md5str(String(F("DELETE:")) + _uri);
+      }else{
+          _H2 = md5str(String(F("GET:")) + _uri);
+      }
+      Serial.printf("Hash of GET:uri=%s\n", _H2);
+      String _responsecheck = "";
+      if(authReq.indexOf("qop=auth") != -1 || authReq.indexOf("qop=\"auth\"") != -1) {
+          _responsecheck = md5str(_H1 + ':' + _nonce + ':' + _nc + ':' + _cnonce + F(":auth:") + _H2);
+      } else {
+          _responsecheck = md5str(_H1 + ':' + _nonce + ':' + _H2);
+      }
+      Serial.printf("The Proper response=%s\n", _responsecheck);
+      if(_resp == _responsecheck){
+        authReq = "";
+        return true;
+      }
+    }
+    authReq = "";
+  }
   return false;
 }
 
-//TODO: implement
-void PsychicHttpServerRequest::requestAuthentication(const char* realm)
+String PsychicHttpServerRequest::_extractParam(String& authReq, const String& param, const char delimit)
 {
-  // https://github.com/me-no-dev/ESPAsyncWebServer/blob/master/src/WebRequest.cpp#L852
-  // mg_http_send_digest_auth_request
+  int _begin = authReq.indexOf(param);
+  if (_begin == -1)
+    return "";
+  return authReq.substring(_begin+param.length(),authReq.indexOf(delimit,_begin+param.length()));
+}
 
-  // char headers[64];
-  // mg_snprintf(headers, sizeof(headers), 
-  //     "WWW-Authenticate: Basic realm=%s",
-  //     realm);
+String PsychicHttpServerRequest::_getRandomHexString()
+{
+  char buffer[33];  // buffer to hold 32 Hex Digit + /0
+  int i;
+  for(i = 0; i < 4; i++) {
+    sprintf (buffer + (i*8), "%08lx", esp_random());
+  }
+  return String(buffer);
+}
 
-  // mg_http_reply(_nc, 401, headers, "", NULL);
+void PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg)
+{
+  //what is thy realm, sire?
+  if(realm == NULL)
+    this->setSessionKey("realm", "Login Required");
+  else
+    this->setSessionKey("realm", realm);
+
+  PsychicHttpServerResponse *response = this->beginResponse();
+  String authStr;
+
+  //what kind of auth?
+  if(mode == BASIC_AUTH)
+  {
+    authStr = "Basic realm=\"" + this->getSessionKey("realm") + "\"";
+    response->addHeader("WWW-Authenticate", authStr.c_str());
+  }
+  else
+  {
+    this->setSessionKey("nonce", _getRandomHexString());
+    this->setSessionKey("opaque", _getRandomHexString());
+
+    authStr = "Digest realm=\"" + this->getSessionKey("realm") + "\", qop=\"auth\", nonce=\"" + this->getSessionKey("nonce") + "\", opaque=\"" + this->getSessionKey("opaque") + "\"";
+
+    response->addHeader("WWW-Authenticate", authStr.c_str());
+  }
+
+  this->send(401, "text/html", authFailMsg.c_str());
 }
 
 PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()

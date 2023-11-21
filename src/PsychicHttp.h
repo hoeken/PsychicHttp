@@ -6,11 +6,20 @@
 #include <esp_http_server.h>
 #include <http_status.h>
 #include <string>
+#include <map>
+#include <libb64/cencode.h>
+#include "esp_random.h"
+#include "MD5Builder.h"
 
-struct async_resp_arg {
-    httpd_handle_t hd;
-    int fd;
-    httpd_ws_frame_t *ws_pkt;
+typedef std::map<String, String> SessionData;
+//typedef std::map<std::string, std::string> SessionData;
+
+enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
+
+struct HTTPAuthDigestData {
+  String realm;
+  String nonce;
+  String opaque;
 };
 
 #define TAG "PsychicHttp"
@@ -30,6 +39,12 @@ class PsychicHttpServerRequest {
     PsychicHttpServerResponse *_response;
     String _body;
 
+    SessionData *_session;
+
+    // String _snonce;  // Store noance and opaque for future comparison
+    // String _sopaque;
+    // String _srealm;  // Store the Auth realm between Calls
+
     void loadBody();
 
   public:
@@ -39,12 +54,18 @@ class PsychicHttpServerRequest {
     virtual bool isUpload() { return false; }
     virtual bool isWebSocket() { return false; }
 
+    static void freeSession(void *ctx);
+    bool hasSessionKey(String key);
+    String getSessionKey(String key);
+    void setSessionKey(String key, String value);
+
     http_method method();
     String methodStr();
     String uri();
     String queryString();
     String headers(const char *name);
     String header(const char *name);
+    bool hasHeader(const char *name);
     String host();
     String contentType();
     size_t contentLength();
@@ -56,8 +77,10 @@ class PsychicHttpServerRequest {
 
     String getParam(const char *name);
 
+    String _extractParam(String& authReq, const String& param, const char delimit);
+    String _getRandomHexString();
     bool authenticate(const char * username, const char * password);
-    void requestAuthentication(const char* realm);
+    void requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg);
 
     PsychicHttpServerResponse *beginResponse();
 
