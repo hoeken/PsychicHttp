@@ -3,7 +3,8 @@
 
 #include <ArduinoTrace.h>
 #include <esp_event.h>
-#include <esp_http_server.h>
+//#include <esp_http_server.h>
+#include <esp_https_server.h>
 #include <http_status.h>
 #include <string>
 #include <map>
@@ -12,6 +13,7 @@
 #include "esp_random.h"
 #include "MD5Builder.h"
 #include <UrlEncode.h>
+#include <keep_alive.h>
 
 typedef std::map<String, String> SessionData;
 
@@ -141,6 +143,7 @@ class PsychicHttpServerEndpoint
   public:
     PsychicHttpServerEndpoint();
     PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method);
+
     PsychicHttpServerEndpoint *onRequest(PsychicHttpRequestHandler handler);
     // PsychicHttpServerEndpoint *onUpload(PsychicHttpUploadHandler handler);
     PsychicHttpServerEndpoint *onConnect(PsychicHttpWebSocketConnectionHandler handler);
@@ -148,9 +151,13 @@ class PsychicHttpServerEndpoint
     PsychicHttpServerEndpoint *onClose(PsychicHttpRequestHandler handler);
 
     static esp_err_t requestHandler(httpd_req_t *req);
-    static void closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
-    static esp_err_t websocketHandler(httpd_req_t *req);
     static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
+
+    static esp_err_t websocketHandler(httpd_req_t *req);
+    static esp_err_t openHandler(httpd_handle_t hd, int sockfd);
+    static void closeHandler(httpd_handle_t hd, int sockfd);
+    //static void closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+
 };
 
 class PsychicHttpWebSocketConnection : public PsychicHttpServerRequest
@@ -183,18 +190,25 @@ class PsychicHttpServer
 {
   protected:
     httpd_handle_t server;
+    bool use_ssl = false;
 
   public:
     PsychicHttpServer();
     ~PsychicHttpServer();
 
-    PsychicHttpServerEndpoint defaultEndpoint;
     httpd_config_t config;
+    httpd_ssl_config_t ssl_config;
+
+    wss_keep_alive_config_t keep_alive_config;
+    wss_keep_alive_t keep_alive;
+
+    PsychicHttpServerEndpoint defaultEndpoint;
 
     static void destroy(void *ctx);
 
-    bool begin(uint16_t port);
-    bool begin(uint16_t port, const char *cert, const char *private_key);
+    void listen(uint16_t port);
+    void listen(uint16_t port, const char *cert, const char *private_key);
+    bool start();
     void stop();
 
     PsychicHttpServerEndpoint *on(const char* uri);

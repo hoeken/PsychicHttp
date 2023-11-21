@@ -4,18 +4,33 @@
 /*  PsychicHttpServer                */
 /*************************************/
 
+//#define ENABLE_KEEPALIVE 1
+
+#if !CONFIG_HTTPD_WS_SUPPORT
+  #error This example cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
+#endif
+
 PsychicHttpServer::PsychicHttpServer()
 {
-  //some configs
+  this->defaultEndpoint = PsychicHttpServerEndpoint(this, HTTP_GET);
+
+  //for a regular server
   this->config = HTTPD_DEFAULT_CONFIG();
-
-  this->config.global_user_ctx = this;
-  this->config.global_user_ctx_free_fn = this->destroy;
-
   this->config.max_uri_handlers = 10;
   this->config.stack_size = 10000;
+  this->config.open_fn = PsychicHttpServerEndpoint::openHandler;
+  this->config.close_fn = PsychicHttpServerEndpoint::closeHandler;
 
-  this->defaultEndpoint = PsychicHttpServerEndpoint(this, HTTP_GET);
+  #ifdef ENABLE_KEEPALIVE
+    this->config.global_user_ctx = keep_alive;
+  #else
+    this->config.global_user_ctx = this;
+    this->config.global_user_ctx_free_fn = this->destroy;
+  #endif  
+  
+  //for a SSL server
+  this->ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
+  this->ssl_config.httpd = this->config;
 }
 
 PsychicHttpServer::~PsychicHttpServer()
@@ -29,23 +44,97 @@ void PsychicHttpServer::destroy(void *ctx)
   delete temp;
 }
 
-bool PsychicHttpServer::begin(uint16_t port)
-{
-  this->config.server_port = port;
+/* TEMPORARY!!!   */
 
-  /* Start the httpd server */
-  if (httpd_start(&this->server, &this->config) != ESP_OK)
-    return false;
-  else
+#ifdef ENABLE_KEEPALIVE
+  struct async_resp_arg {
+    httpd_handle_t hd;
+    int fd;
+  };
+
+  static void send_ping(void *arg)
+  {
+      TRACE();
+
+      struct async_resp_arg *resp_arg = (async_resp_arg *)arg;
+      httpd_handle_t hd = resp_arg->hd;
+      int fd = resp_arg->fd;
+      httpd_ws_frame_t ws_pkt;
+      memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+      ws_pkt.payload = NULL;
+      ws_pkt.len = 0;
+      ws_pkt.type = HTTPD_WS_TYPE_PING;
+
+      httpd_ws_send_frame_async(hd, fd, &ws_pkt);
+      free(resp_arg);
+  }
+
+  bool client_not_alive_cb(wss_keep_alive_t h, int fd)
+  {
+    Serial.printf("Client not alive, closing fd %d\n", fd);
+    ESP_LOGE(TAG, "Client not alive, closing fd %d", fd);
+    httpd_sess_trigger_close(wss_keep_alive_get_user_ctx(h), fd);
     return true;
+  }
+
+  bool check_client_alive_cb(wss_keep_alive_t h, int fd)
+  {
+    Serial.printf("Checking if client (fd=%d) is alive\n", fd);
+    ESP_LOGD(TAG, "Checking if client (fd=%d) is alive", fd);
+    struct async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
+    resp_arg->hd = wss_keep_alive_get_user_ctx(h);
+    resp_arg->fd = fd;
+
+    if (httpd_queue_work(resp_arg->hd, send_ping, resp_arg) == ESP_OK) {
+      return true;
+    }
+    return false;
+  }
+#endif
+/* TEMPORARY END */
+
+void PsychicHttpServer::listen(uint16_t port)
+{
+  this->use_ssl = false;
+  this->config.server_port = port;
 }
 
-bool PsychicHttpServer::begin(uint16_t port, const char *cert, const char *private_key)
+void PsychicHttpServer::listen(uint16_t port, const char *cert, const char *private_key)
 {
-  this->config.server_port = port;
+  this->use_ssl = true;
 
-  /* Start the httpd server */
-  if (httpd_start(&this->server, &this->config) == ESP_OK)
+  this->ssl_config.port_secure = port;
+  this->ssl_config.cacert_pem = (uint8_t *)cert;
+  this->ssl_config.cacert_len = strlen(cert);
+  this->ssl_config.prvtkey_pem = (uint8_t *)private_key;
+  this->ssl_config.prvtkey_len = strlen(private_key);
+}
+
+bool PsychicHttpServer::start()
+{
+  // Prepare keep-alive engine
+  #ifdef ENABLE_KEEPALIVE
+    this->keep_alive_config = KEEP_ALIVE_CONFIG_DEFAULT();
+    this->keep_alive_config.max_clients = this->config.max_uri_handlers;
+    this->keep_alive_config.client_not_alive_cb = client_not_alive_cb;
+    this->keep_alive_config.check_client_alive_cb = check_client_alive_cb;
+    this->keep_alive = wss_keep_alive_start(&this->keep_alive_config);
+  #endif
+  
+  //what mode to start in?
+  esp_err_t err;
+  if (this->use_ssl)
+    err = httpd_ssl_start(&this->server, &this->ssl_config);
+  else
+    err = httpd_start(&this->server, &this->config);
+
+  //start our keepalive callback
+  #ifdef ENABLE_KEEPALIVE
+    wss_keep_alive_set_user_ctx(keep_alive, server);
+  #endif
+
+  //how did it go?
+  if (err == ESP_OK)
     return false;
   else
     return true;
@@ -53,7 +142,16 @@ bool PsychicHttpServer::begin(uint16_t port, const char *cert, const char *priva
 
 void PsychicHttpServer::stop()
 {
-  httpd_stop(this->server);
+  //Stop keep alive thread
+  #ifdef ENABLE_KEEPALIVE
+    wss_keep_alive_stop((wss_keep_alive_t)httpd_get_global_user_ctx(server));
+  #endif
+
+  //Stop our http server
+  if (this->use_ssl)
+    httpd_ssl_stop(this->server);
+  else
+    httpd_stop(this->server);
 }
 
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri)
@@ -101,16 +199,16 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
     .method   = HTTP_GET,
     .handler  = handler->websocketHandler,
     .user_ctx = handler,
-    .is_websocket = true
+    #ifdef ENABLE_KEEPALIVE
+      .handle_ws_control_frames = true,
+    #endif
+    .is_websocket = true,
   };
 
   // Register handler
   if (httpd_register_uri_handler(this->server, &my_uri) != ESP_OK) {
     Serial.println("PsychicHttp add websocket failed");
   }
-
-  //TODO: figure out how to make a close handler???
-  //esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, handler->closeHandler, this);
 
   return handler;
 }
@@ -238,23 +336,27 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
 
 esp_err_t PsychicHttpServerEndpoint::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
 {
-  PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
-  PsychicHttpServerRequest* request = new PsychicHttpServerRequest(server, req);
-  esp_err_t result = server->defaultEndpoint.request(request);
-  delete request;
+  #ifndef ENABLE_KEEPALIVE
+    PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
+    PsychicHttpServerRequest* request = new PsychicHttpServerRequest(server, req);
+    esp_err_t result = server->defaultEndpoint.request(request);
+    delete request;
 
-  return result;
+    return result;
+  #else
+    return ESP_OK;
+  #endif
 }
 
-void PsychicHttpServerEndpoint::closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
-{
-  // PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
-  // PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self->server, req);
-  // esp_err_t err = self->request(request);
-  // delete request;
+// void PsychicHttpServerEndpoint::closeHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
+// {
+//   // PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
+//   // PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self->server, req);
+//   // esp_err_t err = self->request(request);
+//   // delete request;
 
-  // return err;
-}
+//   // return err;
+// }
 
 esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
 {
@@ -301,25 +403,68 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
   }
   
   // If it was a PONG, update the keep-alive
-  // if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
-  //     ESP_LOGD(TAG, "Received PONG message");
-  //     free(buf);
-  //     return wss_keep_alive_client_is_active(httpd_get_global_user_ctx(req->handle), httpd_req_to_sockfd(req));
-  // }
+  if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
+    ESP_LOGD(TAG, "Received PONG message");
+    free(buf);
+    return wss_keep_alive_client_is_active((wss_keep_alive_t)httpd_get_global_user_ctx(req->handle),
+      httpd_req_to_sockfd(req));
+  }
+  else if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
+  {
+    if (self->wsFrame != NULL)
+      ret = self->wsFrame(&connection, &ws_pkt);
+  } 
+  else if (ws_pkt.type == HTTPD_WS_TYPE_PING)
+  {
+    // Response PONG packet to peer
+    ESP_LOGI(TAG, "Got a WS PING frame, Replying PONG");
+    ws_pkt.type = HTTPD_WS_TYPE_PONG;
+    ret = httpd_ws_send_frame(req, &ws_pkt);
+  }
+  else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
+  {
+    // Response CLOSE packet with no payload to peer
+    ws_pkt.len = 0;
+    ws_pkt.payload = NULL;
+    ret = httpd_ws_send_frame(req, &ws_pkt);
+  }
 
-  //okay, call our frame handler.
-  if (self->wsFrame != NULL)
-    ret = self->wsFrame(&connection, &ws_pkt);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "httpd_ws_send_frame failed with %d", ret);
+  }
+  ESP_LOGI(TAG, "ws_handler: httpd_handle_t=%p, sockfd=%d, client_info:%d", req->handle,
+    httpd_req_to_sockfd(req), httpd_ws_get_fd_info(req->handle, httpd_req_to_sockfd(req)));
 
   free(buf);
-
   return ret;
- 
-  // PsychicHttpServerRequest* request = new PsychicHttpServerRequest(self->server, req);
-  // esp_err_t err = self->request(request);
-  // delete request;
+}
 
-  // return err;
+esp_err_t PsychicHttpServerEndpoint::openHandler(httpd_handle_t hd, int sockfd)
+{
+  Serial.printf("New client connected %d\n", sockfd);
+
+  #ifdef ENABLE_KEEPALIVE
+    ESP_LOGI(TAG, "New client connected %d", sockfd);
+    wss_keep_alive_t h = (wss_keep_alive_t)httpd_get_global_user_ctx(hd);
+    return wss_keep_alive_add_client(h, sockfd);
+  #else
+    return ESP_OK;
+  #endif
+}
+
+void PsychicHttpServerEndpoint::closeHandler(httpd_handle_t hd, int sockfd)
+{
+  Serial.printf("Client disconnected %d\n", sockfd);
+
+  //TODO: maybe have the websocket close call happen through this.
+  PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
+
+  #ifdef ENABLE_KEEPALIVE
+    ESP_LOGI(TAG, "Client disconnected %d", sockfd);
+    wss_keep_alive_t h = (wss_keep_alive_t)httpd_get_global_user_ctx(hd);
+    wss_keep_alive_remove_client(h, sockfd);
+    close(sockfd);
+  #endif
 }
 
 /*************************************/
