@@ -1,0 +1,17 @@
+#install the tester
+npm install -i loadtest
+
+#load test on /
+loadtest -t 60 --timeout 5000 http://192.168.2.129/
+
+#load test on /endpoint/api
+loadtest -t 60 --timeout 5000 -P '{"foo":"bar"}' http://192.168.2.129/api
+loadtest -t 60 --timeout 5000 'http://192.168.2.129/api?foo=bar'
+
+#load test on /ws
+loadtest -t 60 --timeout 5000 'ws://192.168.2.129/ws'
+
+#some basic test commands
+curl http://192.168.2.129/
+curl 'http://192.168.2.129/api?foo=bar'
+curl -d '{"foo":"bar"}' http://192.168.2.129/api
