@@ -150,12 +150,12 @@ void setup()
 
     //basic home page
     server.on("/", HTTP_GET, [](PsychicHttpServerRequest *request) {
-      PsychicHttpServerResponse *response = request->beginResponse();
-      response->setCode(200);
-      response->setContentType("text/html");
-      response->setContent("Homepage");
+      PsychicHttpServerResponse response(&request);
+      response.setCode(200);
+      response.setContentType("text/html");
+      response.setContent("Homepage");
 
-      return response->send();
+      return response.send();
     });
 
     //a websocket echo server
@@ -256,7 +256,7 @@ void setup()
     //example of getting / setting cookies
     server.on("/cookies", HTTP_GET, [](PsychicHttpServerRequest *request)
     {
-      PsychicHttpServerResponse *response = request->beginResponse();
+      PsychicHttpServerResponse response(&request);
 
       int counter = 0;
       if (request->hasCookie("counter"))
@@ -268,9 +268,9 @@ void setup()
       char cookie[10];
       sprintf(cookie, "%i", counter);
 
-      response->setCookie("counter", cookie);
-      response->setContent(cookie);
-      return response->send();
+      response.setCookie("counter", cookie);
+      response.setContent(cookie);
+      return response.send();
     });
   }
 }

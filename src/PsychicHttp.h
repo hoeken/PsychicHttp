@@ -4,29 +4,25 @@
 #define CORE_DEBUG_LEVEL ARDUHAL_LOG_LEVEL_WARN
 #define MAX_COOKIE_SIZE 256
 #define PH_TAG "http"
+
 //#define ENABLE_KEEPALIVE
 //#define ENABLE_SERVE_STATIC
 
 #include <ArduinoTrace.h>
-#include <esp_event.h>
-//#include <esp_http_server.h>
 #include <esp_https_server.h>
 #include <http_status.h>
-#include <string>
 #include <map>
 #include <list>
 #include <libb64/cencode.h>
 #include "esp_random.h"
 #include "MD5Builder.h"
 #include <UrlEncode.h>
-#include "stddef.h"
-#include <time.h>
+//#include <time.h>
 #include "FS.h"
 
 #ifdef ENABLE_KEEPALIVE
   #include <keep_alive.h>
 #endif
-
 
 typedef std::map<String, String> SessionData;
 
@@ -48,6 +44,7 @@ class PsychicHttpServerRequest;
 class PsychicHttpServerResponse;
 class PsychicHttpWebSocketRequest;
 class PsychicHttpWebSocketConnection;
+class PsychicStaticFileHandler;
 
 class PsychicHttpServerRequest {
   friend PsychicHttpServer;
@@ -55,10 +52,8 @@ class PsychicHttpServerRequest {
   protected:
     PsychicHttpServer *_server;
     http_method _method;
-    httpd_req_t *_req;
-    PsychicHttpServerResponse *_response;
     String _body;
-
+    //PsychicHttpServerResponse *_response;
     SessionData *_session;
 
     void loadBody();
@@ -66,6 +61,8 @@ class PsychicHttpServerRequest {
   public:
     PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req);
     virtual ~PsychicHttpServerRequest();
+
+    httpd_req_t *_req;
 
     virtual bool isUpload() { return false; }
     virtual bool isWebSocket() { return false; }
@@ -82,11 +79,11 @@ class PsychicHttpServerRequest {
     bool hasCookie(const char * key);
     String getCookie(const char * key);
 
-    String version();
+    //String version();
     http_method method();
     String methodStr();
     String uri();
-    String url();
+    // String url();
     String host();
     String contentType();
     size_t contentLength();
@@ -102,7 +99,7 @@ class PsychicHttpServerRequest {
     bool authenticate(const char * username, const char * password);
     esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg);
 
-    PsychicHttpServerResponse *beginResponse();
+    //PsychicHttpServerResponse *beginResponse();
 
     esp_err_t redirect(const char *url);
     esp_err_t reply(int code);
@@ -114,7 +111,7 @@ class PsychicHttpServerRequest {
 class PsychicHttpServerResponse
 {
   protected:
-    httpd_req_t *_req;
+    PsychicHttpServerRequest *_request;
     int64_t _contentLength;
     char _status[60];
     const char * body;
@@ -122,7 +119,7 @@ class PsychicHttpServerResponse
     std::list<HTTPHeader> headers;
 
   public:
-    PsychicHttpServerResponse(httpd_req_t *request);
+    PsychicHttpServerResponse(PsychicHttpServerRequest *request);
     virtual ~PsychicHttpServerResponse();
 
     void setCode(int code);
@@ -157,7 +154,7 @@ class PsychicHttpServerEndpoint
 
   private:
     PsychicHttpServer *server;
-    std::string uri;
+    //String uri;
     http_method method;
 
     PsychicHttpRequestHandler request;
@@ -269,7 +266,8 @@ class PsychicHttpServer
     static esp_err_t openCallback(httpd_handle_t hd, int sockfd);
     static void closeCallback(httpd_handle_t hd, int sockfd);
 
-    #ifdef ENABLE_SERVE_STATIC    
+    #ifdef ENABLE_SERVE_STATIC
+      PsychicStaticFileHandler *staticHandler;
       PsychicStaticFileHandler& serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
     #endif
 
@@ -281,28 +279,29 @@ class PsychicHttpServer
 };
 
 #ifdef ENABLE_SERVE_STATIC
-  class PsychicStaticFileHandler: public AsyncWebHandler {
+  class PsychicStaticFileHandler {
     using File = fs::File;
     using FS = fs::FS;
     private:
-      bool _getFile(AsyncWebServerRequest *request);
-      bool _fileExists(AsyncWebServerRequest *request, const String& path);
+      bool _getFile(PsychicHttpServerRequest *request);
+      bool _fileExists(PsychicHttpServerRequest *request, const String& path);
       uint8_t _countBits(const uint8_t value) const;
     protected:
       FS _fs;
+      File _file;
       String _uri;
       String _path;
       String _default_file;
       String _cache_control;
       String _last_modified;
-      AwsTemplateProcessor _callback;
+     // AwsTemplateProcessor _callback;
       bool _isDir;
       bool _gzipFirst;
       uint8_t _gzipStats;
     public:
       PsychicStaticFileHandler(const char* uri, FS& fs, const char* path, const char* cache_control);
-      virtual bool canHandle(AsyncWebServerRequest *request) override final;
-      virtual void handleRequest(AsyncWebServerRequest *request) override final;
+      bool canHandle(PsychicHttpServerRequest *request);
+      esp_err_t handleRequest(PsychicHttpServerRequest *request);
       PsychicStaticFileHandler& setIsDir(bool isDir);
       PsychicStaticFileHandler& setDefaultFile(const char* filename);
       PsychicStaticFileHandler& setCacheControl(const char* cache_control);
@@ -312,7 +311,27 @@ class PsychicHttpServer
       PsychicStaticFileHandler& setLastModified(time_t last_modified);
       PsychicStaticFileHandler& setLastModified(); //sets to current time. Make sure sntp is runing and time is updated
     #endif
-      PsychicStaticFileHandler& setTemplateProcessor(AwsTemplateProcessor newCallback) {_callback = newCallback; return *this;}
+      //PsychicStaticFileHandler& setTemplateProcessor(AwsTemplateProcessor newCallback) {_callback = newCallback; return *this;}
   };
+
+class PsychicHttpFileResponse: public PsychicHttpServerResponse
+{
+  using File = fs::File;
+  using FS = fs::FS;
+  private:
+    File _content;
+    String _path;
+    bool _sendContentLength;
+    bool _chunked;
+    String _contentType;
+    void _setContentType(const String& path);
+  public:
+    PsychicHttpFileResponse(PsychicHttpServerRequest *request, FS &fs, const String& path, const String& contentType=String(), bool download=false);
+    PsychicHttpFileResponse(PsychicHttpServerRequest *request, File content, const String& path, const String& contentType=String(), bool download=false);
+    ~PsychicHttpFileResponse();
+    bool _sourceValid() const { return !!(_content); }
+    virtual size_t _fillBuffer(uint8_t *buf, size_t maxLen);
+};
+
 #endif // ENABLE_SERVE_STATIC
 #endif /* PsychicHttp_h */

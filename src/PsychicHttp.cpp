@@ -15,6 +15,10 @@ PsychicHttpServer::PsychicHttpServer()
 
   this->defaultEndpoint = PsychicHttpServerEndpoint(this, HTTP_GET);
   this->onNotFound(PsychicHttpServer::defaultNotFoundHandler);
+  
+  #ifdef ENABLE_SERVE_STATIC
+    this->staticHandler = NULL;
+  #endif
 
   //for a regular server
   this->config = HTTPD_DEFAULT_CONFIG();
@@ -184,8 +188,20 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
   #ifndef ENABLE_KEEPALIVE
     PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
     PsychicHttpServerRequest request(server, req);
-    esp_err_t result = server->defaultEndpoint.request(&request);
 
+    esp_err_t result;
+
+    #ifdef ENABLE_SERVE_STATIC
+      if (server->staticHandler != NULL)
+      {
+        if (server->staticHandler->canHandle(&request))
+          result = server->staticHandler->handleRequest(&request);
+        else
+          result = server->defaultEndpoint.request(&request);
+      }
+    #else
+      result = server->defaultEndpoint.request(&request);
+    #endif
     return result;
   #else
     return ESP_OK;
@@ -252,9 +268,10 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
 }
 
 #ifdef ENABLE_SERVE_STATIC
-  PsychicStaticFileHandler& PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control){
-    AsyncStaticWebHandler* handler = new AsyncStaticWebHandler(uri, fs, path, cache_control);
-    addHandler(handler);
+  PsychicStaticFileHandler& PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control)
+  {
+    PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, fs, path, cache_control);
+    //addHandler(handler);
     return *handler;
   }
 #endif
@@ -448,8 +465,8 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
 
 PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req) :
   _server(server),
-  _req(req),
-  _response(NULL)
+  _req(req)
+//  _response(NULL)
 {
   //handle our session data
   if (req->sess_ctx != NULL)
@@ -468,10 +485,10 @@ PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, ht
 
 PsychicHttpServerRequest::~PsychicHttpServerRequest()
 {
-  if(this->_response) {
-    delete this->_response;
-    this->_response = NULL;
-  }
+  // if(this->_response) {
+  //   delete this->_response;
+  //   this->_response = NULL;
+  // }
 }
 
 void PsychicHttpServerRequest::freeSession(void *ctx)
@@ -587,11 +604,11 @@ String PsychicHttpServerRequest::body()
 
 esp_err_t PsychicHttpServerRequest::redirect(const char *url)
 {
-  PsychicHttpServerResponse *response = this->beginResponse();
-  response->setCode(301);
-  response->addHeader("Location", url);
+  PsychicHttpServerResponse response(this);
+  response.setCode(301);
+  response.addHeader("Location", url);
   
-  return response->send();
+  return response.send();
 }
 
 
@@ -800,14 +817,14 @@ esp_err_t PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, c
   else
     this->setSessionKey("realm", realm);
 
-  PsychicHttpServerResponse *response = this->beginResponse();
+  PsychicHttpServerResponse response(this);
   String authStr;
 
   //what kind of auth?
   if(mode == BASIC_AUTH)
   {
     authStr = "Basic realm=\"" + this->getSessionKey("realm") + "\"";
-    response->addHeader("WWW-Authenticate", authStr.c_str());
+    response.addHeader("WWW-Authenticate", authStr.c_str());
   }
   else
   {
@@ -816,78 +833,78 @@ esp_err_t PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, c
 
     authStr = "Digest realm=\"" + this->getSessionKey("realm") + "\", qop=\"auth\", nonce=\"" + this->getSessionKey("nonce") + "\", opaque=\"" + this->getSessionKey("opaque") + "\"";
 
-    response->addHeader("WWW-Authenticate", authStr.c_str());
+    response.addHeader("WWW-Authenticate", authStr.c_str());
   }
 
-  response->setCode(401);
-  response->setContentType("text/html");
-  response->setContent(authFailMsg.c_str());
-  return response->send();
+  response.setCode(401);
+  response.setContentType("text/html");
+  response.setContent(authFailMsg.c_str());
+  return response.send();
 }
 
-PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()
-{
-  //we shouldn't need 2, but be safe.
-  if (this->_response == NULL)
-    delete(this->_response);
+// PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()
+// {
+//   //we shouldn't need 2, but be safe.
+//   if (this->_response == NULL)
+//     delete(this->_response);
  
-  //response is garbage collected in destructor
-  this->_response = new PsychicHttpServerResponse(this->_req);
+//   //response is garbage collected in destructor
+//   this->_response = new PsychicHttpServerResponse(this->_req);
 
-  return this->_response;
-}
+//   return this->_response;
+// }
 
 esp_err_t PsychicHttpServerRequest::reply(int code)
 {
-  PsychicHttpServerResponse *response = this->beginResponse();
+  PsychicHttpServerResponse response(this);
 
-  response->setCode(code);
-  response->setContentType("text/plain");
-  response->setContent(http_status_reason(code));
+  response.setCode(code);
+  response.setContentType("text/plain");
+  response.setContent(http_status_reason(code));
 
-  return response->send();
+  return response.send();
 }
 
 esp_err_t PsychicHttpServerRequest::reply(const char *content)
 {
-  PsychicHttpServerResponse *response = this->beginResponse();
+  PsychicHttpServerResponse response(this);
 
-  response->setCode(200);
-  response->setContentType("text/plain");
-  response->setContent(content);
+  response.setCode(200);
+  response.setContentType("text/plain");
+  response.setContent(content);
 
-  return response->send();
+  return response.send();
 }
 
 esp_err_t PsychicHttpServerRequest::reply(int code, const char *content)
 {
-  PsychicHttpServerResponse *response = this->beginResponse();
+  PsychicHttpServerResponse response(this);
 
-  response->setCode(code);
-  response->setContentType("text/plain");
-  response->setContent(content);
+  response.setCode(code);
+  response.setContentType("text/plain");
+  response.setContent(content);
 
-  return response->send();
+  return response.send();
 }
 
 
 esp_err_t PsychicHttpServerRequest::reply(int code, const char *contentType, const char *content)
 {
-  PsychicHttpServerResponse *response = this->beginResponse();
+  PsychicHttpServerResponse response(this);
 
-  response->setCode(code);
-  response->setContentType(contentType);
-  response->setContent(content);
+  response.setCode(code);
+  response.setContentType(contentType);
+  response.setContent(content);
 
-  return response->send();
+  return response.send();
 }
 
 /*************************************/
 /*  PsychicHttpServerResponse        */
 /*************************************/
 
-PsychicHttpServerResponse::PsychicHttpServerResponse(httpd_req_t *request) :
-  _req(request)
+PsychicHttpServerResponse::PsychicHttpServerResponse(PsychicHttpServerRequest *request) :
+  _request(request)
 {
   this->setCode(200);
 }
@@ -925,12 +942,12 @@ void PsychicHttpServerResponse::setCode(int code)
   //esp-idf makes you set the whole status.
   sprintf(this->_status, "%u %s", code, http_status_reason(code));
 
-  httpd_resp_set_status(this->_req, this->_status);
+  httpd_resp_set_status(this->_request->_req, this->_status);
 }
 
 void PsychicHttpServerResponse::setContentType(const char *contentType)
 {
-  httpd_resp_set_type(this->_req, contentType);
+  httpd_resp_set_type(this->_request->_req, contentType);
 }
 
 void PsychicHttpServerResponse::setContent(const char *content)
@@ -960,10 +977,10 @@ esp_err_t PsychicHttpServerResponse::send()
 {
   //get our headers out of the way first
   for (HTTPHeader header : this->headers)
-    httpd_resp_set_hdr(this->_req, header.field, header.value);
+    httpd_resp_set_hdr(this->_request->_req, header.field, header.value);
 
   //now send it off
-  esp_err_t err = httpd_resp_send(this->_req, this->getContent(), this->getContentLength());
+  esp_err_t err = httpd_resp_send(this->_request->_req, this->getContent(), this->getContentLength());
 
   //clean up our header variables.  we have to do this since httpd_resp_send doesn't store copies
   for (HTTPHeader header : this->headers)
@@ -1103,7 +1120,7 @@ void PsychicHttpWebSocketConnection::queueMessageCallback(void *arg)
 /*************************************/
 
 PsychicStaticFileHandler::PsychicStaticFileHandler(const char* uri, FS& fs, const char* path, const char* cache_control)
-  : _fs(fs), _uri(uri), _path(path), _default_file("index.htm"), _cache_control(cache_control), _last_modified(""), _callback(nullptr)
+  : _fs(fs), _uri(uri), _path(path), _default_file("index.htm"), _cache_control(cache_control), _last_modified("")
 {
   // Ensure leading '/'
   if (_uri.length() == 0 || _uri[0] != '/') _uri = "/" + _uri;
@@ -1161,32 +1178,30 @@ PsychicStaticFileHandler& PsychicStaticFileHandler::setLastModified(){
   return setLastModified(last_modified);
 }
 #endif
-bool PsychicStaticFileHandler::canHandle(AsyncWebServerRequest *request){
-  if(request->method() != HTTP_GET 
-    || !request->url().startsWith(_uri) 
-    || !request->isExpectedRequestedConnType(RCT_DEFAULT, RCT_HTTP)
-  ){
+
+bool PsychicStaticFileHandler::canHandle(PsychicHttpServerRequest *request)
+{
+  if(request->method() != HTTP_GET || !request->uri().startsWith(_uri) )
     return false;
-  }
-  if (_getFile(request)) {
-    // We interested in "If-Modified-Since" header to check if file was modified
-    if (_last_modified.length())
-      request->addInterestingHeader("If-Modified-Since");
 
-    if(_cache_control.length())
-      request->addInterestingHeader("If-None-Match");
+  if (_getFile(request))
+  {
+    // // We interested in "If-Modified-Since" header to check if file was modified
+    // if (_last_modified.length())
+    //   request->addInterestingHeader("If-Modified-Since");
+    // if(_cache_control.length())
+    //   request->addInterestingHeader("If-None-Match");
 
-    DEBUGF("[PsychicStaticFileHandler::canHandle] TRUE\n");
     return true;
   }
 
   return false;
 }
 
-bool PsychicStaticFileHandler::_getFile(AsyncWebServerRequest *request)
+bool PsychicStaticFileHandler::_getFile(PsychicHttpServerRequest *request)
 {
   // Remove the found uri
-  String path = request->url().substring(_uri.length());
+  String path = request->uri().substring(_uri.length());
 
   // We can skip the file check and look for default if request is to the root of a directory or that request path ends with '/'
   bool canSkipFileCheck = (_isDir && path.length() == 0) || (path.length() && path[path.length()-1] == '/');
@@ -1210,12 +1225,12 @@ bool PsychicStaticFileHandler::_getFile(AsyncWebServerRequest *request)
 }
 
 #ifdef ESP32
-#define FILE_IS_REAL(f) (f == true && !f.isDirectory())
+  #define FILE_IS_REAL(f) (f == true && !f.isDirectory())
 #else
-#define FILE_IS_REAL(f) (f == true)
+  #define FILE_IS_REAL(f) (f == true)
 #endif
 
-bool PsychicStaticFileHandler::_fileExists(AsyncWebServerRequest *request, const String& path)
+bool PsychicStaticFileHandler::_fileExists(PsychicHttpServerRequest *request, const String& path)
 {
   bool fileFound = false;
   bool gzipFound = false;
@@ -1223,18 +1238,18 @@ bool PsychicStaticFileHandler::_fileExists(AsyncWebServerRequest *request, const
   String gzip = path + ".gz";
 
   if (_gzipFirst) {
-    request->_tempFile = _fs.open(gzip, "r");
-    gzipFound = FILE_IS_REAL(request->_tempFile);
+    _file = _fs.open(gzip, "r");
+    gzipFound = FILE_IS_REAL(_file);
     if (!gzipFound){
-      request->_tempFile = _fs.open(path, "r");
-      fileFound = FILE_IS_REAL(request->_tempFile);
+      _file = _fs.open(path, "r");
+      fileFound = FILE_IS_REAL(_file);
     }
   } else {
-    request->_tempFile = _fs.open(path, "r");
-    fileFound = FILE_IS_REAL(request->_tempFile);
+    _file = _fs.open(path, "r");
+    fileFound = FILE_IS_REAL(_file);
     if (!fileFound){
-      request->_tempFile = _fs.open(gzip, "r");
-      gzipFound = FILE_IS_REAL(request->_tempFile);
+      _file = _fs.open(gzip, "r");
+      gzipFound = FILE_IS_REAL(_file);
     }
   }
 
@@ -1245,7 +1260,7 @@ bool PsychicStaticFileHandler::_fileExists(AsyncWebServerRequest *request, const
     size_t pathLen = path.length();
     char * _tempPath = (char*)malloc(pathLen+1);
     snprintf(_tempPath, pathLen+1, "%s", path.c_str());
-    request->_tempObject = (void*)_tempPath;
+    //request->_tempObject = (void*)_tempPath;
 
     // Calculate gzip statistic
     _gzipStats = (_gzipStats << 1) + (gzipFound ? 1 : 0);
@@ -1265,38 +1280,154 @@ uint8_t PsychicStaticFileHandler::_countBits(const uint8_t value) const
   return n;
 }
 
-void PsychicStaticFileHandler::handleRequest(AsyncWebServerRequest *request)
+esp_err_t PsychicStaticFileHandler::handleRequest(PsychicHttpServerRequest *request)
 {
-  // Get the filename from request->_tempObject and free it
-  String filename = String((char*)request->_tempObject);
-  free(request->_tempObject);
-  request->_tempObject = NULL;
-  if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
-      return request->requestAuthentication();
+  // // Get the filename from request->_tempObject and free it
+  // String filename = String((char*)request->_tempObject);
+  // free(request->_tempObject);
+  // request->_tempObject = NULL;
 
-  if (request->_tempFile == true) {
-    String etag = String(request->_tempFile.size());
-    if (_last_modified.length() && _last_modified == request->header("If-Modified-Since")) {
-      request->_tempFile.close();
-      request->send(304); // Not modified
-    } else if (_cache_control.length() && request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag)) {
-      request->_tempFile.close();
-      AsyncWebServerResponse * response = new AsyncBasicResponse(304); // Not modified
-      response->addHeader("Cache-Control", _cache_control);
-      response->addHeader("ETag", etag);
-      request->send(response);
-    } else {
-      AsyncWebServerResponse * response = new AsyncFileResponse(request->_tempFile, filename, String(), false, _callback);
+  String filename = request->uri();
+
+  // if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
+  //     return request->requestAuthentication();
+
+  if (_file == true)
+  {
+    String etag = String(_file.size());
+    if (_last_modified.length() && _last_modified == request->header("If-Modified-Since"))
+    {
+      _file.close();
+      request->reply(304); // Not modified
+    }
+    else
+    if (_cache_control.length() && request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag))
+    {
+      _file.close();
+
+      PsychicHttpServerResponse response(request);
+      response.addHeader("Cache-Control", _cache_control.c_str());
+      response.addHeader("ETag", etag.c_str());
+      response.send();
+    }
+    else
+    {
+      //AsyncWebServerResponse *response = new PsychicHttpFileResponse(_file, filename, String(), false, _callback);
+      PsychicHttpServerResponse response(request);
       if (_last_modified.length())
-        response->addHeader("Last-Modified", _last_modified);
-      if (_cache_control.length()){
-        response->addHeader("Cache-Control", _cache_control);
-        response->addHeader("ETag", etag);
+        response.addHeader("Last-Modified", _last_modified.c_str());
+      if (_cache_control.length()) {
+        response.addHeader("Cache-Control", _cache_control.c_str());
+        response.addHeader("ETag", etag.c_str());
       }
-      request->send(response);
+      response.send();
     }
   } else {
-    request->send(404);
+    request->reply(404);
   }
+
+  return ESP_OK;
 }
+
+/*
+* File Response
+* */
+
+PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *request, FS &fs, const String& path, const String& contentType, bool download)
+ : PsychicHttpServerResponse(request) {
+  //_code = 200;
+  _path = path;
+
+  if(!download && !fs.exists(_path) && fs.exists(_path+".gz")){
+    _path = _path+".gz";
+    addHeader("Content-Encoding", "gzip");
+    _sendContentLength = true;
+    _chunked = false;
+  }
+
+  _content = fs.open(_path, "r");
+  _contentLength = _content.size();
+
+  if(contentType == "")
+    _setContentType(path);
+  else
+    _contentType = contentType;
+
+  int filenameStart = path.lastIndexOf('/') + 1;
+  char buf[26+path.length()-filenameStart];
+  char* filename = (char*)path.c_str() + filenameStart;
+
+  if(download) {
+    // set filename and force download
+    snprintf(buf, sizeof (buf), "attachment; filename=\"%s\"", filename);
+  } else {
+    // set filename and force rendering
+    snprintf(buf, sizeof (buf), "inline; filename=\"%s\"", filename);
+  }
+  addHeader("Content-Disposition", buf);
+}
+
+PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *request, File content, const String& path, const String& contentType, bool download)
+ : PsychicHttpServerResponse(request) {
+  //_code = 200;
+  _path = path;
+
+  if(!download && String(content.name()).endsWith(".gz") && !path.endsWith(".gz")){
+    addHeader("Content-Encoding", "gzip");
+    _sendContentLength = true;
+    _chunked = false;
+  }
+
+  _content = content;
+  _contentLength = _content.size();
+
+  if(contentType == "")
+    _setContentType(path);
+  else
+    _contentType = contentType;
+
+  int filenameStart = path.lastIndexOf('/') + 1;
+  char buf[26+path.length()-filenameStart];
+  char* filename = (char*)path.c_str() + filenameStart;
+
+  if(download) {
+    snprintf(buf, sizeof (buf), "attachment; filename=\"%s\"", filename);
+  } else {
+    snprintf(buf, sizeof (buf), "inline; filename=\"%s\"", filename);
+  }
+  addHeader("Content-Disposition", buf);
+}
+
+PsychicHttpFileResponse::~PsychicHttpFileResponse()
+{
+  if(_content)
+    _content.close();
+}
+
+void PsychicHttpFileResponse::_setContentType(const String& path){
+  if (path.endsWith(".html")) _contentType = "text/html";
+  else if (path.endsWith(".htm")) _contentType = "text/html";
+  else if (path.endsWith(".css")) _contentType = "text/css";
+  else if (path.endsWith(".json")) _contentType = "application/json";
+  else if (path.endsWith(".js")) _contentType = "application/javascript";
+  else if (path.endsWith(".png")) _contentType = "image/png";
+  else if (path.endsWith(".gif")) _contentType = "image/gif";
+  else if (path.endsWith(".jpg")) _contentType = "image/jpeg";
+  else if (path.endsWith(".ico")) _contentType = "image/x-icon";
+  else if (path.endsWith(".svg")) _contentType = "image/svg+xml";
+  else if (path.endsWith(".eot")) _contentType = "font/eot";
+  else if (path.endsWith(".woff")) _contentType = "font/woff";
+  else if (path.endsWith(".woff2")) _contentType = "font/woff2";
+  else if (path.endsWith(".ttf")) _contentType = "font/ttf";
+  else if (path.endsWith(".xml")) _contentType = "text/xml";
+  else if (path.endsWith(".pdf")) _contentType = "application/pdf";
+  else if (path.endsWith(".zip")) _contentType = "application/zip";
+  else if(path.endsWith(".gz")) _contentType = "application/x-gzip";
+  else _contentType = "text/plain";
+}
+
+size_t PsychicHttpFileResponse::_fillBuffer(uint8_t *data, size_t len){
+  return _content.read(data, len);
+}
+
 #endif //ENABLE_SERVE_STATIC
