@@ -150,7 +150,7 @@ void setup()
 
     //basic home page
     server.on("/", HTTP_GET, [](PsychicHttpServerRequest *request) {
-      PsychicHttpServerResponse response(&request);
+      PsychicHttpServerResponse response(request);
       response.setCode(200);
       response.setContentType("text/html");
       response.setContent("Homepage");
@@ -256,7 +256,7 @@ void setup()
     //example of getting / setting cookies
     server.on("/cookies", HTTP_GET, [](PsychicHttpServerRequest *request)
     {
-      PsychicHttpServerResponse response(&request);
+      PsychicHttpServerResponse response(request);
 
       int counter = 0;
       if (request->hasCookie("counter"))
