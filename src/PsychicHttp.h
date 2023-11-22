@@ -35,11 +35,18 @@ struct HTTPHeader {
   char * value;
 };
 
+struct async_resp_arg {
+    httpd_handle_t hd;
+    int fd;
+    char *data;
+};
+
 enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
 
 class PsychicHttpServer;
 class PsychicHttpServerRequest;
 class PsychicHttpServerResponse;
+class PsychicHttpWebSocketRequest;
 class PsychicHttpWebSocketConnection;
 
 class PsychicHttpServerRequest {
@@ -138,8 +145,8 @@ class PsychicHttpServerResponse
 
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
 //typedef std::function<size_t(PsychicHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpUploadHandler;
-typedef std::function<esp_err_t(PsychicHttpWebSocketConnection *connection)> PsychicHttpWebSocketConnectionHandler;
-typedef std::function<esp_err_t(PsychicHttpWebSocketConnection *connection, httpd_ws_frame *frame)> PsychicHttpWebSocketFrameHandler;
+typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection)> PsychicHttpWebSocketRequestHandler;
+typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection, httpd_ws_frame *frame)> PsychicHttpWebSocketFrameHandler;
 typedef std::function<esp_err_t(httpd_handle_t hd, int sockfd)> PsychicHttpOpenHandler;
 typedef std::function<esp_err_t(httpd_handle_t hd, int sockfd)> PsychicHttpCloseHandler;
 
@@ -154,7 +161,7 @@ class PsychicHttpServerEndpoint
 
     PsychicHttpRequestHandler request;
     //PsychicHttpUploadHandler upload;
-    PsychicHttpWebSocketConnectionHandler wsConnect;
+    PsychicHttpWebSocketRequestHandler wsConnect;
     PsychicHttpWebSocketFrameHandler wsFrame;
 
   public:
@@ -163,49 +170,69 @@ class PsychicHttpServerEndpoint
 
     PsychicHttpServerEndpoint *onRequest(PsychicHttpRequestHandler handler);
     // PsychicHttpServerEndpoint *onUpload(PsychicHttpUploadHandler handler);
-    PsychicHttpServerEndpoint *onConnect(PsychicHttpWebSocketConnectionHandler handler);
+    PsychicHttpServerEndpoint *onConnect(PsychicHttpWebSocketRequestHandler handler);
     PsychicHttpServerEndpoint *onFrame(PsychicHttpWebSocketFrameHandler handler);
 
     static esp_err_t requestHandler(httpd_req_t *req);
     static esp_err_t websocketHandler(httpd_req_t *req);
 };
 
-class PsychicHttpWebSocketConnection : public PsychicHttpServerRequest
+class PsychicHttpWebSocketRequest : public PsychicHttpServerRequest
+{
+  friend PsychicHttpServer;
+
+  protected:
+    //httpd_handle_t _server;
+    //httpd_req_t *_req
+    //httpd_ws_frame_t * _packet;
+
+  public:
+    PsychicHttpWebSocketRequest(PsychicHttpServer *server, httpd_req_t *req);
+    virtual ~PsychicHttpWebSocketRequest();
+
+    PsychicHttpWebSocketConnection *connection;
+
+    esp_err_t reply(httpd_ws_frame_t * ws_pkt);
+    esp_err_t reply(httpd_ws_type_t op, const void *data, size_t len);
+    esp_err_t reply(const char *buf);
+
+
+    //virtual bool isWebSocket() { return true; }
+};
+
+class PsychicHttpWebSocketConnection
 {
   friend PsychicHttpServer;
 
   protected:
     httpd_handle_t _server;
     int _fd;
-    httpd_ws_frame_t * _packet;
+    //httpd_ws_frame_t * _packet;
 
   public:
-    PsychicHttpWebSocketConnection(PsychicHttpServer *server, httpd_req_t *req);
-    virtual ~PsychicHttpWebSocketConnection();
+    PsychicHttpWebSocketConnection(httpd_handle_t server, int fd);
 
-    virtual bool isWebSocket() { return true; }
+    //virtual bool isWebSocket() { return true; }
 
-    esp_err_t send(httpd_ws_frame_t * ws_pkt);
-    esp_err_t send(httpd_ws_type_t op, const void *data, size_t len);
-    esp_err_t send(const char *buf);
+    esp_err_t queueMessage(httpd_ws_frame_t * ws_pkt);
+    esp_err_t queueMessage(httpd_ws_type_t op, const void *data, size_t len);
+    esp_err_t queueMessage(const char *buf);
+    static void queueMessageCallback(void *arg);
 
-    int getConnection() {
-      return this->_fd;
-    }
+    int id() { return this->_fd; }
 };
 
 class PsychicHttpServer
 {
   protected:
-    httpd_handle_t server;
     bool use_ssl = false;
-
     std::list<PsychicHttpServerEndpoint *> endpoints;
 
   public:
     PsychicHttpServer();
     ~PsychicHttpServer();
 
+    httpd_handle_t server;
     httpd_config_t config;
     httpd_ssl_config_t ssl_config;
 
@@ -244,10 +271,12 @@ class PsychicHttpServer
     #ifdef ENABLE_SERVE_STATIC    
       PsychicStaticFileHandler& serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
     #endif
-    
+
     void sendAll(httpd_ws_frame_t * ws_pkt);
     void sendAll(httpd_ws_type_t op, const void *data, size_t len);
     void sendAll(const char *buf);
+//    static void sendAllCallback(void *arg);
+
 };
 
 #ifdef ENABLE_SERVE_STATIC
