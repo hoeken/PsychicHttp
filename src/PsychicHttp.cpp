@@ -241,6 +241,9 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   if (server->closeHandler != NULL)
     server->closeHandler(hd, sockfd);
 
+  //we need to close our own socket here!
+  close(sockfd);
+
   #ifdef ENABLE_KEEPALIVE
     wss_keep_alive_t h = (wss_keep_alive_t)httpd_get_global_user_ctx(hd);
     wss_keep_alive_remove_client(h, sockfd);
@@ -856,6 +859,18 @@ esp_err_t PsychicHttpServerRequest::reply(const char *content)
   return response->send();
 }
 
+esp_err_t PsychicHttpServerRequest::reply(int code, const char *content)
+{
+  PsychicHttpServerResponse *response = this->beginResponse();
+
+  response->setCode(code);
+  response->setContentType("text/plain");
+  response->setContent(content);
+
+  return response->send();
+}
+
+
 esp_err_t PsychicHttpServerRequest::reply(int code, const char *contentType, const char *content)
 {
   PsychicHttpServerResponse *response = this->beginResponse();
@@ -1015,6 +1030,14 @@ esp_err_t PsychicHttpWebSocketConnection::queueMessage(httpd_ws_frame_t * ws_pkt
 {
   //create a copy of this packet as its getting queued to the http server
   struct async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
+
+  //did we get the memory?
+  if (resp_arg == NULL)
+  {
+    ESP_LOGE(PH_TAG, "queueMessage malloc failed to allocate");
+    return ESP_ERR_NO_MEM;
+  }
+
   resp_arg->hd = this->_server;
   resp_arg->fd = this->_fd;
   resp_arg->data = (char *)malloc(ws_pkt->len+1);

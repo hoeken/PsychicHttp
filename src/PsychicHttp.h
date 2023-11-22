@@ -107,6 +107,7 @@ class PsychicHttpServerRequest {
     esp_err_t redirect(const char *url);
     esp_err_t reply(int code);
     esp_err_t reply(const char *content);
+    esp_err_t reply(int code, const char *content);
     esp_err_t reply(int code, const char *contentType, const char *content="");
 };
 
