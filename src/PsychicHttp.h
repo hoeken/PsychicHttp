@@ -5,8 +5,10 @@
 #define MAX_COOKIE_SIZE 256
 #define PH_TAG "http"
 
+#define FILE_CHUNK_SIZE 8*1024
+
 //#define ENABLE_KEEPALIVE
-//#define ENABLE_SERVE_STATIC
+#define ENABLE_SERVE_STATIC
 
 #include <ArduinoTrace.h>
 #include <esp_https_server.h>
@@ -17,7 +19,6 @@
 #include "esp_random.h"
 #include "MD5Builder.h"
 #include <UrlEncode.h>
-//#include <time.h>
 #include "FS.h"
 
 #ifdef ENABLE_KEEPALIVE
@@ -53,7 +54,6 @@ class PsychicHttpServerRequest {
     PsychicHttpServer *_server;
     http_method _method;
     String _body;
-    //PsychicHttpServerResponse *_response;
     SessionData *_session;
 
     void loadBody();
@@ -79,11 +79,9 @@ class PsychicHttpServerRequest {
     bool hasCookie(const char * key);
     String getCookie(const char * key);
 
-    //String version();
     http_method method();
     String methodStr();
     String uri();
-    // String url();
     String host();
     String contentType();
     size_t contentLength();
@@ -98,8 +96,6 @@ class PsychicHttpServerRequest {
     String _getRandomHexString();
     bool authenticate(const char * username, const char * password);
     esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg);
-
-    //PsychicHttpServerResponse *beginResponse();
 
     esp_err_t redirect(const char *url);
     esp_err_t reply(int code);
@@ -125,9 +121,8 @@ class PsychicHttpServerResponse
     void setCode(int code);
 
     void setContentType(const char *contentType);
-    void setContentLength(int64_t contentLength) {
-      _contentLength = contentLength;
-    }
+    void setContentLength(int64_t contentLength) { _contentLength = contentLength; }
+    int64_t getContentLength(int64_t contentLength) { return _contentLength; }
 
     void addHeader(const char *field, const char *value);
     void setCookie(const char *key, const char *value, unsigned long max_age = 60*60*24*30);
@@ -154,7 +149,6 @@ class PsychicHttpServerEndpoint
 
   private:
     PsychicHttpServer *server;
-    //String uri;
     http_method method;
 
     PsychicHttpRequestHandler request;
@@ -179,11 +173,6 @@ class PsychicHttpWebSocketRequest : public PsychicHttpServerRequest
 {
   friend PsychicHttpServer;
 
-  protected:
-    //httpd_handle_t _server;
-    //httpd_req_t *_req
-    //httpd_ws_frame_t * _packet;
-
   public:
     PsychicHttpWebSocketRequest(PsychicHttpServer *server, httpd_req_t *req);
     virtual ~PsychicHttpWebSocketRequest();
@@ -193,9 +182,6 @@ class PsychicHttpWebSocketRequest : public PsychicHttpServerRequest
     esp_err_t reply(httpd_ws_frame_t * ws_pkt);
     esp_err_t reply(httpd_ws_type_t op, const void *data, size_t len);
     esp_err_t reply(const char *buf);
-
-
-    //virtual bool isWebSocket() { return true; }
 };
 
 class PsychicHttpWebSocketConnection
@@ -205,12 +191,9 @@ class PsychicHttpWebSocketConnection
   protected:
     httpd_handle_t _server;
     int _fd;
-    //httpd_ws_frame_t * _packet;
 
   public:
     PsychicHttpWebSocketConnection(httpd_handle_t server, int fd);
-
-    //virtual bool isWebSocket() { return true; }
 
     esp_err_t queueMessage(httpd_ws_frame_t * ws_pkt);
     esp_err_t queueMessage(httpd_ws_type_t op, const void *data, size_t len);
@@ -274,8 +257,6 @@ class PsychicHttpServer
     void sendAll(httpd_ws_frame_t * ws_pkt);
     void sendAll(httpd_ws_type_t op, const void *data, size_t len);
     void sendAll(const char *buf);
-//    static void sendAllCallback(void *arg);
-
 };
 
 #ifdef ENABLE_SERVE_STATIC
@@ -284,17 +265,17 @@ class PsychicHttpServer
     using FS = fs::FS;
     private:
       bool _getFile(PsychicHttpServerRequest *request);
-      bool _fileExists(PsychicHttpServerRequest *request, const String& path);
+      bool _fileExists(const String& path);
       uint8_t _countBits(const uint8_t value) const;
     protected:
       FS _fs;
       File _file;
+      String _filename;
       String _uri;
       String _path;
       String _default_file;
       String _cache_control;
       String _last_modified;
-     // AwsTemplateProcessor _callback;
       bool _isDir;
       bool _gzipFirst;
       uint8_t _gzipStats;
@@ -329,8 +310,7 @@ class PsychicHttpFileResponse: public PsychicHttpServerResponse
     PsychicHttpFileResponse(PsychicHttpServerRequest *request, FS &fs, const String& path, const String& contentType=String(), bool download=false);
     PsychicHttpFileResponse(PsychicHttpServerRequest *request, File content, const String& path, const String& contentType=String(), bool download=false);
     ~PsychicHttpFileResponse();
-    bool _sourceValid() const { return !!(_content); }
-    virtual size_t _fillBuffer(uint8_t *buf, size_t maxLen);
+    esp_err_t send();
 };
 
 #endif // ENABLE_SERVE_STATIC

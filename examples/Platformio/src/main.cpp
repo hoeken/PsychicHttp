@@ -9,7 +9,7 @@
 */
 #include <Arduino.h>
 #include <WiFi.h>
-#include <PsychicHTTP.h>
+#include <PsychicHttp.h>
 #include <LittleFS.h>
 #include <ArduinoJSON.h>
 
@@ -100,6 +100,12 @@ void setup()
   // To debug, please enable Core Debug Level to Verbose
   if (connectToWifi())
   {
+    if(!LittleFS.begin())
+    {
+      Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
+      return;
+    }
+
     if (app_enable_ssl)
       Serial.println("SSL enabled");
     else
@@ -272,6 +278,8 @@ void setup()
       response.setContent(cookie);
       return response.send();
     });
+
+    server.serveStatic("/", LittleFS, "/www/");
   }
 }
 

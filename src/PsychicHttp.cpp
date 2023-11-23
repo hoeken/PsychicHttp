@@ -43,6 +43,9 @@ PsychicHttpServer::~PsychicHttpServer()
 {
   for (PsychicHttpServerEndpoint * endpoint : this->endpoints)
     delete(endpoint);
+
+  if (staticHandler != NULL)
+    delete staticHandler;
 }
 
 void PsychicHttpServer::destroy(void *ctx)
@@ -271,7 +274,8 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   PsychicStaticFileHandler& PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control)
   {
     PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, fs, path, cache_control);
-    //addHandler(handler);
+    this->staticHandler = handler;
+
     return *handler;
   }
 #endif
@@ -842,18 +846,6 @@ esp_err_t PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, c
   return response.send();
 }
 
-// PsychicHttpServerResponse *PsychicHttpServerRequest::beginResponse()
-// {
-//   //we shouldn't need 2, but be safe.
-//   if (this->_response == NULL)
-//     delete(this->_response);
- 
-//   //response is garbage collected in destructor
-//   this->_response = new PsychicHttpServerResponse(this->_req);
-
-//   return this->_response;
-// }
-
 esp_err_t PsychicHttpServerRequest::reply(int code)
 {
   PsychicHttpServerResponse response(this);
@@ -1120,7 +1112,7 @@ void PsychicHttpWebSocketConnection::queueMessageCallback(void *arg)
 /*************************************/
 
 PsychicStaticFileHandler::PsychicStaticFileHandler(const char* uri, FS& fs, const char* path, const char* cache_control)
-  : _fs(fs), _uri(uri), _path(path), _default_file("index.htm"), _cache_control(cache_control), _last_modified("")
+  : _fs(fs), _uri(uri), _path(path), _default_file("index.html"), _cache_control(cache_control), _last_modified("")
 {
   // Ensure leading '/'
   if (_uri.length() == 0 || _uri[0] != '/') _uri = "/" + _uri;
@@ -1185,15 +1177,7 @@ bool PsychicStaticFileHandler::canHandle(PsychicHttpServerRequest *request)
     return false;
 
   if (_getFile(request))
-  {
-    // // We interested in "If-Modified-Since" header to check if file was modified
-    // if (_last_modified.length())
-    //   request->addInterestingHeader("If-Modified-Since");
-    // if(_cache_control.length())
-    //   request->addInterestingHeader("If-None-Match");
-
     return true;
-  }
 
   return false;
 }
@@ -1203,13 +1187,17 @@ bool PsychicStaticFileHandler::_getFile(PsychicHttpServerRequest *request)
   // Remove the found uri
   String path = request->uri().substring(_uri.length());
 
+  DUMP(path);
+
   // We can skip the file check and look for default if request is to the root of a directory or that request path ends with '/'
   bool canSkipFileCheck = (_isDir && path.length() == 0) || (path.length() && path[path.length()-1] == '/');
 
   path = _path + path;
 
+  DUMP(path);
+
   // Do we have a file or .gz file
-  if (!canSkipFileCheck && _fileExists(request, path))
+  if (!canSkipFileCheck && _fileExists(path))
     return true;
 
   // Can't handle if not default file
@@ -1221,7 +1209,9 @@ bool PsychicStaticFileHandler::_getFile(PsychicHttpServerRequest *request)
     path += "/";
   path += _default_file;
 
-  return _fileExists(request, path);
+  DUMP(path);
+
+  return _fileExists(path);
 }
 
 #ifdef ESP32
@@ -1230,7 +1220,7 @@ bool PsychicStaticFileHandler::_getFile(PsychicHttpServerRequest *request)
   #define FILE_IS_REAL(f) (f == true)
 #endif
 
-bool PsychicStaticFileHandler::_fileExists(PsychicHttpServerRequest *request, const String& path)
+bool PsychicStaticFileHandler::_fileExists(const String& path)
 {
   bool fileFound = false;
   bool gzipFound = false;
@@ -1255,12 +1245,9 @@ bool PsychicStaticFileHandler::_fileExists(PsychicHttpServerRequest *request, co
 
   bool found = fileFound || gzipFound;
 
-  if (found) {
-    // Extract the file name from the path and keep it in _tempObject
-    size_t pathLen = path.length();
-    char * _tempPath = (char*)malloc(pathLen+1);
-    snprintf(_tempPath, pathLen+1, "%s", path.c_str());
-    //request->_tempObject = (void*)_tempPath;
+  if (found)
+  {
+    _filename = path;
 
     // Calculate gzip statistic
     _gzipStats = (_gzipStats << 1) + (gzipFound ? 1 : 0);
@@ -1282,12 +1269,7 @@ uint8_t PsychicStaticFileHandler::_countBits(const uint8_t value) const
 
 esp_err_t PsychicStaticFileHandler::handleRequest(PsychicHttpServerRequest *request)
 {
-  // // Get the filename from request->_tempObject and free it
-  // String filename = String((char*)request->_tempObject);
-  // free(request->_tempObject);
-  // request->_tempObject = NULL;
-
-  String filename = request->uri();
+  //String filename = request->uri();
 
   // if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
   //     return request->requestAuthentication();
@@ -1312,15 +1294,16 @@ esp_err_t PsychicStaticFileHandler::handleRequest(PsychicHttpServerRequest *requ
     }
     else
     {
-      //AsyncWebServerResponse *response = new PsychicHttpFileResponse(_file, filename, String(), false, _callback);
-      PsychicHttpServerResponse response(request);
+      PsychicHttpFileResponse response(request, _fs, _filename);
+
       if (_last_modified.length())
         response.addHeader("Last-Modified", _last_modified.c_str());
       if (_cache_control.length()) {
         response.addHeader("Cache-Control", _cache_control.c_str());
         response.addHeader("ETag", etag.c_str());
       }
-      response.send();
+
+      return response.send();
     }
   } else {
     request->reply(404);
@@ -1352,6 +1335,7 @@ PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *reque
     _setContentType(path);
   else
     _contentType = contentType;
+  setContentType(_contentType.c_str());
 
   int filenameStart = path.lastIndexOf('/') + 1;
   char buf[26+path.length()-filenameStart];
@@ -1369,7 +1353,6 @@ PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *reque
 
 PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *request, File content, const String& path, const String& contentType, bool download)
  : PsychicHttpServerResponse(request) {
-  //_code = 200;
   _path = path;
 
   if(!download && String(content.name()).endsWith(".gz") && !path.endsWith(".gz")){
@@ -1380,11 +1363,13 @@ PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *reque
 
   _content = content;
   _contentLength = _content.size();
+  setContentLength(_contentLength);
 
   if(contentType == "")
     _setContentType(path);
   else
     _contentType = contentType;
+  setContentType(_contentType.c_str());
 
   int filenameStart = path.lastIndexOf('/') + 1;
   char buf[26+path.length()-filenameStart];
@@ -1426,8 +1411,67 @@ void PsychicHttpFileResponse::_setContentType(const String& path){
   else _contentType = "text/plain";
 }
 
-size_t PsychicHttpFileResponse::_fillBuffer(uint8_t *data, size_t len){
-  return _content.read(data, len);
+esp_err_t PsychicHttpFileResponse::send()
+{
+  //just send small files directly
+  size_t size = getContentLength();
+  if (size < FILE_CHUNK_SIZE)
+  {
+    uint8_t *buffer = (uint8_t *)malloc(size);
+    int readSize = _content.readBytes((char *)buffer, size);
+
+    this->setContent(buffer, size);
+    esp_err_t err = PsychicHttpServerResponse::send();
+    
+    free(buffer);
+
+    return err;
+  }
+  else
+  {
+    //get our headers out of the way first
+    for (HTTPHeader header : this->headers)
+      httpd_resp_set_hdr(this->_request->_req, header.field, header.value);
+
+    /* Retrieve the pointer to scratch buffer for temporary storage */
+    char *chunk = (char *)malloc(FILE_CHUNK_SIZE);
+    size_t chunksize;
+    do {
+        /* Read file in chunks into the scratch buffer */
+        chunksize = _content.readBytes(chunk, FILE_CHUNK_SIZE);
+
+        if (chunksize > 0) {
+            /* Send the buffer contents as HTTP response chunk */
+            if (httpd_resp_send_chunk(this->_request->_req, chunk, chunksize) != ESP_OK) {
+                _content.close();
+                ESP_LOGE(PH_TAG, "File sending failed!");
+                /* Abort sending file */
+                httpd_resp_sendstr_chunk(this->_request->_req, NULL);
+                /* Respond with 500 Internal Server Error */
+                httpd_resp_send_err(this->_request->_req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+               return ESP_FAIL;
+           }
+        }
+
+        /* Keep looping till the whole file is sent */
+    } while (chunksize != 0);
+
+    /* Close file after sending complete */
+    _content.close();
+    ESP_LOGI(PH_TAG, "File sending complete");
+
+    /* Respond with an empty chunk to signal HTTP response completion */
+    httpd_resp_send_chunk(this->_request->_req, NULL, 0);
+
+    //clean up our header variables.  we have to do this since httpd_resp_send doesn't store copies
+    for (HTTPHeader header : this->headers)
+    {
+      free(header.field);
+      free(header.value);
+    }
+    this->headers.clear();
+  }
+  return ESP_OK;
 }
 
 #endif //ENABLE_SERVE_STATIC
