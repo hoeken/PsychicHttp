@@ -16,7 +16,7 @@
       "maintainer": true
     }
   ],
-  "license" : "MIT"
+  "license" : "MIT",
   "examples": [
     {
       "name": "Platformio",

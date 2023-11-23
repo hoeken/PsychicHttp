@@ -49,12 +49,60 @@ class PsychicHttpWebSocketRequest;
 class PsychicHttpWebSocketConnection;
 class PsychicStaticFileHandler;
 
+/*
+ * PARAMETER :: Chainable object to hold GET/POST and FILE parameters
+ * */
+
+// class PsychicWebParameter {
+//   private:
+//     String _name;
+//     String _value;
+//     size_t _size;
+//     bool _isForm;
+//     bool _isFile;
+
+//   public:
+
+//     PsychicWebParameter(const String& name, const String& value, bool form=false, bool file=false, size_t size=0): _name(name), _value(value), _size(size), _isForm(form), _isFile(file){}
+//     const String& name() const { return _name; }
+//     const String& value() const { return _value; }
+//     size_t size() const { return _size; }
+//     bool isPost() const { return _isForm; }
+//     bool isFile() const { return _isFile; }
+// };
+
+/*
+ * HEADER :: Chainable object to hold the headers
+ * */
+
+// class PsychichWebHeader {
+//   private:
+//     String _name;
+//     String _value;
+
+//   public:
+//     PsychichWebHeader(const String& name, const String& value): _name(name), _value(value){}
+//     PsychichWebHeader(const String& data): _name(), _value(){
+//       if(!data) return;
+//       int index = data.indexOf(':');
+//       if (index < 0) return;
+//       _name = data.substring(0, index);
+//       _value = data.substring(index + 2);
+//     }
+//     ~PsychichWebHeader(){}
+//     const String& name() const { return _name; }
+//     const String& value() const { return _value; }
+//     String toString() const { return String(_name+": "+_value+"\r\n"); }
+// };
+
 class PsychicHttpServerRequest {
   friend PsychicHttpServer;
 
   protected:
     PsychicHttpServer *_server;
     http_method _method;
+    String _uri;
+    String _query;
     String _body;
     SessionData *_session;
 
@@ -69,33 +117,34 @@ class PsychicHttpServerRequest {
     virtual bool isUpload() { return false; }
     virtual bool isWebSocket() { return false; }
 
-    String headers(const char *name);
-    String header(const char *name);
+    //int headers();
+    const String header(const char *name);
     bool hasHeader(const char *name);
 
     static void freeSession(void *ctx);
-    bool hasSessionKey(String key);
-    String getSessionKey(String key);
-    void setSessionKey(String key, String value);
+    bool hasSessionKey(const String& key);
+    const String getSessionKey(const String& key);
+    void setSessionKey(const String& key, const String& value);
 
     bool hasCookie(const char * key);
-    String getCookie(const char * key);
+    const String getCookie(const char * key);
 
     http_method method();
-    String methodStr();
-    String uri();
-    String host();
-    String contentType();
+    const String methodStr();
+    const String& uri();
+    const String& url() { return uri(); }
+    const String host();
+    const String contentType();
     size_t contentLength();
-    String body();
+    const String& body();
+    bool multipart();
 
-    String queryString();
+    const String queryString();
     bool hasParam(const char *key);
-    esp_err_t getParam(const char *name, char *value);
-    String getParam(const char *name);
+    const String getParam(const char *name);
 
-    String _extractParam(String& authReq, const String& param, const char delimit);
-    String _getRandomHexString();
+    const String _extractParam(const String& authReq, const String& param, const char delimit);
+    const String _getRandomHexString();
     bool authenticate(const char * username, const char * password);
     esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg);
 

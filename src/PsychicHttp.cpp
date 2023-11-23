@@ -470,7 +470,6 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
 PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req) :
   _server(server),
   _req(req)
-//  _response(NULL)
 {
   //handle our session data
   if (req->sess_ctx != NULL)
@@ -482,9 +481,19 @@ PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, ht
   }
 
   //callback for freeing the session later
-  req->free_ctx = this->freeSession;  
+  req->free_ctx = this->freeSession;
 
-  this->loadBody();
+  //load up some data
+  this->_uri = String(this->_req->uri);
+
+  //did we get a query string?
+  size_t query_len = httpd_req_get_url_query_len(this->_req);
+  if (query_len)
+  {
+    char query[query_len+1];
+    httpd_req_get_url_query_str(this->_req, query, sizeof(query));
+    this->_query.concat(query);
+  }
 }
 
 PsychicHttpServerRequest::~PsychicHttpServerRequest()
@@ -541,35 +550,24 @@ http_method PsychicHttpServerRequest::method() {
   return (http_method)this->_req->method;
 }
 
-String PsychicHttpServerRequest::methodStr() {
+const String PsychicHttpServerRequest::methodStr() {
   return String(http_method_str((http_method)this->_req->method));
 }
 
-String PsychicHttpServerRequest::uri() {
-  return String(this->_req->uri);
+const String& PsychicHttpServerRequest::uri() {
+  return this->_uri;
 }
 
-String PsychicHttpServerRequest::queryString() {
-  size_t query_len = httpd_req_get_url_query_len(this->_req);
-
-  //if we've got one, allocated it and load it
-  if (query_len)
-  {
-    char query[query_len+1];
-    httpd_req_get_url_query_str(this->_req, query, sizeof(query));
-
-    return String(query);
-  }
-  else
-    return String();
+const String PsychicHttpServerRequest::queryString() {
+  return this->_query;
 }
 
-String PsychicHttpServerRequest::headers(const char *name)
-{
-  return this->header(name);
-}
+// no way to get list of headers yet....
+// int PsychicHttpServerRequest::headers()
+// {
+// }
 
-String PsychicHttpServerRequest::header(const char *name)
+const String PsychicHttpServerRequest::header(const char *name)
 {
   size_t header_len = httpd_req_get_hdr_value_len(this->_req, name);
 
@@ -581,7 +579,7 @@ String PsychicHttpServerRequest::header(const char *name)
     return String(header);
   }
   else
-    return String();
+    return "";
 }
 
 bool PsychicHttpServerRequest::hasHeader(const char *name)
@@ -589,11 +587,11 @@ bool PsychicHttpServerRequest::hasHeader(const char *name)
   return httpd_req_get_hdr_value_len(this->_req, name) > 0;
 }
 
-String PsychicHttpServerRequest::host() {
-  return String(this->header("Host"));
+const String PsychicHttpServerRequest::host() {
+  return this->header("Host");
 }
 
-String PsychicHttpServerRequest::contentType() {
+const String PsychicHttpServerRequest::contentType() {
   return header("Content-Type");
 }
 
@@ -601,9 +599,20 @@ size_t PsychicHttpServerRequest::contentLength() {
   return this->_req->content_len;
 }
 
-String PsychicHttpServerRequest::body()
+const String& PsychicHttpServerRequest::body()
 {
+  //dynamic loading
+  if (this->_body == "")
+    this->loadBody();
+
   return this->_body;
+}
+
+bool PsychicHttpServerRequest::multipart()
+{
+  const String& type = this->contentType();
+
+  return (this->contentType().indexOf("multipart/form-data") >= 0);
 }
 
 esp_err_t PsychicHttpServerRequest::redirect(const char *url)
@@ -631,7 +640,7 @@ bool PsychicHttpServerRequest::hasCookie(const char *key)
   return false;
 }
 
-String PsychicHttpServerRequest::getCookie(const char *key)
+const String PsychicHttpServerRequest::getCookie(const char *key)
 {
   char cookie[MAX_COOKIE_SIZE];
   size_t cookieSize = MAX_COOKIE_SIZE;
@@ -657,31 +666,23 @@ bool PsychicHttpServerRequest::hasParam(const char *key)
     return false;
 }
 
-esp_err_t PsychicHttpServerRequest::getParam(const char *key, char *value)
-{
-  String query = this->queryString();
-
-  return httpd_query_key_value(query.c_str(), key, value, query.length());
-}
-
-String PsychicHttpServerRequest::getParam(const char *key)
+const String PsychicHttpServerRequest::getParam(const char *key)
 {
   String ret;
-
   String query = this->queryString();
   char value[query.length()];
-  esp_err_t err = this->getParam(key, value);
+  esp_err_t err = httpd_query_key_value(query.c_str(), key, value, query.length());
   ret.concat(value);
 
   return ret;
 }
 
-bool PsychicHttpServerRequest::hasSessionKey(String key)
+bool PsychicHttpServerRequest::hasSessionKey(const String& key)
 {
   return this->_session->find(key) != this->_session->end();
 }
 
-String PsychicHttpServerRequest::getSessionKey(String key)
+const String PsychicHttpServerRequest::getSessionKey(const String& key)
 {
   auto it = this->_session->find(key);
   if (it != this->_session->end())
@@ -690,12 +691,12 @@ String PsychicHttpServerRequest::getSessionKey(String key)
     return "";
 }
 
-void PsychicHttpServerRequest::setSessionKey(String key, String value)
+void PsychicHttpServerRequest::setSessionKey(const String& key, const String& value)
 {
   this->_session->insert(std::pair<String, String>(key, value));
 }
 
-static String md5str(String &in){
+static const String md5str(const String &in){
   MD5Builder md5 = MD5Builder();
   md5.begin();
   md5.add(in);
@@ -795,7 +796,7 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
   return false;
 }
 
-String PsychicHttpServerRequest::_extractParam(String& authReq, const String& param, const char delimit)
+const String PsychicHttpServerRequest::_extractParam(const String& authReq, const String& param, const char delimit)
 {
   int _begin = authReq.indexOf(param);
   if (_begin == -1)
@@ -803,7 +804,7 @@ String PsychicHttpServerRequest::_extractParam(String& authReq, const String& pa
   return authReq.substring(_begin+param.length(),authReq.indexOf(delimit,_begin+param.length()));
 }
 
-String PsychicHttpServerRequest::_getRandomHexString()
+const String PsychicHttpServerRequest::_getRandomHexString()
 {
   char buffer[33];  // buffer to hold 32 Hex Digit + /0
   int i;
@@ -917,7 +918,6 @@ void PsychicHttpServerResponse::addHeader(const char *field, const char *value)
   this->headers.push_back(header);
 }
 
-//WARNING: you need to call free() on the returned string pointer!!!
 void PsychicHttpServerResponse::setCookie(const char *name, const char *value, unsigned long max_age)
 {
   String output;
@@ -1269,8 +1269,7 @@ uint8_t PsychicStaticFileHandler::_countBits(const uint8_t value) const
 
 esp_err_t PsychicStaticFileHandler::handleRequest(PsychicHttpServerRequest *request)
 {
-  //String filename = request->uri();
-
+  //TODO: re-enable authentication for static files
   // if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
   //     return request->requestAuthentication();
 
