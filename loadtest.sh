@@ -1,39 +1,29 @@
-#install the tester
-npm install -i loadtest
+#!/usr/bin/env bash
+#Command to install the tester:
+# npm install -i loadtest
 
-#load test on /
-loadtest -t 3600 --timeout 5000 http://192.168.2.129/
+TEST_IP="192.168.2.131"
+TEST_TIME=10
+LOG_FILE=psychic-http-loadtest.log
+CONCURRENT=4
 
-#load test on /endpoint/api
-loadtest -t 60 --timeout 5000 -P '{"foo":"bar"}' http://192.168.2.129/api
-loadtest -t 60 --timeout 5000 'http://192.168.2.129/api?foo=bar'
+if test -f "$LOG_FILE"; then
+  rm $LOG_FILE
+fi
 
-#load test on /ws
-loadtest -t 60 --timeout 5000 'ws://192.168.2.129/ws'
+echo "Testing http://$TEST_IP/"
+loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/ --quiet >> $LOG_FILE
+
+echo "Testing http://$TEST_IP/api"
+loadtest -t $TEST_TIME --timeout 5000 -P '{"foo":"bar"}' http://$TEST_IP/api --quiet >> $LOG_FILE
+
+echo "Testing http://$TEST_IP/ws"
+loadtest -t $TEST_TIME --timeout 5000 "ws://$TEST_IP/ws" --quiet 2> /dev/null >> $LOG_FILE
+
+echo "Testing http://$TEST_IP/alien.png"
+loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/alien.png --quiet >> $LOG_FILE
 
 #some basic test commands
-curl http://192.168.2.129/
-curl 'http://192.168.2.129/api?foo=bar'
-curl -d '{"foo":"bar"}' http://192.168.2.129/api
-
-#loadtest -t 3600 --timeout 5000 http://192.168.2.129/
-Target URL:          http://192.168.2.129/
-Max time (s):        3600
-Concurrent clients:  20
-Running on cores:    2
-Agent:               none
-
-Completed requests:  157834
-Total errors:        9
-Total time:          3600.038 s
-Mean latency:        455.3 ms
-Effective rps:       44
-
-Percentage of requests served within a certain time
-  50%      150 ms
-  90%      1153 ms
-  95%      1212 ms
-  99%      3255 ms
- 100%      131129 ms (longest request)
-
-   -1:   9 errors
+# curl http://192.168.2.129/
+# curl 'http://192.168.2.129/api?foo=bar'
+# curl -d '{"foo":"bar"}' http://192.168.2.129/api
