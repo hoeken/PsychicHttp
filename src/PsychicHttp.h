@@ -2,10 +2,12 @@
 #define PsychicHttp_h
 
 #define CORE_DEBUG_LEVEL ARDUHAL_LOG_LEVEL_WARN
-#define MAX_COOKIE_SIZE 256
 #define PH_TAG "http"
 
+#define MAX_COOKIE_SIZE 256
 #define FILE_CHUNK_SIZE 8*1024
+#define MAX_UPLOAD_SIZE   (200*1024) // 200 KB
+#define MAX_UPLOAD_SIZE_STR "200KB"
 
 //#define ENABLE_KEEPALIVE
 #define ENABLE_SERVE_STATIC
