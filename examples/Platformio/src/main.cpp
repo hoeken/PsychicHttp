@@ -119,8 +119,8 @@ void setup()
       {
         server_cert = fp.readString();
 
-        Serial.println("Server Cert:");
-        Serial.println(server_cert);
+        // Serial.println("Server Cert:");
+        // Serial.println(server_cert);
       }
       else
       {
@@ -134,8 +134,8 @@ void setup()
       {
         server_key = fp2.readString();
 
-        Serial.println("Server Key:");
-        Serial.println(server_key);
+        // Serial.println("Server Key:");
+        // Serial.println(server_key);
       }
       else
       {
