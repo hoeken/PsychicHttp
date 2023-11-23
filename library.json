@@ -1,7 +1,8 @@
 {
   "name": "PsychicHttp",
-  "keywords": "network,http,tcp,udp,ssl,tls",
+  "version": "1.0.0",
   "description": "Arduino style wrapper around ESP-IDF HTTP library. HTTP server with SSL + websockets. Works on esp32 and probably esp8266",
+  "keywords": "network,http,https,tcp,ssl,tls,websocket,espasyncwebserver",
   "repository":
   {
     "type": "git",
@@ -15,37 +16,33 @@
       "maintainer": true
     }
   ],
+  "license" : "MIT"
   "examples": [
     {
-      "name": "simple_http_server",
-      "base": "examples/simple_http_server",
+      "name": "Platformio",
+      "base": "examples/Platformio",
       "files": [
-        "src/simple_http_server.cpp"
-      ]
-    },
-    {
-      "name": "websocket_chat",
-      "base": "examples/websocket_chat",
-      "files": [
-        "src/websocket_chat.cpp"
+        "src/main.cpp"
       ]
     }
   ],
-  "version": "1.0.0",
-  "frameworks": "*",
+  "frameworks": "arduino",
   "platforms": "espressif32",
   "dependencies": [
     {
+      "owner": "bblanchon",
       "name": "ArduinoTrace",
-      "version": "~1.2.0"
+      "version": "^1.2.0"
     },
     {
+      "owner": "rzeldent",
       "name" : "micro-http-status",
-      "version": "~1.0.3"
+      "version": "^1.0.3"
     },
     {
+      "owner": "plageoj",
       "name" : "UrlEncode",
-      "version" : "~1.0.1"
+      "version" : "^1.0.1"
     }
   ]
 }
