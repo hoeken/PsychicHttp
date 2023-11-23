@@ -3,9 +3,8 @@
 # npm install -i loadtest
 
 TEST_IP="192.168.2.131"
-TEST_TIME=10
+TEST_TIME=21600
 LOG_FILE=psychic-http-loadtest.log
-CONCURRENT=4
 
 if test -f "$LOG_FILE"; then
   rm $LOG_FILE
