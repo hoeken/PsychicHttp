@@ -113,9 +113,9 @@ Percentage of requests served within a certain time
 * 100-continue support?
 * figure out file uploads
 * copy other nice features from ESPAsyncServer and Arduino WebServer
-    https://github.com/me-no-dev/ESPAsyncWebServer
-    https://github.com/khoih-prog/WiFiWebServer
-    https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer
+    * https://github.com/me-no-dev/ESPAsyncWebServer
+    * https://github.com/khoih-prog/WiFiWebServer
+    * https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer
 * convert examples
 * test in arduino IDE
 * check out http_server/async_handlers/main/main.c for true multithreaded performance!
