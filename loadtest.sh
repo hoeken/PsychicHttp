@@ -23,7 +23,9 @@ echo "Testing http://$TEST_IP/alien.png"
 loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/alien.png --quiet >> $LOG_FILE
 
 #some basic test commands
-# curl http://192.168.2.129/
-# curl 'http://192.168.2.129/api?foo=bar'
-# curl -d '{"foo":"bar"}' http://192.168.2.129/api
-# curl -i -X POST -T src/PsychicHttp.cpp 'http://192.168.2.129/upload'
+# curl http://192.168.2.131/
+# curl 'http://192.168.2.131/api?foo=bar'
+# curl -d '{"foo":"bar"}' http://192.168.2.131/api
+# curl -i -X POST -T src/PsychicHttp.cpp 'http://192.168.2.131/upload'
+# curl -i -X POST -T src/PsychicHttp.cpp 'http://192.168.2.131/upload?_filename=PsychicHttp.cpp'
+# curl -i -X POST -T src/PsychicHttp.cpp 'http://192.168.2.131/upload/PsychicHttp2.cpp'

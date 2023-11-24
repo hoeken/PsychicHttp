@@ -34,7 +34,15 @@ struct HTTPHeader {
   char * value;
 };
 
-//TODO: not quite used yet.
+enum Disposition { NONE, INLINE, ATTACHMENT, FORM_DATA};
+
+struct ContentDisposition {
+  Disposition disposition;
+  String filename;
+  String name;
+};
+
+//TODO: not quite used yet. for content-disposition
 struct MultipartContent {
   char * content_type;
   char * name;
@@ -147,6 +155,7 @@ class PsychicHttpServerRequest {
     const String contentType();
     size_t contentLength();
     const String& body();
+    const ContentDisposition getContentDisposition();
 
     const String queryString();
     bool hasParam(const char *key);

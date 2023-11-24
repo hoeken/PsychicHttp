@@ -91,6 +91,32 @@ bool connectToWifi()
   return false;
 }
 
+esp_err_t uploadHandler(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)
+{
+  File file;
+  String path = "/www/" + filename;
+  Serial.println("Writing to: " + path);
+
+  //our first call?
+  if (!index)
+    file = LittleFS.open(path, FILE_WRITE);
+  else
+    file = LittleFS.open(path, FILE_APPEND);
+  
+  if(!file) {
+    Serial.println("Failed to open file");
+    return ESP_FAIL;
+  }
+
+  if(!file.write(data, len)) {
+    Serial.println("Write failed");
+    return ESP_FAIL;
+  }
+
+  file.close();
+  return ESP_OK;
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -284,37 +310,14 @@ void setup()
       return response.send();
     });
 
-    server.on("/upload", HTTP_POST)
-      ->onUpload([] (PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)
-      {
-        File file;
-        String path = "/www/" + filename;
-        Serial.println("Writing to: " + path);
+    //single point basic file upload - POST to /upload?_filename=filename.ext
+    server.on("/upload", HTTP_POST)->onUpload(uploadHandler);
 
-        //our first call?
-        if (!index)
-          file = LittleFS.open(path, FILE_WRITE);
-        else
-          file = LittleFS.open(path, FILE_APPEND);
-        
-        if(!file) {
-          Serial.println("Failed to open file");
-          return ESP_FAIL;
-        }
-
-        if(!file.write(data, len)) {
-          Serial.println("Write failed");
-          return ESP_FAIL;
-        }
-
-        file.close();
-        return ESP_OK;
-      });
-      // ->onRequest([](PsychicHttpServerRequest *request) {
-      //   return request->reply(200);
-      // });
+    //wildcard basic file upload - POST to /upload/filename.ext
+    server.on("/upload/*", HTTP_POST)->onUpload(uploadHandler);
   }
 }
+
 
 void loop()
 {

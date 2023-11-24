@@ -23,6 +23,7 @@ PsychicHttpServer::PsychicHttpServer()
   this->config.stack_size = 10000;
   this->config.open_fn = PsychicHttpServer::openCallback;
   this->config.close_fn = PsychicHttpServer::closeCallback;
+  this->config.uri_match_fn = httpd_uri_match_wildcard;
 
   #ifdef ENABLE_KEEPALIVE
     this->config.global_user_ctx = keep_alive;
@@ -654,22 +655,70 @@ bool PsychicHttpServerRequest::isUpload()
 
 const String PsychicHttpServerRequest::getFilename()
 {
-  //TODO
   //parse the content-disposition header
-  if (this->hasParam("Content-Disposition"))
-    return "content-disposition.txt";
+  if (this->hasHeader("Content-Disposition"))
+  {
+    ContentDisposition cd = this->getContentDisposition();
+    if (cd.filename != "")
+      return cd.filename;
+  }
 
-  //TODO
   //fall back to passed in query string
-  if (this->hasParam("filename"))
-    return this->getParam("filename");
+  if (this->hasParam("_filename"))
+    return this->getParam("_filename");
 
-  //TODO
-  //fall back to parsing it from url
+  //fall back to parsing it from url (useful for wildcard uploads)
+  String uri = this->uri();
+  int filenameStart = uri.lastIndexOf('/') + 1;
+  String filename = uri.substring(filenameStart);
+  if (filename != "")
+    return filename;
 
   //finally, unknown.
+  ESP_LOGE(PH_TAG, "Did not get a valid filename from the upload.");
   return "unknown.txt";
 }
+
+const ContentDisposition PsychicHttpServerRequest::getContentDisposition()
+{
+  ContentDisposition cd;
+  String header = this->header("Content-Disposition");
+  int start;
+  int end;
+
+  if (header.indexOf("form-data") == 0)
+    cd.disposition = FORM_DATA;
+  else if (header.indexOf("attachment") == 0)
+    cd.disposition = ATTACHMENT;
+  else if (header.indexOf("inline") == 0)
+    cd.disposition = INLINE;
+  else 
+    cd.disposition = NONE;
+
+  start = header.indexOf("filename=");
+  if (start)
+  {
+    end = header.indexOf('"', start+10);
+    cd.filename = header.substring(start+10, end-1);
+    DUMP(start);
+    DUMP(end);
+    DUMP(cd.filename);
+  }
+
+  start = header.indexOf("name=");
+  if (start)
+  {
+    end = header.indexOf('"', start+6);
+    cd.name = header.substring(start+6, end-1);
+
+    DUMP(start);
+    DUMP(end);
+    DUMP(cd.name);
+  }
+
+  return cd;
+}
+
 
 esp_err_t PsychicHttpServerRequest::loadBody()
 {

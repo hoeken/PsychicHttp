@@ -14,11 +14,30 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 * Websocket support with onConnect, onMessage, and onClose callbacks
 * HTTPS / SSL support
 * Static fileserving (SPIFFS, LittleFS, etc.)
-* Chunked response (WIP)
-* File uploads (WIP)
+* Chunked response
+* File uploads (Basic, no multipart... yet)
 * No templating system
 * No url rewriting
 * No Async Event Source
+
+# TODO:
+
+* figure out how to call onClose callback specifically for websocket connections
+  * might need to store uri in Endpoint so we can access it.
+* test getting POST parameters
+* 'borrow' other nice features from ESPAsyncServer and Arduino WebServer
+    * https://github.com/me-no-dev/ESPAsyncWebServer
+    * https://github.com/khoih-prog/WiFiWebServer
+    * https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer
+* convert examples
+* test in arduino IDE
+
+# Roadmap:
+
+* 100-continue support?
+* multipart file uploads
+* check out http_server/async_handlers/main/main.c for true multithreaded performance!
+* test with esp-idf 5.1.x
 
 # Performance
 
@@ -107,15 +126,3 @@ Percentage of requests served within a certain time
 
    -1:   1253 errors
 ```
-
-# TODO:
-
-* 100-continue support?
-* figure out file uploads
-* copy other nice features from ESPAsyncServer and Arduino WebServer
-    * https://github.com/me-no-dev/ESPAsyncWebServer
-    * https://github.com/khoih-prog/WiFiWebServer
-    * https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer
-* convert examples
-* test in arduino IDE
-* check out http_server/async_handlers/main/main.c for true multithreaded performance!
