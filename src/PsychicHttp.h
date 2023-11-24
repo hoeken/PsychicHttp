@@ -34,13 +34,21 @@ struct HTTPHeader {
   char * value;
 };
 
+//TODO: not quite used yet.
+struct MultipartContent {
+  char * content_type;
+  char * name;
+  char * filename;
+};
+
+enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
+
+//used for async message sending
 struct async_resp_arg {
     httpd_handle_t hd;
     int fd;
     char *data;
 };
-
-enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
 
 class PsychicHttpServer;
 class PsychicHttpServerRequest;
@@ -106,13 +114,13 @@ class PsychicHttpServerRequest {
     String _body;
     SessionData *_session;
 
-    void loadBody();
-
   public:
     PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req);
     virtual ~PsychicHttpServerRequest();
 
     httpd_req_t *_req;
+
+    esp_err_t loadBody();
 
     virtual bool isUpload() { return false; }
     virtual bool isWebSocket() { return false; }
@@ -188,7 +196,8 @@ class PsychicHttpServerResponse
 };
 
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
-//typedef std::function<size_t(PsychicHttpServerRequest *request, int ev, MongooseString filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpUploadHandler;
+typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpBasicUploadHandler;
+typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpMultipartUploadHandler;
 typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection)> PsychicHttpWebSocketRequestHandler;
 typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection, httpd_ws_frame *frame)> PsychicHttpWebSocketFrameHandler;
 typedef std::function<esp_err_t(httpd_handle_t hd, int sockfd)> PsychicHttpOpenHandler;
@@ -203,7 +212,8 @@ class PsychicHttpServerEndpoint
     http_method method;
 
     PsychicHttpRequestHandler request;
-    //PsychicHttpUploadHandler upload;
+    PsychicHttpBasicUploadHandler upload;
+    PsychicHttpMultipartUploadHandler multipart;
     PsychicHttpWebSocketRequestHandler wsConnect;
     PsychicHttpWebSocketFrameHandler wsFrame;
 
@@ -212,11 +222,13 @@ class PsychicHttpServerEndpoint
     PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method);
 
     PsychicHttpServerEndpoint *onRequest(PsychicHttpRequestHandler handler);
-    // PsychicHttpServerEndpoint *onUpload(PsychicHttpUploadHandler handler);
+    PsychicHttpServerEndpoint *onUpload(PsychicHttpBasicUploadHandler handler);
+    PsychicHttpServerEndpoint *onMultipart(PsychicHttpMultipartUploadHandler handler);
     PsychicHttpServerEndpoint *onConnect(PsychicHttpWebSocketRequestHandler handler);
     PsychicHttpServerEndpoint *onFrame(PsychicHttpWebSocketFrameHandler handler);
 
     static esp_err_t requestHandler(httpd_req_t *req);
+    static esp_err_t uploadHandler(httpd_req_t *req);
     static esp_err_t websocketHandler(httpd_req_t *req);
 };
 
@@ -264,9 +276,14 @@ class PsychicHttpServer
     PsychicHttpServer();
     ~PsychicHttpServer();
 
+    //esp-idf specific stuff
     httpd_handle_t server;
     httpd_config_t config;
     httpd_ssl_config_t ssl_config;
+
+    //some limits on what we will accept
+    unsigned long maxUploadSize = 200 * 1024;
+    unsigned long maxRequestBodySize = 16 * 1024;
 
     #ifdef ENABLE_KEEPALIVE
       wss_keep_alive_config_t keep_alive_config;
