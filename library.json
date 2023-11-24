@@ -19,8 +19,8 @@
   "license" : "LGPL-3.0-or-later",
   "examples": [
     {
-      "name": "Platformio",
-      "base": "examples/Platformio",
+      "name": "platformio",
+      "base": "examples/platformio",
       "files": [
         "src/main.cpp"
       ]
