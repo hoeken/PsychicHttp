@@ -16,7 +16,7 @@
       "maintainer": true
     }
   ],
-  "license" : "MIT",
+  "license" : "LGPL-3.0-or-later",
   "examples": [
     {
       "name": "Platformio",
