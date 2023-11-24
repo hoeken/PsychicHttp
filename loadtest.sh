@@ -26,3 +26,4 @@ loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/alien.png --quiet >> $LOG_
 # curl http://192.168.2.129/
 # curl 'http://192.168.2.129/api?foo=bar'
 # curl -d '{"foo":"bar"}' http://192.168.2.129/api
+# curl -i -X POST -T src/PsychicHttp.cpp 'http://192.168.2.129/upload'

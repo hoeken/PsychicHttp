@@ -145,14 +145,16 @@ void setup()
       fp2.close();
     }
 
+    //setup server config stuff here
+    server.config.max_uri_handlers = 10; //maximum number of uri handlers (.on() calls)
+    server.maxRequestBodySize = 10 * 1024; //maximum non-upload request body size (10kb)
+    server.maxUploadSize = 200 * 1024; //maximum file upload size (200kb)
+
     //do we want secure or not?
     if (app_enable_ssl)
       server.listen(443, server_cert.c_str(), server_key.c_str());
     else
       server.listen(80);
-
-    //lets gooo!
-    server.start();
 
     //basic home page
     server.on("/", HTTP_GET, [](PsychicHttpServerRequest *request) {
@@ -163,6 +165,9 @@ void setup()
 
       return response.send();
     });
+
+    //serve static files from LittleFS/www on /
+    server.serveStatic("/", LittleFS, "/www/");
 
     //a websocket echo server
     server.websocket("/ws")->
@@ -279,7 +284,35 @@ void setup()
       return response.send();
     });
 
-    server.serveStatic("/", LittleFS, "/www/");
+    server.on("/upload", HTTP_POST)
+      ->onUpload([] (PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)
+      {
+        File file;
+        String path = "/www/" + filename;
+        Serial.println("Writing to: " + path);
+
+        //our first call?
+        if (!index)
+          file = LittleFS.open(path, FILE_WRITE);
+        else
+          file = LittleFS.open(path, FILE_APPEND);
+        
+        if(!file) {
+          Serial.println("Failed to open file");
+          return ESP_FAIL;
+        }
+
+        if(!file.write(data, len)) {
+          Serial.println("Write failed");
+          return ESP_FAIL;
+        }
+
+        file.close();
+        return ESP_OK;
+      });
+      // ->onRequest([](PsychicHttpServerRequest *request) {
+      //   return request->reply(200);
+      // });
   }
 }
 

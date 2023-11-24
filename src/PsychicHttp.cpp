@@ -51,13 +51,15 @@ void PsychicHttpServer::destroy(void *ctx)
   delete temp;
 }
 
-void PsychicHttpServer::listen(uint16_t port)
+esp_err_t PsychicHttpServer::listen(uint16_t port)
 {
   this->use_ssl = false;
   this->config.server_port = port;
+
+  return this->_start();
 }
 
-void PsychicHttpServer::listen(uint16_t port, const char *cert, const char *private_key)
+esp_err_t PsychicHttpServer::listen(uint16_t port, const char *cert, const char *private_key)
 {
   this->use_ssl = true;
 
@@ -66,9 +68,11 @@ void PsychicHttpServer::listen(uint16_t port, const char *cert, const char *priv
   this->ssl_config.cacert_len = strlen(cert)+1;
   this->ssl_config.prvtkey_pem = (uint8_t *)private_key;
   this->ssl_config.prvtkey_len = strlen(private_key)+1;
+
+  return this->_start();
 }
 
-bool PsychicHttpServer::start()
+esp_err_t PsychicHttpServer::_start()
 {
   // Prepare keep-alive engine
   #ifdef ENABLE_KEEPALIVE
@@ -96,11 +100,7 @@ bool PsychicHttpServer::start()
   if (ret != ESP_OK)
     ESP_LOGE(PH_TAG, "Add 404 handler failed (%s)", esp_err_to_name(ret)); 
 
-  //how did it go?
-  if (err == ESP_OK)
-    return false;
-  else
-    return true;
+  return ret;
 }
 
 void PsychicHttpServer::stop()
@@ -365,104 +365,134 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onFrame(PsychicHttpWebSoc
 
 esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
 {
-  PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
-  PsychicHttpServerRequest request(self->server, req);
-
-  /* File cannot be larger than a limit */
-  if (req->content_len > self->server->maxRequestBodySize)
-  {
-    ESP_LOGE(PH_TAG, "Request body too large : %d bytes", req->content_len);
-
-    /* Respond with 400 Bad Request */
-    char error[60];
-    sprintf(error, "Request body must be less than %u bytes!", self->server->maxRequestBodySize);
-    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, error);
-
-    /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
-    return ESP_FAIL;
-  }
-
-  //get our body loaded up.
-  esp_err_t err = request.loadBody();
-  if (err != ESP_OK)
-    return err;
-
-  //okay, pass on to our callback.
-  err = self->request(&request);
-
-  return err;
-}
-
-esp_err_t PsychicHttpServerEndpoint::uploadHandler(httpd_req_t *req)
-{
   esp_err_t err = ESP_OK;
 
   PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
   PsychicHttpServerRequest request(self->server, req);
 
-  String filename = "upload.fixme";
-
-  /* File cannot be larger than a limit */
-  if (req->content_len > self->server->maxUploadSize)
+  //is this a file upload?
+  if (request.isUpload())
   {
-    ESP_LOGE(PH_TAG, "File too large : %d bytes", req->content_len);
+    String filename = request.getFilename();
 
-    /* Respond with 400 Bad Request */
-    char error[50];
-    sprintf(error, "File size must be less than %u bytes!", self->server->maxUploadSize);
-    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, error);
-
-    /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
-    return ESP_FAIL;
-  }
-
-  /* Retrieve the pointer to scratch buffer for temporary storage */
-  char *buf = (char *)malloc(FILE_CHUNK_SIZE);
-  int received;
-  unsigned long index = 0; 
-
-  /* Content length of the request gives the size of the file being uploaded */
-  int remaining = req->content_len;
-
-  //is it a multipart request?
-  if (request.multipart())
-  {
-    ESP_LOGE(PH_TAG, "httpd_get_client_list failed!");
-    return ESP_ERR_HTTPD_INVALID_REQ;   
-  }
-  //nope, must be a basic request
-  else
-  {
-    while (remaining > 0)
+    /* File cannot be larger than a limit */
+    if (req->content_len > self->server->maxUploadSize)
     {
-      ESP_LOGI(TAG, "Remaining size : %d", remaining);
-   
-      /* Receive the file part by part into a buffer */
-      if ((received = httpd_req_recv(req, buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)
+      ESP_LOGE(PH_TAG, "File too large : %d bytes", req->content_len);
+
+      /* Respond with 400 Bad Request */
+      char error[50];
+      sprintf(error, "File size must be less than %u bytes!", self->server->maxUploadSize);
+      httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, error);
+
+      /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
+      return ESP_FAIL;
+    }
+
+    //support for the 100 header
+    // if (request.header("Expect").equals("100-continue"))
+    // {
+    //   TRACE();
+    //   char response[] = "100 Continue";
+    //   httpd_socket_send(self->server, httpd_req_to_sockfd(req), response, strlen(response), 0);
+    // }
+
+    /* Retrieve the pointer to scratch buffer for temporary storage */
+    char *buf = (char *)malloc(FILE_CHUNK_SIZE);
+    int received;
+    unsigned long index = 0; 
+
+    /* Content length of the request gives the size of the file being uploaded */
+    int remaining = req->content_len;
+
+    //is it a multipart request?
+    if (request.isMultipart())
+    {
+      ESP_LOGE(PH_TAG,"Multipart uploads not (yet) supported.");
+
+      /* Respond with 400 Bad Request */
+      httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Multipart uploads not (yet) supported.");
+
+      /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
+      //return ESP_ERR_HTTPD_INVALID_REQ;   
+      return ESP_FAIL;
+    }
+    //nope, must be a basic request
+    else
+    {
+      while (remaining > 0)
       {
-        /* Retry if timeout occurred */
-        if (received == HTTPD_SOCK_ERR_TIMEOUT)
-          continue;
-        //bail if we got an error
-        else if (received == HTTPD_SOCK_ERR_FAIL)
+        ESP_LOGI(TAG, "Remaining size : %d", remaining);
+    
+        /* Receive the file part by part into a buffer */
+        if ((received = httpd_req_recv(req, buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)
         {
-          ESP_LOGE(PH_TAG, "Socket error");
+          /* Retry if timeout occurred */
+          if (received == HTTPD_SOCK_ERR_TIMEOUT)
+            continue;
+          //bail if we got an error
+          else if (received == HTTPD_SOCK_ERR_FAIL)
+          {
+            ESP_LOGE(PH_TAG, "Socket error");
+            err = ESP_FAIL;
+            break;
+          }
+        }
+
+        //call our upload callback here.
+        if (self->upload != NULL)
+        {
+          err = self->upload(&request, filename, index, (uint8_t *)buf, received);
+          if (err != ESP_OK)
+            break;
+        }
+        else
+        {
+          ESP_LOGE(PH_TAG, "No upload callback specified!");
           err = ESP_FAIL;
           break;
         }
+
+        /* Keep track of remaining size of the file left to be uploaded */
+        remaining -= received;
+        index += received;
       }
-
-      //call our upload callback here.
-      err = self->upload(&request, filename, index, (uint8_t *)buf, received);
-
-      /* Keep track of remaining size of the file left to be uploaded */
-      remaining -= received;
-      index += received;
     }
-  }
 
-  //dont forget to free our buffer
-  free(buf);
+    //we can also call onRequest for some final processing and response
+    if (self->request != NULL)
+      err = self->request(&request);
+    else
+      err = request.reply(200);
+
+    //dont forget to free our buffer
+    free(buf);
+  }
+  //no, its a regular request
+  else
+  {
+    /* Request body cannot be larger than a limit */
+    if (req->content_len > self->server->maxRequestBodySize)
+    {
+      ESP_LOGE(PH_TAG, "Request body too large : %d bytes", req->content_len);
+
+      /* Respond with 400 Bad Request */
+      char error[60];
+      sprintf(error, "Request body must be less than %u bytes!", self->server->maxRequestBodySize);
+      httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, error);
+
+      /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
+      return ESP_FAIL;
+    }
+
+    //get our body loaded up.
+    esp_err_t err = request.loadBody();
+    if (err != ESP_OK)
+      return err;
+
+    //okay, pass on to our callback.
+    err = self->request(&request);
+  }
 
   return err;
 }
@@ -560,7 +590,8 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
 
 PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req) :
   _server(server),
-  _req(req)
+  _req(req),
+  _tempObject(NULL)
 {
   //handle our session data
   if (req->sess_ctx != NULL)
@@ -593,6 +624,9 @@ PsychicHttpServerRequest::~PsychicHttpServerRequest()
   //   delete this->_response;
   //   this->_response = NULL;
   // }
+
+  if (_tempObject != NULL)
+    free(_tempObject);
 }
 
 void PsychicHttpServerRequest::freeSession(void *ctx)
@@ -602,6 +636,39 @@ void PsychicHttpServerRequest::freeSession(void *ctx)
     SessionData *session = (SessionData*)ctx;
     delete session;
   }
+}
+
+bool PsychicHttpServerRequest::isUpload()
+{
+  if (this->header("Expect").equals("100-continue"))
+    return true;
+    
+  if (this->hasHeader("Content-Disposition"))
+    return true;
+
+  if (this->isMultipart())
+    return true;
+
+  return false;
+}
+
+const String PsychicHttpServerRequest::getFilename()
+{
+  //TODO
+  //parse the content-disposition header
+  if (this->hasParam("Content-Disposition"))
+    return "content-disposition.txt";
+
+  //TODO
+  //fall back to passed in query string
+  if (this->hasParam("filename"))
+    return this->getParam("filename");
+
+  //TODO
+  //fall back to parsing it from url
+
+  //finally, unknown.
+  return "unknown.txt";
 }
 
 esp_err_t PsychicHttpServerRequest::loadBody()
@@ -698,7 +765,7 @@ const String& PsychicHttpServerRequest::body()
   return this->_body;
 }
 
-bool PsychicHttpServerRequest::multipart()
+bool PsychicHttpServerRequest::isMultipart()
 {
   const String& type = this->contentType();
 

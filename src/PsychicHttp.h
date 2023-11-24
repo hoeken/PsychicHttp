@@ -118,12 +118,14 @@ class PsychicHttpServerRequest {
     PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req);
     virtual ~PsychicHttpServerRequest();
 
+    void *_tempObject;
     httpd_req_t *_req;
 
     esp_err_t loadBody();
 
-    virtual bool isUpload() { return false; }
-    virtual bool isWebSocket() { return false; }
+    bool isUpload();
+    bool isMultipart();
+    //virtual bool isWebSocket() { return false; }
 
     //int headers();
     const String header(const char *name);
@@ -145,11 +147,12 @@ class PsychicHttpServerRequest {
     const String contentType();
     size_t contentLength();
     const String& body();
-    bool multipart();
 
     const String queryString();
     bool hasParam(const char *key);
     const String getParam(const char *name);
+
+    const String getFilename();
 
     const String _extractParam(const String& authReq, const String& param, const char delimit);
     const String _getRandomHexString();
@@ -228,7 +231,6 @@ class PsychicHttpServerEndpoint
     PsychicHttpServerEndpoint *onFrame(PsychicHttpWebSocketFrameHandler handler);
 
     static esp_err_t requestHandler(httpd_req_t *req);
-    static esp_err_t uploadHandler(httpd_req_t *req);
     static esp_err_t websocketHandler(httpd_req_t *req);
 };
 
@@ -272,6 +274,8 @@ class PsychicHttpServer
     bool use_ssl = false;
     std::list<PsychicHttpServerEndpoint *> endpoints;
 
+    esp_err_t _start();
+
   public:
     PsychicHttpServer();
     ~PsychicHttpServer();
@@ -296,9 +300,8 @@ class PsychicHttpServer
 
     static void destroy(void *ctx);
 
-    void listen(uint16_t port);
-    void listen(uint16_t port, const char *cert, const char *private_key);
-    bool start();
+    esp_err_t listen(uint16_t port);
+    esp_err_t listen(uint16_t port, const char *cert, const char *private_key);
     void stop();
 
     PsychicHttpServerEndpoint *on(const char* uri);
