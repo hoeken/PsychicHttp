@@ -20,14 +20,102 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 * No url rewriting
 * No Async Event Source
 
+# Performance
+
+Here are the results of running the ./loadtest.sh script over 24 hours:
+
+```
+Target URL:          http://192.168.2.131/
+Max time (s):        21600
+Concurrent clients:  20
+Running on cores:    2
+Agent:               none
+
+Completed requests:  833471
+Total errors:        192
+Total time:          21600.076 s
+Mean latency:        517.5 ms
+Effective rps:       39
+
+Percentage of requests served within a certain time
+  50%      129 ms
+  90%      1126 ms
+  95%      1225 ms
+  99%      7278 ms
+ 100%      131208 ms (longest request)
+
+   -1:   192 errors
+
+Target URL:          http://192.168.2.131/api
+Max time (s):        21600
+Concurrent clients:  20
+Running on cores:    2
+Agent:               none
+
+Completed requests:  275165
+Total errors:        1183
+Total time:          21600.086 s
+Mean latency:        1567.3 ms
+Effective rps:       13
+
+Percentage of requests served within a certain time
+  50%      197 ms
+  90%      1392 ms
+  95%      2188 ms
+  99%      31629 ms
+ 100%      131206 ms (longest request)
+
+   -1:   1183 errors
+
+Target URL:          ws://192.168.2.131/ws
+Max time (s):        21600
+Concurrent clients:  20
+Running on cores:    2
+Agent:               none
+
+Completed requests:  293375
+Total errors:        0
+Total time:          21600.217 s
+Mean latency:        422.4 ms
+Effective rps:       14
+
+Percentage of requests served within a certain time
+  50%      120 ms
+  90%      1044 ms
+  95%      1971 ms
+  99%      2503 ms
+ 100%      6499 ms (longest request)
+
+Target URL:          http://192.168.2.131/alien.png
+Max time (s):        21600
+Concurrent clients:  20
+Running on cores:    2
+Agent:               none
+
+Completed requests:  203181
+Total errors:        1253
+Total time:          21600.016 s
+Mean latency:        2122.5 ms
+Effective rps:       9
+
+Percentage of requests served within a certain time
+  50%      645 ms
+  90%      786 ms
+  95%      3674 ms
+  99%      32203 ms
+ 100%      131199 ms (longest request)
+
+   -1:   1253 errors
+```
+
 # TODO:
 
 * 100-continue support?
 * figure out file uploads
 * copy other nice features from ESPAsyncServer and Arduino WebServer
-    https://github.com/me-no-dev/ESPAsyncWebServer
-    https://github.com/khoih-prog/WiFiWebServer
-    https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer
+    * https://github.com/me-no-dev/ESPAsyncWebServer
+    * https://github.com/khoih-prog/WiFiWebServer
+    * https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer
 * convert examples
 * test in arduino IDE
 * check out http_server/async_handlers/main/main.c for true multithreaded performance!
