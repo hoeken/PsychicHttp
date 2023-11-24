@@ -12,14 +12,11 @@ PsychicHttpServer::PsychicHttpServer()
 {
   this->openHandler = NULL;
   this->closeHandler = NULL;
+  this->staticHandler = NULL;
 
   this->defaultEndpoint = PsychicHttpServerEndpoint(this, HTTP_GET);
   this->onNotFound(PsychicHttpServer::defaultNotFoundHandler);
   
-  #ifdef ENABLE_SERVE_STATIC
-    this->staticHandler = NULL;
-  #endif
-
   //for a regular server
   this->config = HTTPD_DEFAULT_CONFIG();
   this->config.max_uri_handlers = 8;
@@ -193,17 +190,14 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
 
     esp_err_t result;
 
-    #ifdef ENABLE_SERVE_STATIC
-      if (server->staticHandler != NULL)
-      {
-        if (server->staticHandler->canHandle(&request))
-          result = server->staticHandler->handleRequest(&request);
-        else
-          result = server->defaultEndpoint.request(&request);
-      }
-    #else
-      result = server->defaultEndpoint.request(&request);
-    #endif
+    if (server->staticHandler != NULL)
+    {
+      if (server->staticHandler->canHandle(&request))
+        result = server->staticHandler->handleRequest(&request);
+      else
+        result = server->defaultEndpoint.request(&request);
+    }
+
     return result;
   #else
     return ESP_OK;
@@ -269,15 +263,13 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   #endif
 }
 
-#ifdef ENABLE_SERVE_STATIC
-  PsychicStaticFileHandler& PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control)
-  {
-    PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, fs, path, cache_control);
-    this->staticHandler = handler;
+PsychicStaticFileHandler& PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control)
+{
+  PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, fs, path, cache_control);
+  this->staticHandler = handler;
 
-    return *handler;
-  }
-#endif
+  return *handler;
+}
 
 void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
 {
@@ -1204,7 +1196,6 @@ void PsychicHttpWebSocketConnection::queueMessageCallback(void *arg)
   free(resp_arg);
 }
 
-#ifdef ENABLE_SERVE_STATIC
 /*************************************/
 /*  PsychicStaticFileHandler         */
 /*************************************/
@@ -1570,5 +1561,3 @@ esp_err_t PsychicHttpFileResponse::send()
   }
   return ESP_OK;
 }
-
-#endif //ENABLE_SERVE_STATIC
