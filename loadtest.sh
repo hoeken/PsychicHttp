@@ -22,6 +22,10 @@ loadtest -t $TEST_TIME --timeout 5000 "ws://$TEST_IP/ws" --quiet 2> /dev/null >>
 echo "Testing http://$TEST_IP/alien.png"
 loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/alien.png --quiet >> $LOG_FILE
 
+# probably don't want to do too many writes to flash
+# echo "Testing http://$TEST_IP/upload/PsychicHttp.cpp"
+# loadtest -t $TEST_TIME --timeout 10000 http://$TEST_IP/upload/PsychicHttp.cpp -p src/PsychicHttp.cpp --quiet >> $LOG_FILE
+
 #some basic test commands
 # curl http://192.168.2.131/
 # curl 'http://192.168.2.131/api?foo=bar'

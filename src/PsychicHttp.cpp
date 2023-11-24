@@ -325,11 +325,13 @@ PsychicHttpServerEndpoint::PsychicHttpServerEndpoint() :
   request(NULL),
   upload(NULL),
   wsConnect(NULL),
-  wsFrame(NULL)
+  wsFrame(NULL),
+  isUpload(false)
 {
 }
 
 PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method) :
+  isUpload(false),
   server(server),
   method(method),
   request(NULL),
@@ -346,21 +348,25 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onRequest(PsychicHttpRequ
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onUpload(PsychicHttpBasicUploadHandler handler) {
   this->upload = handler;
+  this->isUpload = true;
   return this;
 }
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onMultipart(PsychicHttpMultipartUploadHandler handler) {
   this->multipart = handler;
+  this->isUpload = true;
   return this;
 }
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onConnect(PsychicHttpWebSocketRequestHandler handler) {
   this->wsConnect = handler;
+  this->isWebsocket = true;
   return this;
 }
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onFrame(PsychicHttpWebSocketFrameHandler handler) {
   this->wsFrame = handler;
+  this->isWebsocket = true;
   return this;
 }
 
@@ -372,7 +378,7 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
   PsychicHttpServerRequest request(self->server, req);
 
   //is this a file upload?
-  if (request.isUpload())
+  if (self->isUpload)
   {
     String filename = request.getFilename();
 
@@ -390,7 +396,7 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
       return ESP_FAIL;
     }
 
-    //support for the 100 header
+    //TODO: support for the 100 header
     // if (request.header("Expect").equals("100-continue"))
     // {
     //   TRACE();
@@ -492,7 +498,10 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
       return err;
 
     //okay, pass on to our callback.
-    err = self->request(&request);
+    if (self->request != NULL)
+      err = self->request(&request);
+    else
+      err = request.reply(500, "text/html", "No onRequest callback specififed.");
   }
 
   return err;
@@ -639,19 +648,19 @@ void PsychicHttpServerRequest::freeSession(void *ctx)
   }
 }
 
-bool PsychicHttpServerRequest::isUpload()
-{
-  if (this->header("Expect").equals("100-continue"))
-    return true;
+// bool PsychicHttpServerRequest::isUpload()
+// {
+//   if (this->header("Expect").equals("100-continue"))
+//     return true;
     
-  if (this->hasHeader("Content-Disposition"))
-    return true;
+//   if (this->hasHeader("Content-Disposition"))
+//     return true;
 
-  if (this->isMultipart())
-    return true;
+//   if (this->isMultipart())
+//     return true;
 
-  return false;
-}
+//   return false;
+// }
 
 const String PsychicHttpServerRequest::getFilename()
 {
@@ -1075,17 +1084,16 @@ esp_err_t PsychicHttpServerRequest::reply(const char *content)
   return response.send();
 }
 
-esp_err_t PsychicHttpServerRequest::reply(int code, const char *content)
-{
-  PsychicHttpServerResponse response(this);
+// esp_err_t PsychicHttpServerRequest::reply(int code, const char *content)
+// {
+//   PsychicHttpServerResponse response(this);
 
-  response.setCode(code);
-  response.setContentType("text/plain");
-  response.setContent(content);
+//   response.setCode(code);
+//   response.setContentType("text/plain");
+//   response.setContent(content);
 
-  return response.send();
-}
-
+//   return response.send();
+// }
 
 esp_err_t PsychicHttpServerRequest::reply(int code, const char *contentType, const char *content)
 {
@@ -1392,14 +1400,10 @@ bool PsychicStaticFileHandler::_getFile(PsychicHttpServerRequest *request)
   // Remove the found uri
   String path = request->uri().substring(_uri.length());
 
-  DUMP(path);
-
   // We can skip the file check and look for default if request is to the root of a directory or that request path ends with '/'
   bool canSkipFileCheck = (_isDir && path.length() == 0) || (path.length() && path[path.length()-1] == '/');
 
   path = _path + path;
-
-  DUMP(path);
 
   // Do we have a file or .gz file
   if (!canSkipFileCheck && _fileExists(path))
@@ -1413,8 +1417,6 @@ bool PsychicStaticFileHandler::_getFile(PsychicHttpServerRequest *request)
   if (path.length() == 0 || path[path.length()-1] != '/')
     path += "/";
   path += _default_file;
-
-  DUMP(path);
 
   return _fileExists(path);
 }

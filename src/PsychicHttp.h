@@ -131,7 +131,7 @@ class PsychicHttpServerRequest {
 
     esp_err_t loadBody();
 
-    bool isUpload();
+    //bool isUpload();
     bool isMultipart();
     //virtual bool isWebSocket() { return false; }
 
@@ -171,8 +171,8 @@ class PsychicHttpServerRequest {
     esp_err_t redirect(const char *url);
     esp_err_t reply(int code);
     esp_err_t reply(const char *content);
-    esp_err_t reply(int code, const char *content);
-    esp_err_t reply(int code, const char *contentType, const char *content="");
+    //esp_err_t reply(int code, const char *content);
+    esp_err_t reply(int code, const char *contentType, const char *content);
 };
 
 class PsychicHttpServerResponse
@@ -232,6 +232,9 @@ class PsychicHttpServerEndpoint
   public:
     PsychicHttpServerEndpoint();
     PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method);
+
+    bool isUpload;
+    bool isWebsocket;
 
     PsychicHttpServerEndpoint *onRequest(PsychicHttpRequestHandler handler);
     PsychicHttpServerEndpoint *onUpload(PsychicHttpBasicUploadHandler handler);
