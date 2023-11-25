@@ -170,7 +170,7 @@ esp_err_t PsychicHttpServer::defaultNotFoundHandler(PsychicHttpServerRequest *re
   return ESP_OK;
 }
 
-void PsychicHttpServer::onOpen(PsychicHttpOpenHandler handler) {
+void PsychicHttpServer::onOpen(PsychicHttpConnectionHandler handler) {
   this->openHandler = handler;
 }
 
@@ -186,12 +186,12 @@ esp_err_t PsychicHttpServer::openCallback(httpd_handle_t hd, int sockfd)
   //do we have a callback attached?
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
   if (server->openHandler != NULL)
-    server->openHandler(hd, sockfd);
+    server->openHandler(server, sockfd);
 
   return ESP_OK;
 }
 
-void PsychicHttpServer::onClose(PsychicHttpOpenHandler handler) {
+void PsychicHttpServer::onClose(PsychicHttpConnectionHandler handler) {
   this->closeHandler = handler;
 }
 
@@ -199,13 +199,19 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
 {
   ESP_LOGI(PH_TAG, "Client disconnected %d", sockfd);
 
-  if (httpd_ws_get_fd_info(hd, sockfd) == HTTPD_WS_CLIENT_WEBSOCKET)
-    ESP_LOGI(PH_TAG, "Websocket disconnected %d", sockfd);
+  PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
+
+  //remove it from our connections list and do callback if needed
+  server->websocketConnections.remove(sockfd);
+  for (PsychicHttpServerEndpoint * endpoint : server->endpoints){
+    if (endpoint->isWebsocket && endpoint->_wsCloseCallback) {
+      endpoint->_wsCloseCallback(server, sockfd);
+    }
+  }
 
   //do we have a callback attached?
-  PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
   if (server->closeHandler != NULL)
-    server->closeHandler(hd, sockfd);
+    server->closeHandler(server, sockfd);
 
   //we need to close our own socket here!
   close(sockfd);
@@ -315,6 +321,12 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onConnect(PsychicHttpWebS
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onFrame(PsychicHttpWebSocketFrameHandler handler) {
   this->_wsFrameCallback = handler;
+  this->isWebsocket = true;
+  return this;
+}
+
+PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onClose(PsychicHttpConnectionHandler handler) {
+  this->_wsCloseCallback = handler;
   this->isWebsocket = true;
   return this;
 }
@@ -494,9 +506,14 @@ esp_err_t PsychicHttpServerEndpoint::_multipartUploadHandler(PsychicHttpServerRe
 esp_err_t PsychicHttpServerEndpoint::_websocketHandler(PsychicHttpWebSocketRequest &request)
 {
   // beginning of the ws URI handler and our onConnect hook
-  if (request._req->method == HTTP_GET) {
-    if (this->_wsConnectCallback != NULL)
+  if (request._req->method == HTTP_GET)
+  {
+    if (this->_wsConnectCallback != NULL)  
       this->_wsConnectCallback(&request);
+
+    //add it to our list of connections
+    this->server->websocketConnections.push_back(httpd_req_to_sockfd(request._req));
+
     return ESP_OK;
   }
 

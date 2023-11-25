@@ -200,13 +200,12 @@ class PsychicHttpServerResponse
     esp_err_t send();
 };
 
+typedef std::function<esp_err_t(PsychicHttpServer *server, int sockfd)> PsychicHttpConnectionHandler;
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpBasicUploadHandler;
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpMultipartUploadHandler;
 typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection)> PsychicHttpWebSocketRequestHandler;
 typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection, httpd_ws_frame *frame)> PsychicHttpWebSocketFrameHandler;
-typedef std::function<esp_err_t(httpd_handle_t hd, int sockfd)> PsychicHttpOpenHandler;
-typedef std::function<esp_err_t(httpd_handle_t hd, int sockfd)> PsychicHttpCloseHandler;
 
 class PsychicHttpServerEndpoint
 {
@@ -221,6 +220,7 @@ class PsychicHttpServerEndpoint
     PsychicHttpMultipartUploadHandler _multipartCallback;
     PsychicHttpWebSocketRequestHandler _wsConnectCallback;
     PsychicHttpWebSocketFrameHandler _wsFrameCallback;
+    PsychicHttpConnectionHandler _wsCloseCallback;
 
   public:
     PsychicHttpServerEndpoint();
@@ -234,6 +234,7 @@ class PsychicHttpServerEndpoint
     PsychicHttpServerEndpoint *onMultipart(PsychicHttpMultipartUploadHandler handler);
     PsychicHttpServerEndpoint *onConnect(PsychicHttpWebSocketRequestHandler handler);
     PsychicHttpServerEndpoint *onFrame(PsychicHttpWebSocketFrameHandler handler);
+    PsychicHttpServerEndpoint *onClose(PsychicHttpConnectionHandler handler);
 
     static esp_err_t requestHandler(httpd_req_t *req);
 
@@ -295,13 +296,15 @@ class PsychicHttpServer
     httpd_config_t config;
     httpd_ssl_config_t ssl_config;
 
+    std::list<int> websocketConnections;
+
     //some limits on what we will accept
     unsigned long maxUploadSize = 200 * 1024;
     unsigned long maxRequestBodySize = 16 * 1024;
 
     PsychicHttpServerEndpoint defaultEndpoint;
-    PsychicHttpOpenHandler openHandler;
-    PsychicHttpCloseHandler closeHandler;
+    PsychicHttpConnectionHandler openHandler;
+    PsychicHttpConnectionHandler closeHandler;
 
     static void destroy(void *ctx);
 
@@ -320,8 +323,8 @@ class PsychicHttpServer
     static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
     static esp_err_t defaultNotFoundHandler(PsychicHttpServerRequest *request);
 
-    void onOpen(PsychicHttpOpenHandler handler);
-    void onClose(PsychicHttpCloseHandler handler);
+    void onOpen(PsychicHttpConnectionHandler handler);
+    void onClose(PsychicHttpConnectionHandler handler);
     static esp_err_t openCallback(httpd_handle_t hd, int sockfd);
     static void closeCallback(httpd_handle_t hd, int sockfd);
 

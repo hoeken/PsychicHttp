@@ -205,6 +205,10 @@ void setup()
       onConnect([](PsychicHttpWebSocketRequest *request) {
         Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
         return ESP_OK;
+      })->
+      onClose([](PsychicHttpServer *server, int sockfd) {
+        Serial.printf("[socket] connection closed (#%u)\n", sockfd);
+        return ESP_OK;
       });
 
     //example callback everytime a connection is opened

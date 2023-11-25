@@ -22,8 +22,6 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 
 # TODO:
 
-* figure out how to call onClose callback specifically for websocket connections
-  * might need to store uri in Endpoint so we can access it.
 * test getting POST parameters
 * 'borrow' other nice features from ESPAsyncServer and Arduino WebServer
     * https://github.com/me-no-dev/ESPAsyncWebServer
