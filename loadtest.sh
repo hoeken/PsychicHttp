@@ -3,7 +3,7 @@
 # npm install -i loadtest
 
 TEST_IP="192.168.2.131"
-TEST_TIME=21600
+TEST_TIME=60
 LOG_FILE=psychic-http-loadtest.log
 
 if test -f "$LOG_FILE"; then
