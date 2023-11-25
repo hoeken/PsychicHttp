@@ -202,10 +202,20 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
 
   //remove it from our connections list and do callback if needed
-  server->websocketConnections.remove(sockfd);
-  for (PsychicHttpServerEndpoint * endpoint : server->endpoints){
-    if (endpoint->isWebsocket && endpoint->_wsCloseCallback) {
-      endpoint->_wsCloseCallback(server, sockfd);
+  for (PsychicHttpServerEndpoint * endpoint : server->endpoints)
+  {
+    if (endpoint->isWebsocket)
+    {
+      // Check if the value is in the list
+      auto it = std::find(endpoint->websocketConnections.begin(), endpoint->websocketConnections.end(), sockfd);
+      if (it != endpoint->websocketConnections.end())
+      {
+        endpoint->websocketConnections.erase(it);
+
+        //callback?
+        if (endpoint->_wsCloseCallback != NULL)
+          endpoint->_wsCloseCallback(server, sockfd);
+      }    
     }
   }
 
@@ -512,7 +522,7 @@ esp_err_t PsychicHttpServerEndpoint::_websocketHandler(PsychicHttpWebSocketReque
       this->_wsConnectCallback(&request);
 
     //add it to our list of connections
-    this->server->websocketConnections.push_back(httpd_req_to_sockfd(request._req));
+    this->websocketConnections.push_back(httpd_req_to_sockfd(request._req));
 
     return ESP_OK;
   }

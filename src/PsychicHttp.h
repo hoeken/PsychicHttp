@@ -226,6 +226,8 @@ class PsychicHttpServerEndpoint
     PsychicHttpServerEndpoint();
     PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method);
 
+    std::list<int> websocketConnections;
+
     bool isUpload;
     bool isWebsocket;
 
@@ -295,8 +297,6 @@ class PsychicHttpServer
     httpd_handle_t server;
     httpd_config_t config;
     httpd_ssl_config_t ssl_config;
-
-    std::list<int> websocketConnections;
 
     //some limits on what we will accept
     unsigned long maxUploadSize = 200 * 1024;
