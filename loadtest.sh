@@ -24,12 +24,12 @@ loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/alien.png --quiet >> $LOG_
 
 # probably don't want to do too many writes to flash
 # echo "Testing http://$TEST_IP/upload/PsychicHttp.cpp"
-# loadtest -t $TEST_TIME --timeout 10000 http://$TEST_IP/upload/PsychicHttp.cpp -p src/PsychicHttp.cpp --quiet >> $LOG_FILE
+# loadtest -t $TEST_TIME --timeout 30000 http://$TEST_IP/upload/loadtest.sh -p loadtest.sh --quiet >> $LOG_FILE
 
 #some basic test commands
 # curl http://192.168.2.131/
 # curl 'http://192.168.2.131/api?foo=bar'
 # curl -d '{"foo":"bar"}' http://192.168.2.131/api
 # curl -i -X POST -T src/PsychicHttp.cpp 'http://192.168.2.131/upload'
-# curl -i -X POST -T src/PsychicHttp.cpp 'http://192.168.2.131/upload?_filename=PsychicHttp.cpp'
-# curl -i -X POST -T src/PsychicHttp.cpp 'http://192.168.2.131/upload/PsychicHttp2.cpp'
+# curl -i -X POST -T loadtest.sh 'http://192.168.2.131/upload?_filename=loadtest.sh'
+# curl -i -X POST -T loadtest.sh 'http://192.168.2.131/upload/loadtest.sh'
