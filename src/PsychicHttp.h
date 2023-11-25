@@ -9,9 +9,6 @@
 #define MAX_UPLOAD_SIZE   (200*1024) // 200 KB
 #define MAX_UPLOAD_SIZE_STR "200KB"
 
-//#define ENABLE_KEEPALIVE
-#define ENABLE_SERVE_STATIC
-
 #include <ArduinoTrace.h>
 #include <esp_https_server.h>
 #include <http_status.h>
@@ -22,10 +19,6 @@
 #include "MD5Builder.h"
 #include <UrlEncode.h>
 #include "FS.h"
-
-#ifdef ENABLE_KEEPALIVE
-  #include <keep_alive.h>
-#endif
 
 typedef std::map<String, String> SessionData;
 
@@ -306,11 +299,6 @@ class PsychicHttpServer
     unsigned long maxUploadSize = 200 * 1024;
     unsigned long maxRequestBodySize = 16 * 1024;
 
-    #ifdef ENABLE_KEEPALIVE
-      wss_keep_alive_config_t keep_alive_config;
-      wss_keep_alive_t keep_alive;
-    #endif
-    
     PsychicHttpServerEndpoint defaultEndpoint;
     PsychicHttpOpenHandler openHandler;
     PsychicHttpCloseHandler closeHandler;
