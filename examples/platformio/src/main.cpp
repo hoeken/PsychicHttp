@@ -172,7 +172,7 @@ void setup()
     }
 
     //setup server config stuff here
-    server.config.max_uri_handlers = 10; //maximum number of uri handlers (.on() calls)
+    server.config.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
     server.maxRequestBodySize = 10 * 1024; //maximum non-upload request body size (10kb)
     server.maxUploadSize = 200 * 1024; //maximum file upload size (200kb)
 
@@ -319,9 +319,17 @@ void setup()
 
     //wildcard basic file upload - POST to /upload/filename.ext
     server.on("/upload/*", HTTP_POST)->onUpload(uploadHandler);
+
+    //example of getting POST variables
+    server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
+    {
+      DUMP(request->getParam("param1"));
+      DUMP(request->getParam("param2"));
+
+      return request->reply(200);
+    });
   }
 }
-
 
 void loop()
 {

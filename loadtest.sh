@@ -33,3 +33,4 @@ loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/alien.png --quiet >> $LOG_
 # curl -i -X POST -T src/PsychicHttp.cpp 'http://192.168.2.131/upload'
 # curl -i -X POST -T loadtest.sh 'http://192.168.2.131/upload?_filename=loadtest.sh'
 # curl -i -X POST -T loadtest.sh 'http://192.168.2.131/upload/loadtest.sh'
+# curl --data-urlencode "param1=Value (One)" --data-urlencode "param2=Value (Two)" http://192.168.2.131/post

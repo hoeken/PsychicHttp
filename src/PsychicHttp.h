@@ -389,4 +389,6 @@ class PsychicHttpFileResponse: public PsychicHttpServerResponse
     esp_err_t send();
 };
 
+String urlDecode(const char* encoded);
+
 #endif /* PsychicHttp_h */
