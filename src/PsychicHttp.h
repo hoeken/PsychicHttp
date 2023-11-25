@@ -243,12 +243,12 @@ class PsychicHttpServerEndpoint
     PsychicHttpServerEndpoint *onFrame(PsychicHttpWebSocketFrameHandler handler);
 
     static esp_err_t requestHandler(httpd_req_t *req);
-    static esp_err_t websocketHandler(httpd_req_t *req);
 
     esp_err_t _requestHandler(PsychicHttpServerRequest &request);
     esp_err_t _uploadHandler(PsychicHttpServerRequest &request);
     esp_err_t _multipartUploadHandler(PsychicHttpServerRequest &request);
     esp_err_t _basicUploadHandler(PsychicHttpServerRequest &request);
+    esp_err_t _websocketHandler(PsychicHttpWebSocketRequest &request);
 };
 
 class PsychicHttpWebSocketRequest : public PsychicHttpServerRequest

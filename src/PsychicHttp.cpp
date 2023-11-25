@@ -156,13 +156,14 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
 PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
 {
   PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, HTTP_GET);
+  handler->isWebsocket = true;
   this->endpoints.push_back(handler);
 
   // URI handler structure
   httpd_uri_t my_uri {
     .uri      = uri,
     .method   = HTTP_GET,
-    .handler  = PsychicHttpServerEndpoint::websocketHandler,
+    .handler  = PsychicHttpServerEndpoint::requestHandler,
     .user_ctx = handler,
     .is_websocket = true,
     #ifdef ENABLE_KEEPALIVE
@@ -377,14 +378,23 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
   esp_err_t err = ESP_OK;
 
   PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
-  PsychicHttpServerRequest request(self->server, req);
 
-  //is this a file upload?
-  if (self->isUpload)
-    err = self->_uploadHandler(request);
-  //no, its a regular request
+  if (self->isWebsocket)
+  {
+    PsychicHttpWebSocketRequest connection(self->server, req);
+    err = self->_websocketHandler(connection);
+  }
   else
-    err = self->_requestHandler(request);
+  {
+    PsychicHttpServerRequest request(self->server, req);
+
+    //is this a file upload?
+    if (self->isUpload)
+      err = self->_uploadHandler(request);
+    //no, its a regular request
+    else
+      err = self->_requestHandler(request);
+  }
 
   return err;
 }
@@ -535,15 +545,12 @@ esp_err_t PsychicHttpServerEndpoint::_multipartUploadHandler(PsychicHttpServerRe
   return ESP_FAIL;
 }
 
-esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
+esp_err_t PsychicHttpServerEndpoint::_websocketHandler(PsychicHttpWebSocketRequest &request)
 {
-  PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
-  PsychicHttpWebSocketRequest connection(self->server, req);
-
   // beginning of the ws URI handler and our onConnect hook
-  if (req->method == HTTP_GET) {
-    if (self->_wsConnectCallback != NULL)
-      self->_wsConnectCallback(&connection);
+  if (request._req->method == HTTP_GET) {
+    if (this->_wsConnectCallback != NULL)
+      this->_wsConnectCallback(&request);
     return ESP_OK;
   }
 
@@ -554,7 +561,7 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
   uint8_t *buf = NULL;
 
   /* Set max_len = 0 to get the frame len */
-  esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
+  esp_err_t ret = httpd_ws_recv_frame(request._req, &ws_pkt, 0);
   if (ret != ESP_OK) {
     ESP_LOGE(PH_TAG, "httpd_ws_recv_frame failed to get frame len with %s", esp_err_to_name(ret));
     return ret;
@@ -571,7 +578,7 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
     }
     ws_pkt.payload = buf;
     /* Set max_len = ws_pkt.len to get the frame payload */
-    ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
+    ret = httpd_ws_recv_frame(request._req, &ws_pkt, ws_pkt.len);
     if (ret != ESP_OK) {
       ESP_LOGE(PH_TAG, "httpd_ws_recv_frame failed with %s", esp_err_to_name(ret));
       free(buf);
@@ -583,8 +590,8 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
   // Text messages are our payload.
   if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
   {
-    if (self->_wsFrameCallback != NULL)
-      ret = self->_wsFrameCallback(&connection, &ws_pkt);
+    if (this->_wsFrameCallback != NULL)
+      ret = this->_wsFrameCallback(&request, &ws_pkt);
   }
   #ifdef ENABLE_KEEPALIVE
     // If it was a PONG, update the keep-alive
