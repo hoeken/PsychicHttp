@@ -27,6 +27,10 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 * can we implement request.version()?
 * nice params() method - check it out?
 * progmem responses?
+* add in Server header
+* example code:
+  * add index.html file that links to all other stuff on examples
+  * add mdns for psychichttp.local
 * convert examples
 * test in arduino IDE
 * benchmark against espasyncwebserver and arduinomongoose
