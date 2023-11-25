@@ -196,7 +196,7 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
       if (server->staticHandler->canHandle(&request))
         result = server->staticHandler->handleRequest(&request);
       else
-        result = server->defaultEndpoint.request(&request);
+        result = server->defaultEndpoint._requestCallback(&request);
     }
 
     return result;
@@ -322,10 +322,10 @@ void PsychicHttpServer::sendAll(const char *buf)
 PsychicHttpServerEndpoint::PsychicHttpServerEndpoint() :
   server(NULL),
   method(HTTP_GET),
-  request(NULL),
-  upload(NULL),
-  wsConnect(NULL),
-  wsFrame(NULL),
+  _requestCallback(NULL),
+  _uploadCallback(NULL),
+  _wsConnectCallback(NULL),
+  _wsFrameCallback(NULL),
   isUpload(false)
 {
 }
@@ -334,38 +334,38 @@ PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, 
   isUpload(false),
   server(server),
   method(method),
-  request(NULL),
-  upload(NULL),
-  wsConnect(NULL),
-  wsFrame(NULL)
+  _requestCallback(NULL),
+  _uploadCallback(NULL),
+  _wsConnectCallback(NULL),
+  _wsFrameCallback(NULL)
 {
 }
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onRequest(PsychicHttpRequestHandler handler) {
-  this->request = handler;
+  this->_requestCallback = handler;
   return this;
 }
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onUpload(PsychicHttpBasicUploadHandler handler) {
-  this->upload = handler;
+  this->_uploadCallback = handler;
   this->isUpload = true;
   return this;
 }
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onMultipart(PsychicHttpMultipartUploadHandler handler) {
-  this->multipart = handler;
+  this->_multipartCallback = handler;
   this->isUpload = true;
   return this;
 }
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onConnect(PsychicHttpWebSocketRequestHandler handler) {
-  this->wsConnect = handler;
+  this->_wsConnectCallback = handler;
   this->isWebsocket = true;
   return this;
 }
 
 PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onFrame(PsychicHttpWebSocketFrameHandler handler) {
-  this->wsFrame = handler;
+  this->_wsFrameCallback = handler;
   this->isWebsocket = true;
   return this;
 }
@@ -447,9 +447,9 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
         }
 
         //call our upload callback here.
-        if (self->upload != NULL)
+        if (self->_uploadCallback != NULL)
         {
-          err = self->upload(&request, filename, index, (uint8_t *)buf, received);
+          err = self->_uploadCallback(&request, filename, index, (uint8_t *)buf, received);
           if (err != ESP_OK)
             break;
         }
@@ -467,8 +467,8 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
     }
 
     //we can also call onRequest for some final processing and response
-    if (self->request != NULL)
-      err = self->request(&request);
+    if (self->_requestCallback != NULL)
+      err = self->_requestCallback(&request);
     else
       err = request.reply(200);
 
@@ -498,8 +498,8 @@ esp_err_t PsychicHttpServerEndpoint::requestHandler(httpd_req_t *req)
       return err;
 
     //okay, pass on to our callback.
-    if (self->request != NULL)
-      err = self->request(&request);
+    if (self->_requestCallback != NULL)
+      err = self->_requestCallback(&request);
     else
       err = request.reply(500, "text/html", "No onRequest callback specififed.");
   }
@@ -514,8 +514,8 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
 
   // beginning of the ws URI handler and our onConnect hook
   if (req->method == HTTP_GET) {
-    if (self->wsConnect != NULL)
-      self->wsConnect(&connection);
+    if (self->_wsConnectCallback != NULL)
+      self->_wsConnectCallback(&connection);
     return ESP_OK;
   }
 
@@ -555,8 +555,8 @@ esp_err_t PsychicHttpServerEndpoint::websocketHandler(httpd_req_t *req)
   // Text messages are our payload.
   if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
   {
-    if (self->wsFrame != NULL)
-      ret = self->wsFrame(&connection, &ws_pkt);
+    if (self->_wsFrameCallback != NULL)
+      ret = self->_wsFrameCallback(&connection, &ws_pkt);
   }
   #ifdef ENABLE_KEEPALIVE
     // If it was a PONG, update the keep-alive

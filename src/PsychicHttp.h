@@ -223,11 +223,11 @@ class PsychicHttpServerEndpoint
     PsychicHttpServer *server;
     http_method method;
 
-    PsychicHttpRequestHandler request;
-    PsychicHttpBasicUploadHandler upload;
-    PsychicHttpMultipartUploadHandler multipart;
-    PsychicHttpWebSocketRequestHandler wsConnect;
-    PsychicHttpWebSocketFrameHandler wsFrame;
+    PsychicHttpRequestHandler _requestCallback;
+    PsychicHttpBasicUploadHandler _uploadCallback;
+    PsychicHttpMultipartUploadHandler _multipartCallback;
+    PsychicHttpWebSocketRequestHandler _wsConnectCallback;
+    PsychicHttpWebSocketFrameHandler _wsFrameCallback;
 
   public:
     PsychicHttpServerEndpoint();
