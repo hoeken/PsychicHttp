@@ -84,10 +84,10 @@ bool connectToWifi()
   Serial.print("[WiFi] Connecting to ");
   Serial.println(ssid);
 
+  WiFi.setSleep(false);
+  WiFi.useStaticBuffers(true);
+
   WiFi.begin(ssid, password);
-  // Auto reconnect is set true as default
-  // To set auto connect off, use the following function
-  // WiFi.setAutoReconnect(false);
 
   // Will try for about 10 seconds (20x 500ms)
   int tryDelay = 500;
@@ -167,7 +167,7 @@ void setup()
     });
 
     //serve static files from LittleFS/www on /
-    server.serveStatic("/", LittleFS, "/www/");
+    //server.serveStatic("/", LittleFS, "/www/");
 
     //a websocket echo server
     server.websocket("/ws")->
@@ -197,9 +197,40 @@ void setup()
       serializeJson(output, jsonBuffer);
       return request->reply(200, "application/json", jsonBuffer.c_str());
     });
+
+    //hack - testing if servestatic is the issue or littlefs
+    server.on("/alien.png", HTTP_GET, [](PsychicHttpServerRequest *request)
+    {
+      //open our file
+      File fp = LittleFS.open("/www/alien.png");
+      size_t length = fp.size();
+
+      //read our data
+      uint8_t * data = (uint8_t *)malloc(length);
+      fp.readBytes((char *)data, length);
+
+      //send it off
+      PsychicHttpServerResponse response(request);
+      response.setContent(data, length);
+      response.setContentType("image/png");
+      response.setCode(200);
+      err_t err = response.send();
+
+      //free the memory
+      free(data);
+
+      //let the server know we're good
+      return err;
+    });
   }
 }
 
+unsigned long last;
 void loop()
 {
+  if (millis() - last > 1000)
+  {
+    Serial.printf("Free Heap: %d\n", esp_get_free_heap_size());
+    last = millis();
+  }
 }

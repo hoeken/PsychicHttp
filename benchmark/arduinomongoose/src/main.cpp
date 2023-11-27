@@ -198,6 +198,28 @@ void setup()
       connection->send(WEBSOCKET_OP_TEXT, data, len);
       //server.sendAll(connection, (char *)data);
     });
+
+    //hack - no servestatic
+    server.on("/alien.png", HTTP_GET, [](MongooseHttpServerRequest *request)
+    {
+      //open our file
+      File fp = LittleFS.open("/www/alien.png");
+      size_t length = fp.size();
+
+      //read our data
+      uint8_t * data = (uint8_t *)malloc(length);
+      fp.readBytes((char *)data, length);
+
+      //send it off
+      MongooseHttpServerResponseBasic *response = request->beginResponse();
+      response->setContent(data, length);
+      response->setContentType("image/png");
+      response->setCode(200);
+      request->send(response);
+
+      //free the memory
+      free(data);
+    });
   }
 }
 
