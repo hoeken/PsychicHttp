@@ -8,6 +8,8 @@
   #error This library cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
 #endif
 
+SemaphoreHandle_t xFileSemaphore = NULL;
+
 PsychicHttpServer::PsychicHttpServer()
 {
   this->openHandler = NULL;
@@ -42,6 +44,8 @@ PsychicHttpServer::PsychicHttpServer()
   //for a SSL server
   this->ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
   this->ssl_config.httpd = this->config;
+
+  xFileSemaphore = xSemaphoreCreateMutex();
 }
 
 PsychicHttpServer::~PsychicHttpServer()
@@ -184,10 +188,23 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
   //do we have a static handler?
   if (server->staticHandler != NULL)
   {
-    if (server->staticHandler->canHandle(&request))
-      result = server->staticHandler->handleRequest(&request);
+    //wait for our file semaphore
+    if (xSemaphoreTake(xFileSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE)
+    {
+      if (server->staticHandler->canHandle(&request))
+        result = server->staticHandler->handleRequest(&request);
+      else
+        result = server->defaultEndpoint._requestCallback(&request);
+    }
     else
-      result = server->defaultEndpoint._requestCallback(&request);
+    {
+      ESP_LOGE(PH_TAG, "Failed to get file semaphore", esp_err_to_name(err));
+      result = request.reply(503, "text/html", "Unable to process request.");
+      //httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to get send file");
+    }
+
+    //release our semaphore on the file lock
+    xSemaphoreGive(xFileSemaphore);
   }
   //nope, just give them the default
   else
@@ -1243,7 +1260,9 @@ esp_err_t PsychicHttpServerResponse::send()
   this->headers.clear();
 
   if (err != ESP_OK)
+  {
     ESP_LOGE(PH_TAG, "Send response failed (%s)", esp_err_to_name(err));
+  }
 
   return err;
 }
@@ -1665,6 +1684,8 @@ void PsychicHttpFileResponse::_setContentType(const String& path){
 
 esp_err_t PsychicHttpFileResponse::send()
 {
+  esp_err_t err = ESP_OK;
+
   //just send small files directly
   size_t size = getContentLength();
   if (size < FILE_CHUNK_SIZE)
@@ -1673,11 +1694,9 @@ esp_err_t PsychicHttpFileResponse::send()
     int readSize = _content.readBytes((char *)buffer, size);
 
     this->setContent(buffer, size);
-    esp_err_t err = PsychicHttpServerResponse::send();
+    err = PsychicHttpServerResponse::send();
     
     free(buffer);
-
-    return err;
   }
   else
   {
@@ -1691,31 +1710,38 @@ esp_err_t PsychicHttpFileResponse::send()
     do {
         /* Read file in chunks into the scratch buffer */
         chunksize = _content.readBytes(chunk, FILE_CHUNK_SIZE);
+        if (chunksize > 0)
+        {
+          /* Send the buffer contents as HTTP response chunk */
+          err = httpd_resp_send_chunk(this->_request->_req, chunk, chunksize);
+          if (err != ESP_OK)
+          {
+            ESP_LOGE(PH_TAG, "File sending failed (%s)", esp_err_to_name(err));
 
-        if (chunksize > 0) {
-            esp_err_t err;
-            /* Send the buffer contents as HTTP response chunk */
-            err = httpd_resp_send_chunk(this->_request->_req, chunk, chunksize);
-            if (err != ESP_OK) {
-              _content.close();
-              ESP_LOGE(PH_TAG, "File sending failed (%s)", esp_err_to_name(err));
-              /* Abort sending file */
-              httpd_resp_sendstr_chunk(this->_request->_req, NULL);
-              /* Respond with 500 Internal Server Error */
-              httpd_resp_send_err(this->_request->_req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
-              return ESP_FAIL;
-           }
+            /* Abort sending file */
+            httpd_resp_sendstr_chunk(this->_request->_req, NULL);
+
+            /* Respond with 500 Internal Server Error */
+            httpd_resp_send_err(this->_request->_req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+
+            //bail
+            break;
+          }
         }
 
         /* Keep looping till the whole file is sent */
     } while (chunksize != 0);
 
+    if (err == ESP_OK)
+    {
+      ESP_LOGI(PH_TAG, "File sending complete");
+
+      /* Respond with an empty chunk to signal HTTP response completion */
+      httpd_resp_send_chunk(this->_request->_req, NULL, 0);
+    }
+
     /* Close file after sending complete */
     _content.close();
-    ESP_LOGI(PH_TAG, "File sending complete");
-
-    /* Respond with an empty chunk to signal HTTP response completion */
-    httpd_resp_send_chunk(this->_request->_req, NULL, 0);
 
     //clean up our header variables.  we have to do this since httpd_resp_send doesn't store copies
     for (HTTPHeader header : this->headers)
@@ -1725,7 +1751,8 @@ esp_err_t PsychicHttpFileResponse::send()
     }
     this->headers.clear();
   }
-  return ESP_OK;
+
+  return err;
 }
 
 String urlDecode(const char* encoded)
