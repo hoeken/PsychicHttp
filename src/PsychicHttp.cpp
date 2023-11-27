@@ -811,6 +811,9 @@ esp_err_t PsychicHttpServerRequest::loadBody()
   buf[this->_req->content_len] = '\0';
   this->_body = String(buf);
 
+  //keep track of that pesky memory
+  free(buf);
+
   return err;
 }
 
@@ -1185,6 +1188,7 @@ PsychicHttpServerResponse::~PsychicHttpServerResponse()
 
 void PsychicHttpServerResponse::addHeader(const char *field, const char *value)
 {
+  //these get freed during send()
   HTTPHeader header;
   header.field =(char *)malloc(strlen(field)+1);
   header.value = (char *)malloc(strlen(value)+1);
@@ -1317,6 +1321,7 @@ PsychicHttpWebSocketConnection::PsychicHttpWebSocketConnection(httpd_handle_t se
 esp_err_t PsychicHttpWebSocketConnection::queueMessage(httpd_ws_frame_t * ws_pkt)
 {
   //create a copy of this packet as its getting queued to the http server
+  //freed in queueMessageCallback
   struct async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
 
   //did we get the memory?
@@ -1328,6 +1333,7 @@ esp_err_t PsychicHttpWebSocketConnection::queueMessage(httpd_ws_frame_t * ws_pkt
 
   resp_arg->hd = this->_server;
   resp_arg->fd = this->_fd;
+  //freed in queueMessageCallback
   resp_arg->data = (char *)malloc(ws_pkt->len+1);
 
   //did we get the memory?
@@ -1731,6 +1737,9 @@ esp_err_t PsychicHttpFileResponse::send()
 
         /* Keep looping till the whole file is sent */
     } while (chunksize != 0);
+
+    //keep track of our memory
+    free(chunk);
 
     if (err == ESP_OK)
     {

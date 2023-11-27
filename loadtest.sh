@@ -12,21 +12,21 @@ if test -f "$LOG_FILE"; then
   rm $LOG_FILE
 fi
 
-for CONCURRENCY in 1 2 3 4 5 6 7 8 9 10
+for CONCURRENCY in 1 2 3 4 5 6 7 8 9 10 15 20
 do
   echo "Testing $CONCURRENCY clients on http://$TEST_IP/"
   loadtest -c $CONCURRENCY --cores 1 -t $TEST_TIME --timeout $TIMEOUT "http://$TEST_IP/" --quiet >> $LOG_FILE
   #autocannon -c $CONCURRENCY -w 1 -d $TEST_TIME --renderStatusCodes "http://$TEST_IP/" >> $LOG_FILE 2>&1
-  sleep 5
+  sleep 1
 
   # echo "Testing $CONCURRENCY clients on http://$TEST_IP/api"
-  # loadtest -c $CONCURRENCY --cores 1 -t $TEST_TIME --timeout $TIMEOUT "http://$TEST_IP/api?foo=bar" --quiet >> $LOG_FILE
-  # #autocannon -c $CONCURRENCY -w 1 -d $TEST_TIME --renderStatusCodes "http://$TEST_IP/api?foo=bar" >> $LOG_FILE 2>&1
-  # sleep 5
+  loadtest -c $CONCURRENCY --cores 1 -t $TEST_TIME --timeout $TIMEOUT "http://$TEST_IP/api?foo=bar" --quiet >> $LOG_FILE
+  #autocannon -c $CONCURRENCY -w 1 -d $TEST_TIME --renderStatusCodes "http://$TEST_IP/api?foo=bar" >> $LOG_FILE 2>&1
+  sleep 1
 
   # echo "Testing $CONCURRENCY clients on http://$TEST_IP/ws"
-  # loadtest -c $CONCURRENCY --cores 1 -t $TEST_TIME --timeout $TIMEOUT "ws://$TEST_IP/ws" --quiet 2> /dev/null >> $LOG_FILE
-  # sleep 5
+  loadtest -c $CONCURRENCY --cores 1 -t $TEST_TIME --timeout $TIMEOUT "ws://$TEST_IP/ws" --quiet 2> /dev/null >> $LOG_FILE
+  sleep 1
 
   # echo "Testing $CONCURRENCY clients on http://$TEST_IP/alien.png single client"
   # loadtest -c $CONCURRENCY --cores 1 -t $TEST_TIME --timeout $TIMEOUT "http://$TEST_IP/alien.png" --quiet >> $LOG_FILE
