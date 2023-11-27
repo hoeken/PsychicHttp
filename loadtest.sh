@@ -3,6 +3,8 @@
 # npm install -i loadtest
 
 TEST_IP="192.168.2.131"
+CONCURRENCY=1
+CORES=1
 TEST_TIME=60
 LOG_FILE=psychic-http-loadtest.log
 
@@ -11,20 +13,16 @@ if test -f "$LOG_FILE"; then
 fi
 
 echo "Testing http://$TEST_IP/"
-loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/ --quiet >> $LOG_FILE
+loadtest -c $CONCURRENCY --cores $CORES -t $TEST_TIME --timeout 5000 "http://$TEST_IP/" --quiet >> $LOG_FILE
 
 echo "Testing http://$TEST_IP/api"
-loadtest -t $TEST_TIME --timeout 5000 "http://$TEST_IP/api?foo=bar" --quiet >> $LOG_FILE
+loadtest -c $CONCURRENCY --cores $CORES -t $TEST_TIME --timeout 5000 "http://$TEST_IP/api?foo=bar" --quiet >> $LOG_FILE
 
 echo "Testing http://$TEST_IP/ws"
-loadtest -t $TEST_TIME --timeout 5000 "ws://$TEST_IP/ws" --quiet 2> /dev/null >> $LOG_FILE
+loadtest -c $CONCURRENCY --cores $CORES -t $TEST_TIME --timeout 5000 "ws://$TEST_IP/ws" --quiet 2> /dev/null >> $LOG_FILE
 
 echo "Testing http://$TEST_IP/alien.png"
-loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/alien.png --quiet >> $LOG_FILE
-
-#probably don't want to do too many writes to flash.  not to mention this doesn't seem to work.
-# echo "Testing http://$TEST_IP/upload/PsychicHttp.cpp"
-# loadtest -t $TEST_TIME --timeout 30000 http://$TEST_IP/upload/loadtest.sh -p loadtest.sh --quiet >> $LOG_FILE
+loadtest -c $CONCURRENCY --cores $CORES -t $TEST_TIME --timeout 5000 "http://$TEST_IP/alien.png" --quiet >> $LOG_FILE
 
 #some basic test commands:
 # curl http://psychic.local/
