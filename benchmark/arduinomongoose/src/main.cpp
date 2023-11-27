@@ -13,16 +13,71 @@
 #include <MongooseHttpServer.h>
 #include <LittleFS.h>
 #include <ArduinoJSON.h>
-#include <ESPmDNS.h>
 
 const char *ssid = "Phoenix";
 const char *password = "FulleSende";
 
-const char *app_user = "admin";
-const char *app_pass = "admin";
-const char *app_name = "ArduinoMongoose";
-
 MongooseHttpServer server;
+
+const char *htmlContent = R"(
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sample HTML</title>
+</head>
+<body>
+    <h1>Hello, World!</h1>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+</body>
+</html>
+)";
 
 bool connectToWifi()
 {
@@ -111,10 +166,8 @@ void setup()
 
     //index file
     server.on("/", HTTP_GET, [](MongooseHttpServerRequest *request)
-    {
-      File fp = LittleFS.open("/www/index.htm");
-      String file = fp.readString();
-      request->send(200, "text/html", file);
+    {      
+      request->send(200, "text/html", htmlContent);
     });
 
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
@@ -142,8 +195,8 @@ void setup()
     //websocket
     server.on("/ws$")->
     onFrame([](MongooseHttpWebSocketConnection *connection, int flags, uint8_t *data, size_t len) {
-      Serial.println((char *)data);
-      server.sendAll(connection, (char *)data);
+      connection->send(WEBSOCKET_OP_TEXT, data, len);
+      //server.sendAll(connection, (char *)data);
     });
   }
 }
