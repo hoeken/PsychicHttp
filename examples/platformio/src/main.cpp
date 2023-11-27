@@ -12,6 +12,7 @@
 #include <PsychicHttp.h>
 #include <LittleFS.h>
 #include <ArduinoJSON.h>
+#include <ESPmDNS.h>
 
 const char *ssid = "Phoenix";
 const char *password = "FulleSende";
@@ -19,6 +20,7 @@ const char *password = "FulleSende";
 const char *app_user = "admin";
 const char *app_pass = "admin";
 const char *app_name = "Your App";
+const char *local_hostname = "psychic";
 
 bool app_enable_ssl = false;
 String server_cert;
@@ -126,6 +128,13 @@ void setup()
   // To debug, please enable Core Debug Level to Verbose
   if (connectToWifi())
   {
+    //set up our esp32 to listen on the local_hostname.local domain
+    if (!MDNS.begin(local_hostname)) {
+      Serial.println("Error starting mDNS");
+      return;
+    }
+    MDNS.addService("http", "tcp", 80);
+
     if(!LittleFS.begin())
     {
       Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
@@ -182,17 +191,8 @@ void setup()
     else
       server.listen(80);
 
-    //basic home page
-    server.on("/", HTTP_GET, [](PsychicHttpServerRequest *request) {
-      PsychicHttpServerResponse response(request);
-      response.setCode(200);
-      response.setContentType("text/html");
-      response.setContent("Homepage");
-
-      return response.send();
-    });
-
     //serve static files from LittleFS/www on /
+    //this is where our /index.html file lives
     server.serveStatic("/", LittleFS, "/www/");
 
     //a websocket echo server
@@ -324,9 +324,10 @@ void setup()
     server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
     {
       DUMP(request->getParam("param1"));
-      DUMP(request->getParam("param2"));
 
-      return request->reply(200);
+      String response = "Data: " + request->getParam("param1");
+
+      return request->reply(200, "text/html", response.c_str());
     });
   }
 }

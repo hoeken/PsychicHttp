@@ -23,20 +23,13 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 
 # v1.0 Release TODO:
 
-* multipart file uploads
-* can we implement request.version()?
-* nice params() method - check it out?
-* progmem responses?
-* add in Server header
-* example code:
-  * add index.html file that links to all other stuff on examples
-  * add mdns for psychichttp.local
-* convert examples
 * test in arduino IDE
 * benchmark against espasyncwebserver and arduinomongoose
+* get library on platformio
 
 # Roadmap:
 
+* multipart file uploads
 * support for esp-idf framework
 * support for arduino 3.0 framework
 * Enable worker based multithreading with esp-idf v5.x

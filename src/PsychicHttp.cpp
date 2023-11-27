@@ -176,7 +176,24 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 
 esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
 {
-  return ESP_OK;
+  PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
+  PsychicHttpServerRequest request(server, req);
+
+  esp_err_t result = ESP_OK;
+
+  //do we have a static handler?
+  if (server->staticHandler != NULL)
+  {
+    if (server->staticHandler->canHandle(&request))
+      result = server->staticHandler->handleRequest(&request);
+    else
+      result = server->defaultEndpoint._requestCallback(&request);
+  }
+  //nope, just give them the default
+  else
+    result = server->defaultEndpoint._requestCallback(&request);
+
+  return result;
 }
 
 esp_err_t PsychicHttpServer::defaultNotFoundHandler(PsychicHttpServerRequest *request)
