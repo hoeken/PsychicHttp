@@ -19,9 +19,8 @@ loadtest -t $TEST_TIME --timeout 5000 "http://$TEST_IP/api?foo=bar" --quiet >> $
 echo "Testing http://$TEST_IP/ws"
 loadtest -t $TEST_TIME --timeout 5000 "ws://$TEST_IP/ws" --quiet 2> /dev/null >> $LOG_FILE
 
-# our / test is already pulling from LittleFS
-# echo "Testing http://$TEST_IP/alien.png"
-# loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/alien.png --quiet >> $LOG_FILE
+echo "Testing http://$TEST_IP/alien.png"
+loadtest -t $TEST_TIME --timeout 5000 http://$TEST_IP/alien.png --quiet >> $LOG_FILE
 
 #probably don't want to do too many writes to flash.  not to mention this doesn't seem to work.
 # echo "Testing http://$TEST_IP/upload/PsychicHttp.cpp"
