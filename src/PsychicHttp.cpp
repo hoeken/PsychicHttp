@@ -1693,15 +1693,17 @@ esp_err_t PsychicHttpFileResponse::send()
         chunksize = _content.readBytes(chunk, FILE_CHUNK_SIZE);
 
         if (chunksize > 0) {
+            esp_err_t err;
             /* Send the buffer contents as HTTP response chunk */
-            if (httpd_resp_send_chunk(this->_request->_req, chunk, chunksize) != ESP_OK) {
-                _content.close();
-                ESP_LOGE(PH_TAG, "File sending failed!");
-                /* Abort sending file */
-                httpd_resp_sendstr_chunk(this->_request->_req, NULL);
-                /* Respond with 500 Internal Server Error */
-                httpd_resp_send_err(this->_request->_req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
-               return ESP_FAIL;
+            err = httpd_resp_send_chunk(this->_request->_req, chunk, chunksize);
+            if (err != ESP_OK) {
+              _content.close();
+              ESP_LOGE(PH_TAG, "File sending failed (%s)", esp_err_to_name(err));
+              /* Abort sending file */
+              httpd_resp_sendstr_chunk(this->_request->_req, NULL);
+              /* Respond with 500 Internal Server Error */
+              httpd_resp_send_err(this->_request->_req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+              return ESP_FAIL;
            }
         }
 
