@@ -197,40 +197,15 @@ void setup()
       serializeJson(output, jsonBuffer);
       return request->reply(200, "application/json", jsonBuffer.c_str());
     });
-
-    // //hack - testing if servestatic is the issue or littlefs
-    // server.on("/alien.png", HTTP_GET, [](PsychicHttpServerRequest *request)
-    // {
-    //   //open our file
-    //   File fp = LittleFS.open("/www/alien.png");
-    //   size_t length = fp.size();
-
-    //   //read our data
-    //   uint8_t * data = (uint8_t *)malloc(length);
-    //   fp.readBytes((char *)data, length);
-
-    //   //send it off
-    //   PsychicHttpServerResponse response(request);
-    //   response.setContent(data, length);
-    //   response.setContentType("image/png");
-    //   response.setCode(200);
-    //   err_t err = response.send();
-
-    //   //free the memory
-    //   free(data);
-
-    //   //let the server know we're good
-    //   return err;
-    // });
   }
 }
 
 unsigned long last;
 void loop()
 {
-  if (millis() - last > 1000)
-  {
-    Serial.printf("Free Heap: %d\n", esp_get_free_heap_size());
-    last = millis();
-  }
+  // if (millis() - last > 1000)
+  // {
+  //   Serial.printf("Free Heap: %d\n", esp_get_free_heap_size());
+  //   last = millis();
+  // }
 }
