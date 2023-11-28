@@ -38,4 +38,5 @@ Visual\ Micro
 .vscode/settings.json
 .vscode/.browse.c_cpp.db*
 .vscode/ipch
-psychic-http-loadtest.log
+/psychic-http-loadtest.log
+/psychic-websocket-loadtest.log
