@@ -7,6 +7,8 @@
    CONDITIONS OF ANY KIND, either express or implied.
 
 */
+
+Error: 13 INTERNAL: Library install failed: moving extracted archive to destination dir: scanning examples: lstat /private/var/folders/y2/tw7mxg2x72d3yj2wf_g5np140000gp/T/1656844295/PsychicHttp-master/examples/platformio/lib/PsychicHttp/benchmark/psychichttp/.pio/libdeps/default/PsychicHttp/benchmark/psychichttp/lib/PsychicHttp/benchmark/psychichttp/.pio/libdeps/default/PsychicHttp/benchmark/psychichttp/lib/PsychicHttp/benchmark/psychichttp/.pio/libdeps/default/PsychicHttp/benchmark/psychichttp/lib/PsychicHttp/benchmark/psychichttp/.pio/libdeps/default/PsychicHttp/benchmark/psychichttp/lib/PsychicHttp/benchmark/psychichttp/.pio/libdeps/default/PsychicHttp/benchmark/psychichttp/lib/PsychicHttp/benchmark/psychichttp/.pio/libdeps/default/PsychicHttp/benchmark/psychichttp/lib/PsychicHttp/benchmark/psychichttp/.pio/libdeps/default/PsychicHttp/benchmark/psychichttp/lib/PsychicHttp/benchmark/psychichttp/.pio/libdeps/default/PsychicHttp/benchmark/psychichttp/lib/PsychicHttp/benchmark/psychichttp/.pio/libdeps/default/PsychicHttp/benchmark/psychichttp/lib/PsychicHttp/.git/objects/pack/pack-17a2e68f9a56069f25be2cab05287bcaff5320c2.pack: file name too long
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PsychicHttp.h>

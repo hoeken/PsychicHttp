@@ -1,3 +1,5 @@
+**.vscode
+**.pio
 **.DS_Store
 .pioenvs
 .clang_complete
