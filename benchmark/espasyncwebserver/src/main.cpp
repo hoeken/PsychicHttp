@@ -85,10 +85,10 @@ bool connectToWifi()
   Serial.print("[WiFi] Connecting to ");
   Serial.println(ssid);
 
+  WiFi.setSleep(false);
+  WiFi.useStaticBuffers(true);
+
   WiFi.begin(ssid, password);
-  // Auto reconnect is set true as default
-  // To set auto connect off, use the following function
-  // WiFi.setAutoReconnect(false);
 
   // Will try for about 10 seconds (20x 500ms)
   int tryDelay = 500;
@@ -272,4 +272,5 @@ void setup()
 void loop()
 {
   ws.cleanupClients();
+  delay(1000);
 }
