@@ -323,7 +323,7 @@ void setup()
     //example of getting POST variables
     server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
     {
-      DUMP(request->getParam("param1"));
+      Serial.println(request->getParam("param1"));
 
       String response = "Data: " + request->getParam("param1");
 
