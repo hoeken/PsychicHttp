@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 #Command to install the testers:
-# npm install -g loadtest
 # npm install -g autocannon
 
 TEST_IP="192.168.2.131"
@@ -33,23 +32,3 @@ do
   printf "\n\n----------------\n\n" >> $LOG_FILE
   sleep 1
 done
-
-for CONCURRENCY in 1 2 3 4 5 6 7 8 9 10 15 20
-do
-  printf "\n\nCLIENTS: *** $CONCURRENCY ***\n\n" >> $LOG_FILE
-  echo "Testing $CONCURRENCY clients on http://$TEST_IP/ws"
-  loadtest -c $CONCURRENCY --cores 1 -t $TEST_TIME --timeout $TIMEOUT "ws://$TEST_IP/ws" --quiet 2> /dev/null >> $LOG_FILE
-  printf "\n\n----------------\n\n" >> $LOG_FILE
-  sleep 1
-done
-
-#some basic test commands:
-# curl http://psychic.local/
-# curl http://psychic.local/404
-# curl http://psychic.local/alien.png
-# curl 'http://psychic.local/api?foo=bar'
-# curl -d '{"foo":"bar"}' http://psychic.local/api
-# curl -i -X POST -T src/PsychicHttp.cpp 'http://psychic.local/upload'
-# curl -i -X POST -T loadtest.sh 'http://psychic.local/upload?_filename=loadtest.sh'
-# curl -i -X POST -T loadtest.sh 'http://psychic.local/upload/loadtest.sh'
-# curl --data-urlencode "param1=Value (One)" http://psychic.local/post

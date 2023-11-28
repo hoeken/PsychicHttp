@@ -1,0 +1,9 @@
+curl http://192.168.2.131/
+curl http://192.168.2.131/404
+curl http://192.168.2.131/alien.png
+curl 'http://192.168.2.131/api?foo=bar'
+curl -d '{"foo":"bar"}' http://192.168.2.131/api
+curl -i -X POST -T src/PsychicHttp.cpp 'http://192.168.2.131/upload'
+curl -i -X POST -T loadtest.sh 'http://192.168.2.131/upload?_filename=loadtest.sh'
+curl -i -X POST -T loadtest.sh 'http://192.168.2.131/upload/loadtest.sh'
+curl --data-urlencode "param1=Value (One)" http://192.168.2.131/post
