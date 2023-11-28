@@ -757,9 +757,6 @@ const ContentDisposition PsychicHttpServerRequest::getContentDisposition()
   {
     end = header.indexOf('"', start+10);
     cd.filename = header.substring(start+10, end-1);
-    DUMP(start);
-    DUMP(end);
-    DUMP(cd.filename);
   }
 
   start = header.indexOf("name=");
@@ -767,10 +764,6 @@ const ContentDisposition PsychicHttpServerRequest::getContentDisposition()
   {
     end = header.indexOf('"', start+6);
     cd.name = header.substring(start+6, end-1);
-
-    DUMP(start);
-    DUMP(end);
-    DUMP(cd.name);
   }
 
   return cd;
