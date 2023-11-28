@@ -1,19 +1,18 @@
-/* Wi-Fi STA Connect and Disconnect Example
+/*
+  PsychicHTTP Server Example
 
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
+  This example code is in the Public Domain (or CC0 licensed, at your option.)
 
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-
+  Unless required by applicable law or agreed to in writing, this
+  software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  CONDITIONS OF ANY KIND, either express or implied.
 */
 
-
-#include <Arduino.h>
+//#include <Arduino.h>
 #include <WiFi.h>
 #include <PsychicHttp.h>
 #include <LittleFS.h>
-#include <ArduinoJSON.h>
+#include <ArduinoJson.h>
 #include <ESPmDNS.h>
 
 const char *ssid = "Phoenix";
@@ -143,55 +142,13 @@ void setup()
       return;
     }
 
-    if (app_enable_ssl)
-      Serial.println("SSL enabled");
-    else
-      Serial.println("SSL disabled");
-
-    //look up our keys?
-    if (app_enable_ssl)
-    {
-      File fp = LittleFS.open("/server.crt");
-      if (fp)
-      {
-        server_cert = fp.readString();
-
-        // Serial.println("Server Cert:");
-        // Serial.println(server_cert);
-      }
-      else
-      {
-        Serial.println("server.pem not found, SSL not available");
-        app_enable_ssl = false;
-      }
-      fp.close();
-
-      File fp2 = LittleFS.open("/server.key");
-      if (fp2)
-      {
-        server_key = fp2.readString();
-
-        // Serial.println("Server Key:");
-        // Serial.println(server_key);
-      }
-      else
-      {
-        Serial.println("server.key not found, SSL not available");
-        app_enable_ssl = false;
-      }
-      fp2.close();
-    }
-
     //setup server config stuff here
     server.config.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
     server.maxRequestBodySize = 10 * 1024; //maximum non-upload request body size (10kb)
     server.maxUploadSize = 200 * 1024; //maximum file upload size (200kb)
 
     //do we want secure or not?
-    if (app_enable_ssl)
-      server.listen(443, server_cert.c_str(), server_key.c_str());
-    else
-      server.listen(80);
+    server.listen(80);
 
     //serve static files from LittleFS/www on /
     //this is where our /index.html file lives
@@ -325,7 +282,7 @@ void setup()
     //example of getting POST variables
     server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
     {
-      DUMP(request->getParam("param1"));
+      Serial.println(request->getParam("param1"));
 
       String response = "Data: " + request->getParam("param1");
 
