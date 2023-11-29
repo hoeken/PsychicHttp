@@ -12,6 +12,7 @@ if test -f "$LOG_FILE"; then
 fi
 
 for CONCURRENCY in 1 2 3 4 5 6 7 8 9 10 15 20
+#for CONCURRENCY in 20
 do
   printf "\n\nCLIENTS: *** $CONCURRENCY ***\n\n" >> $LOG_FILE
   echo "Testing $CONCURRENCY clients on http://$TEST_IP/"

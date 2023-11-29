@@ -43,3 +43,4 @@ Visual\ Micro
 /psychic-http-loadtest.log
 /psychic-websocket-loadtest.log
 examples/platformio/lib/PsychicHttp
+benchmark/.~lock.comparison.ods#

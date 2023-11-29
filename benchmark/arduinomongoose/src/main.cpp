@@ -208,17 +208,22 @@ void setup()
 
       //read our data
       uint8_t * data = (uint8_t *)malloc(length);
-      fp.readBytes((char *)data, length);
+      if (data != NULL)
+      {
+        fp.readBytes((char *)data, length);
 
-      //send it off
-      MongooseHttpServerResponseBasic *response = request->beginResponse();
-      response->setContent(data, length);
-      response->setContentType("image/png");
-      response->setCode(200);
-      request->send(response);
+        //send it off
+        MongooseHttpServerResponseBasic *response = request->beginResponse();
+        response->setContent(data, length);
+        response->setContentType("image/png");
+        response->setCode(200);
+        request->send(response);
 
-      //free the memory
-      free(data);
+        //free the memory
+        free(data);
+      }
+      else
+        request->send(503);
     });
   }
 }

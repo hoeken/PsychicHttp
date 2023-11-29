@@ -5,7 +5,6 @@
 TEST_IP="192.168.2.131"
 TEST_TIME=60
 LOG_FILE=psychic-websocket-loadtest.log
-TIMEOUT=10000
 
 if test -f "$LOG_FILE"; then
   rm $LOG_FILE
@@ -20,6 +19,7 @@ do
 done
 
 for CONNECTIONS in 8 10 16 20
+#for CONNECTIONS in 20
 do
   CONCURRENCY=$((CONNECTIONS / 2))
   printf "\n\nCLIENTS: *** $CONNECTIONS ***\n\n" >> $LOG_FILE
@@ -27,5 +27,3 @@ do
   loadtest -c $CONCURRENCY --cores 2 -t $TEST_TIME ws://$TEST_IP/ws --quiet 2> /dev/null >> $LOG_FILE
   sleep 1
 done
-
-#  --quiet 2> /dev/null >> $LOG_FILE

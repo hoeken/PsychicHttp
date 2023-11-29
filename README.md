@@ -1,6 +1,6 @@
 # PsychicHttp - HTTP on your ESP 🧙🔮
 
-PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the ESP-IDF HTTP Server library under the hood.  It is written in a similar style to the [Arduino WebServer](https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer), [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer), and [ArduinoMongoose](https://github.com/jeremypoulter/ArduinoMongoose) to make writing code simple and porting from those other libraries straightforward.
+PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the ESP-IDF HTTP Server library under the hood.  It is written in a similar style to the [Arduino WebServer](https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer), [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer), and [ArduinoMongoose](https://github.com/jeremypoulter/ArduinoMongoose) libraries to make writing code simple and porting from those other libraries straightforward.
 
 # Features
 
@@ -16,6 +16,9 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 * Static fileserving (SPIFFS, LittleFS, etc.)
 * Chunked response
 * File uploads (Basic, no multipart... yet)
+
+# Differences from ESPAsyncWebserver
+
 * No templating system
 * No url rewriting
 * No Async Event Source
@@ -26,7 +29,6 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 * get library in arduino library manager
 * get library on platformio
 * make a release script
-* update docs / readme
 * post on forums
 
 # Roadmap:
@@ -44,88 +46,18 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 
 # Performance
 
-Here are the results of running the ./loadtest.sh script over 24 hours:
+In order to really see the differences between libraries, I created some basic benchmark firmwares for PsychicHttp, ESPAsyncWebserver, and ArduinoMongoose.  I then ran the loadtest-http.sh and loadtest-websocket.sh scripts against each firmware to get some real numbers on the performance of each server library.  All of the code and results are available in the /benchmark folder.  If you want to see the collated data and graphs, there is a libreoffice spreadsheet.
 
-```
-Target URL:          http://192.168.2.131/
-Max time (s):        21600
-Concurrent clients:  20
-Running on cores:    2
-Agent:               none
+## Analysis
 
-Completed requests:  833471
-Total errors:        192
-Total time:          21600.076 s
-Mean latency:        517.5 ms
-Effective rps:       39
+The results clearly show some of the reasons for writing PsychicHttp: ESPAsyncWebserver crashes under heavy load on each test, across the board in a 60s test.  That means in normal usage, you're just rolling the dice with how long it will go until it crashes.  Every other number is moot, IMHO.
 
-Percentage of requests served within a certain time
-  50%      129 ms
-  90%      1126 ms
-  95%      1225 ms
-  99%      7278 ms
- 100%      131208 ms (longest request)
+ArduinoMongoose doesn't crash under heavy load, but it does bog down with extremely high latency (15s) for web requests and appears to not even respond at the highest loadings as the loadtest script crashes instead.  The code itself doesnt crash, so bonus points there.  After the high load, it does go back to serving normally.  One area ArduinoMongoose does shine, is in websockets where its performance is almost 2x the performance of PsychicHttp.  Both in requests per second and latency.  Clearly an area of improvement for PsychicHttp.
 
-   -1:   192 errors
+PsychicHttp has good performance across the board.  No crashes and continously responds during each test.  It is a clear winner in requests per second when serving files from memory, dynamic JSON, and has consistent performance when serving files from LittleFS. The only real downside is the lower performance of the websockets with a single connection handling 38rps, and maxing out at 120rps across multiple connections.
 
-Target URL:          http://192.168.2.131/api
-Max time (s):        21600
-Concurrent clients:  20
-Running on cores:    2
-Agent:               none
+## Takeaways
 
-Completed requests:  275165
-Total errors:        1183
-Total time:          21600.086 s
-Mean latency:        1567.3 ms
-Effective rps:       13
+With all due respect to @me-no-dev who has done some amazing work in the open source community, I cannot recommend anyone use the ESPAsyncWebserver for anything other than simple projects that don't need to be reliable.  Even then, PsychicHttp has taken the arcane api of the ESP-IDF web server library and made it nice and friendly to use with a very similar API to ESPAsyncWebserver.  It also is more or less abandoned, with 150 open issues, 77 pending pull requests, and the last commit in over 2 years.
 
-Percentage of requests served within a certain time
-  50%      197 ms
-  90%      1392 ms
-  95%      2188 ms
-  99%      31629 ms
- 100%      131206 ms (longest request)
-
-   -1:   1183 errors
-
-Target URL:          ws://192.168.2.131/ws
-Max time (s):        21600
-Concurrent clients:  20
-Running on cores:    2
-Agent:               none
-
-Completed requests:  293375
-Total errors:        0
-Total time:          21600.217 s
-Mean latency:        422.4 ms
-Effective rps:       14
-
-Percentage of requests served within a certain time
-  50%      120 ms
-  90%      1044 ms
-  95%      1971 ms
-  99%      2503 ms
- 100%      6499 ms (longest request)
-
-Target URL:          http://192.168.2.131/alien.png
-Max time (s):        21600
-Concurrent clients:  20
-Running on cores:    2
-Agent:               none
-
-Completed requests:  203181
-Total errors:        1253
-Total time:          21600.016 s
-Mean latency:        2122.5 ms
-Effective rps:       9
-
-Percentage of requests served within a certain time
-  50%      645 ms
-  90%      786 ms
-  95%      3674 ms
-  99%      32203 ms
- 100%      131199 ms (longest request)
-
-   -1:   1253 errors
-```
+ArduinoMongoose is a good alternative, although the latency issues when it gets fully loaded can be very annoying. I believe it is also cross platform to other microcontrollers as well, but I haven't tested that. The other issue here is that it is based on an old version of a modified Mongoose library that will be difficult to update as it is a major revision behind and several security updates behind as well.  Big thanks to @jeremypoulter though as PsychicHttp is a fork of ArduinoMongoose so it's built on strong bones.
