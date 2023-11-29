@@ -1,0 +1,42 @@
+name: Platform IO
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - example: platformio
+          board: esp32dev
+
+    runs-on: ubuntu-latest
+    name: Build ${{ matrix.example }}-${{ matrix.board }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+
+      - name: Install Platform IO
+        run:
+          |
+          pip install -U platformio
+          platformio update
+
+      - name: Install Checked out PsychicHttp
+        run:
+          pio lib -g install $GITHUB_WORKSPACE
+
+      - name: Build example 
+        run:
+          |
+          cd examples/${{ matrix.example }}
+          pio run -e ${{ matrix.board }}
