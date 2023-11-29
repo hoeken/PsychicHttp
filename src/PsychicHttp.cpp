@@ -1021,6 +1021,7 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
         authReq = "";
         return false;
       }
+
       // extracting required parameters for RFC 2069 simpler Digest
       String _realm    = _extractParam(authReq, F("realm=\""),'\"');
       String _nonce    = _extractParam(authReq, F("nonce=\""),'\"');
@@ -1032,17 +1033,20 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
         authReq = "";
         return false;
       }
+
       if((_opaque != this->getSessionKey("opaque")) || (_nonce != this->getSessionKey("nonce")) || (_realm != this->getSessionKey("realm")))
       {
         authReq = "";
         return false;
       }
+
       // parameters for the RFC 2617 newer Digest
       String _nc,_cnonce;
       if(authReq.indexOf("qop=auth") != -1 || authReq.indexOf("qop=\"auth\"") != -1) {
         _nc = _extractParam(authReq, F("nc="), ',');
         _cnonce = _extractParam(authReq, F("cnonce=\""),'\"');
       }
+
       String _H1 = md5str(String(username) + ':' + _realm + ':' + String(password));
       ESP_LOGD(PH_TAG, "Hash of user:realm:pass=%s", _H1);
       String _H2 = "";
@@ -1058,6 +1062,7 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
           _H2 = md5str(String(F("GET:")) + _uri);
       }
       ESP_LOGD(PH_TAG, "Hash of GET:uri=%s", _H2);
+
       String _responsecheck = "";
       if(authReq.indexOf("qop=auth") != -1 || authReq.indexOf("qop=\"auth\"") != -1) {
           _responsecheck = md5str(_H1 + ':' + _nonce + ':' + _nc + ':' + _cnonce + F(":auth:") + _H2);
@@ -1065,6 +1070,7 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
           _responsecheck = md5str(_H1 + ':' + _nonce + ':' + _H2);
       }
       ESP_LOGD(PH_TAG, "The Proper response=%s", _responsecheck);
+
       if(_resp == _responsecheck){
         authReq = "";
         return true;
