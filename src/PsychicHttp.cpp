@@ -42,8 +42,10 @@ PsychicHttpServer::PsychicHttpServer()
   this->config.global_user_ctx_free_fn = this->destroy;
   
   //for a SSL server
-  this->ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
-  this->ssl_config.httpd = this->config;
+  #ifdef PSY_ENABLE_SSL
+    this->ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
+    this->ssl_config.httpd = this->config;
+  #endif
 
   // xFileSemaphore = xSemaphoreCreateMutex();
 }
@@ -71,18 +73,20 @@ esp_err_t PsychicHttpServer::listen(uint16_t port)
   return this->_start();
 }
 
-esp_err_t PsychicHttpServer::listen(uint16_t port, const char *cert, const char *private_key)
-{
-  this->use_ssl = true;
+#ifdef PSY_ENABLE_SSL
+  esp_err_t PsychicHttpServer::listen(uint16_t port, const char *cert, const char *private_key)
+  {
+    this->use_ssl = true;
 
-  this->ssl_config.port_secure = port;
-  this->ssl_config.cacert_pem = (uint8_t *)cert;
-  this->ssl_config.cacert_len = strlen(cert)+1;
-  this->ssl_config.prvtkey_pem = (uint8_t *)private_key;
-  this->ssl_config.prvtkey_len = strlen(private_key)+1;
+    this->ssl_config.port_secure = port;
+    this->ssl_config.cacert_pem = (uint8_t *)cert;
+    this->ssl_config.cacert_len = strlen(cert)+1;
+    this->ssl_config.prvtkey_pem = (uint8_t *)private_key;
+    this->ssl_config.prvtkey_len = strlen(private_key)+1;
 
-  return this->_start();
-}
+    return this->_start();
+  }
+#endif
 
 esp_err_t PsychicHttpServer::_start()
 {
@@ -93,10 +97,14 @@ esp_err_t PsychicHttpServer::_start()
 
   //what mode to start in?
   esp_err_t err;
-  if (this->use_ssl)
-    err = httpd_ssl_start(&this->server, &this->ssl_config);
-  else
+  #ifdef PSY_ENABLE_SSL
+    if (this->use_ssl)
+      err = httpd_ssl_start(&this->server, &this->ssl_config);
+    else
+      err = httpd_start(&this->server, &this->config);
+  #else
     err = httpd_start(&this->server, &this->config);
+  #endif
 
   // Register handler
   esp_err_t ret = httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, PsychicHttpServer::notFoundHandler);
@@ -109,10 +117,14 @@ esp_err_t PsychicHttpServer::_start()
 void PsychicHttpServer::stop()
 {
   //Stop our http server
-  if (this->use_ssl)
-    httpd_ssl_stop(this->server);
-  else
+  #ifdef PSY_ENABLE_SSL
+    if (this->use_ssl)
+      httpd_ssl_stop(this->server);
+    else
+      httpd_stop(this->server);
+  #else
     httpd_stop(this->server);
+  #endif
 }
 
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri) {

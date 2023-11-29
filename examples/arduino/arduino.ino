@@ -8,24 +8,29 @@
   CONDITIONS OF ANY KIND, either express or implied.
 */
 
-//#include <Arduino.h>
+#include <Arduino.h>
 #include <WiFi.h>
 #include <PsychicHttp.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
 
+/**********************************************************************************************
+* Note: this demo relies on various files to be uploaded on the LittleFS partition
+* Follow instructions here: https://randomnerdtutorials.com/esp32-littlefs-arduino-ide/
+**********************************************************************************************/
+
+//Enter your WIFI credentials here.
 const char *ssid = "Phoenix";
 const char *password = "FulleSende";
 
+//credentials for the /auth-basic and /auth-digest examples
 const char *app_user = "admin";
 const char *app_pass = "admin";
 const char *app_name = "Your App";
-const char *local_hostname = "psychic";
 
-bool app_enable_ssl = false;
-String server_cert;
-String server_key;
+//hostname for mdns (psychic.local)
+const char *local_hostname = "psychic";
 
 PsychicHttpServer server;
 

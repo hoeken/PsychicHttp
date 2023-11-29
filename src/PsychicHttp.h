@@ -12,7 +12,11 @@
 #define MAX_UPLOAD_SIZE_STR "200KB"
 
 //#include <ArduinoTrace.h>
-#include <esp_https_server.h>
+#ifdef PSY_ENABLE_SSL
+  #include <esp_https_server.h>
+#else
+  #include <esp_http_server.h>
+#endif
 #include <http_status.h>
 #include <map>
 #include <list>
@@ -326,7 +330,10 @@ class PsychicHttpServer
     //esp-idf specific stuff
     httpd_handle_t server;
     httpd_config_t config;
-    httpd_ssl_config_t ssl_config;
+
+    #ifdef PSY_ENABLE_SSL
+      httpd_ssl_config_t ssl_config;
+    #endif
 
     //some limits on what we will accept
     unsigned long maxUploadSize = 200 * 1024;
@@ -339,7 +346,9 @@ class PsychicHttpServer
     static void destroy(void *ctx);
 
     esp_err_t listen(uint16_t port);
-    esp_err_t listen(uint16_t port, const char *cert, const char *private_key);
+    #ifdef PSY_ENABLE_SSL
+      esp_err_t listen(uint16_t port, const char *cert, const char *private_key);
+    #endif
     void stop();
 
     PsychicHttpServerEndpoint *on(const char* uri);
