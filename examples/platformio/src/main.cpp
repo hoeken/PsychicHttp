@@ -1,12 +1,13 @@
-/* Wi-Fi STA Connect and Disconnect Example
+/*
+  PsychicHTTP Server Example
 
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
+  This example code is in the Public Domain (or CC0 licensed, at your option.)
 
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-
+  Unless required by applicable law or agreed to in writing, this
+  software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  CONDITIONS OF ANY KIND, either express or implied.
 */
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PsychicHttp.h>
@@ -14,18 +15,31 @@
 #include <ArduinoJSON.h>
 #include <ESPmDNS.h>
 
-const char *ssid = "Phoenix";
-const char *password = "FulleSende";
+/**********************************************************************************************
+* Note: this demo relies on various files to be uploaded on the LittleFS partition
+* 
+**********************************************************************************************/
 
+//Enter your WIFI credentials here.
+const char *ssid = "";
+const char *password = "";
+
+//credentials for the /auth-basic and /auth-digest examples
 const char *app_user = "admin";
 const char *app_pass = "admin";
 const char *app_name = "Your App";
+
+//hostname for mdns (psychic.local)
 const char *local_hostname = "psychic";
 
-bool app_enable_ssl = false;
-String server_cert;
-String server_key;
+//change this to true to enable SSL
+#ifdef PSY_ENABLE_SSL
+  bool app_enable_ssl = false;
+  String server_cert;
+  String server_key;
+#endif
 
+//our main server object
 PsychicHttpServer server;
 
 bool connectToWifi()
@@ -141,44 +155,41 @@ void setup()
       return;
     }
 
-    if (app_enable_ssl)
-      Serial.println("SSL enabled");
-    else
-      Serial.println("SSL disabled");
-
-    //look up our keys?
-    if (app_enable_ssl)
-    {
-      File fp = LittleFS.open("/server.crt");
-      if (fp)
+    #ifdef PSY_ENABLE_SSL
+      //look up our keys?
+      if (app_enable_ssl)
       {
-        server_cert = fp.readString();
+        File fp = LittleFS.open("/server.crt");
+        if (fp)
+        {
+          server_cert = fp.readString();
 
-        // Serial.println("Server Cert:");
-        // Serial.println(server_cert);
-      }
-      else
-      {
-        Serial.println("server.pem not found, SSL not available");
-        app_enable_ssl = false;
-      }
-      fp.close();
+          // Serial.println("Server Cert:");
+          // Serial.println(server_cert);
+        }
+        else
+        {
+          Serial.println("server.pem not found, SSL not available");
+          app_enable_ssl = false;
+        }
+        fp.close();
 
-      File fp2 = LittleFS.open("/server.key");
-      if (fp2)
-      {
-        server_key = fp2.readString();
+        File fp2 = LittleFS.open("/server.key");
+        if (fp2)
+        {
+          server_key = fp2.readString();
 
-        // Serial.println("Server Key:");
-        // Serial.println(server_key);
+          // Serial.println("Server Key:");
+          // Serial.println(server_key);
+        }
+        else
+        {
+          Serial.println("server.key not found, SSL not available");
+          app_enable_ssl = false;
+        }
+        fp2.close();
       }
-      else
-      {
-        Serial.println("server.key not found, SSL not available");
-        app_enable_ssl = false;
-      }
-      fp2.close();
-    }
+    #endif
 
     //setup server config stuff here
     server.config.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
@@ -186,10 +197,14 @@ void setup()
     server.maxUploadSize = 200 * 1024; //maximum file upload size (200kb)
 
     //do we want secure or not?
-    if (app_enable_ssl)
-      server.listen(443, server_cert.c_str(), server_key.c_str());
-    else
-      server.listen(80);
+    #ifdef PSY_ENABLE_SSL
+      if (app_enable_ssl)
+        server.listen(443, server_cert.c_str(), server_key.c_str());
+      else
+        server.listen(80);
+    #else
+        server.listen(80);
+    #endif
 
     //serve static files from LittleFS/www on /
     //this is where our /index.html file lives
