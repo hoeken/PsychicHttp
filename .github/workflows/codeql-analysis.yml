@@ -2,7 +2,7 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [master, ]
+    branches: [master]
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [master]
@@ -15,33 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - example: simplest_web_server_esp
-          board: espwroverkit
-          platform: espressif32
-        - example: simplest_web_server_native
-          board: native
-          platform: native
-        - example: simple_http_client_native
-          board: native
-          platform: native
-        #- example: simple_http_server
-        #  board: esp-wrover-kit-secure
-        #  platform: espressif32
-        #- example: simple_http_client
-        #  board: esp-wrover-kit-secure
-        #  platform: espressif32
-        #- example: simple_mqtt_client
-        #  board: esp-wrover-kit-secure
-        #  platform: espressif32
-        #- example: websocket_chat
-        #  board: esp-wrover-kit-secure
-        #  platform: espressif32
-        #- example: esp_ota_http_server
-        #  board: esp-wrover-kit-auth
-        #  platform: espressif32
-        #- example: sntp_client
-        #  board: esp-wrover-kit
-        #  platform: espressif32
+        - example: platformio
+          board: default
 
     name: Analyse ${{ matrix.example }}-${{ matrix.board }}
     runs-on: ubuntu-latest
@@ -90,7 +65,7 @@ jobs:
           chmod +x "$i"; 
         done
 
-    - name: Install Checked out ArduinoMongoose
+    - name: Install Checked out PsychicHttp
       run:
         pio lib -g install $GITHUB_WORKSPACE
 
