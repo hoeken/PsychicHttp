@@ -14,7 +14,7 @@ jobs:
       matrix:
         include:
         - example: platformio
-          board: esp32dev
+          board: default
 
     runs-on: ubuntu-latest
     name: Build ${{ matrix.example }}-${{ matrix.board }}
