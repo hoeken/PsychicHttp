@@ -11,7 +11,7 @@
 #define MAX_UPLOAD_SIZE   (200*1024) // 200 KB
 #define MAX_UPLOAD_SIZE_STR "200KB"
 
-//#include <ArduinoTrace.h>
+#include <ArduinoTrace.h>
 #ifdef PSY_ENABLE_SSL
   #include <esp_https_server.h>
 #else

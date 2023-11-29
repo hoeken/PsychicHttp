@@ -42,3 +42,4 @@ Visual\ Micro
 .vscode/ipch
 /psychic-http-loadtest.log
 /psychic-websocket-loadtest.log
+examples/platformio/lib/PsychicHttp
