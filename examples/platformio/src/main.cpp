@@ -17,7 +17,7 @@
 #include <WiFi.h>
 #include <PsychicHttp.h>
 #include <LittleFS.h>
-#include <ArduinoJSON.h>
+#include <ArduinoJson.h>
 #include <ESPmDNS.h>
 
 //Enter your WIFI credentials here.
