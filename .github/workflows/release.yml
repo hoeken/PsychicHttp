@@ -1,0 +1,66 @@
+---
+
+name: Release to Platform IO and Arduino
+
+on:
+  release:
+    types:
+      - released
+      - prereleased
+      - edited
+
+jobs:
+  release_number:
+    name: Release Number Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      ### Check the version number in the code matches the tag number
+      - uses: actions/checkout@v4
+
+      - name: Retrieve the version number(s)
+        run: |
+          TAG_VERSION=$(sed "s/^v//" <<< $GITHUB_REF_NAME)
+          PLATFORMIO_VERSION=$(jq ".version" library.json -r)
+          ARDUINO_VERSION=$(awk -F= '/version/{gsub(/"/, "", $2); print $2}' library.json)
+          echo TAG_VERSION=$TAG_VERSION >> $GITHUB_ENV
+          echo PLATFORMIO_VERSION=$PLATFORMIO_VERSION >> $GITHUB_ENV
+          echo ARDUINO_VERSION=$ARDUINO_VERSION >> $GITHUB_ENV
+      - name: Check the version number is semver compliant
+        run: |
+          if ! [[ $TAG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]*[0-9]+)?$ ]]; then
+            echo "ERROR: The version number is not semver compliant"
+            exit 1
+          fi
+      - name: Check the Platformio version matches the tag number
+        run: |
+          if [ "$TAG_VERSION" != "$PLATFORMIO_VERSION" ]; then
+            echo "ERROR: The version number in library.json ($PLATFORMIO_VERSION) does not match the tag number ($TAG_VERSION)"
+            exit 1
+          fi
+      - name: Check the Arduino version matches the tag number
+        run: |
+          if [ "$TAG_VERSION" != "$ARDUINO_VERSION" ]; then
+            echo "ERROR: The version number in library.properties ($ARDUINO_VERSION) does not match the tag number ($TAG_VERSION)"
+            exit 1
+          fi
+
+  # release_to_platformio:
+  #   name: Release to PlatformIO Registry
+  #   runs-on: ubuntu-latest
+  #   needs: release_number
+
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+
+  #     - name: Install Platform IO
+  #       run: |
+  #         pip install -U platformio
+  #         platformio update
+
+  #     - name: Register new library version
+  #       run: |
+  #         PLATFORMIO_AUTH_TOKEN=${{ secrets.PLATFORMIO_AUTH_TOKEN }} pio pkg publish --type library --no-interactive --notify
