@@ -17,7 +17,7 @@
 
 /**********************************************************************************************
 * Note: this demo relies on various files to be uploaded on the LittleFS partition
-* 
+* PlatformIO -> Build Filesystem Image and then PlatformIO -> Upload Filesystem Image
 **********************************************************************************************/
 
 //Enter your WIFI credentials here.
