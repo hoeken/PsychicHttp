@@ -1021,7 +1021,6 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
         authReq = "";
         return false;
       }
-
       // extracting required parameters for RFC 2069 simpler Digest
       String _realm    = _extractParam(authReq, F("realm=\""),'\"');
       String _nonce    = _extractParam(authReq, F("nonce=\""),'\"');
@@ -1033,20 +1032,17 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
         authReq = "";
         return false;
       }
-
       if((_opaque != this->getSessionKey("opaque")) || (_nonce != this->getSessionKey("nonce")) || (_realm != this->getSessionKey("realm")))
       {
         authReq = "";
         return false;
       }
-
       // parameters for the RFC 2617 newer Digest
       String _nc,_cnonce;
       if(authReq.indexOf("qop=auth") != -1 || authReq.indexOf("qop=\"auth\"") != -1) {
         _nc = _extractParam(authReq, F("nc="), ',');
         _cnonce = _extractParam(authReq, F("cnonce=\""),'\"');
       }
-
       String _H1 = md5str(String(username) + ':' + _realm + ':' + String(password));
       ESP_LOGD(PH_TAG, "Hash of user:realm:pass=%s", _H1);
       String _H2 = "";
@@ -1062,7 +1058,6 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
           _H2 = md5str(String(F("GET:")) + _uri);
       }
       ESP_LOGD(PH_TAG, "Hash of GET:uri=%s", _H2);
-
       String _responsecheck = "";
       if(authReq.indexOf("qop=auth") != -1 || authReq.indexOf("qop=\"auth\"") != -1) {
           _responsecheck = md5str(_H1 + ':' + _nonce + ':' + _nc + ':' + _cnonce + F(":auth:") + _H2);
@@ -1070,7 +1065,6 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
           _responsecheck = md5str(_H1 + ':' + _nonce + ':' + _H2);
       }
       ESP_LOGD(PH_TAG, "The Proper response=%s", _responsecheck);
-
       if(_resp == _responsecheck){
         authReq = "";
         return true;
@@ -1326,34 +1320,34 @@ esp_err_t PsychicHttpWebSocketConnection::queueMessage(httpd_ws_frame_t * ws_pkt
 {
   //create a copy of this packet as its getting queued to the http server
   //freed in queueMessageCallback
-  struct async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
+  // struct async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
 
-  //did we get the memory?
-  if (resp_arg == NULL)
-  {
-    ESP_LOGE(PH_TAG, "queueMessage malloc failed to allocate");
-    return ESP_ERR_NO_MEM;
-  }
+  // //did we get the memory?
+  // if (resp_arg == NULL)
+  // {
+  //   ESP_LOGE(PH_TAG, "queueMessage malloc failed to allocate");
+  //   return ESP_ERR_NO_MEM;
+  // }
 
-  resp_arg->hd = this->_server;
-  resp_arg->fd = this->_fd;
-  //freed in queueMessageCallback
-  resp_arg->data = (char *)malloc(ws_pkt->len+1);
+  // resp_arg->hd = this->_server;
+  // resp_arg->fd = this->_fd;
+  // //freed in queueMessageCallback
+  // resp_arg->data = (char *)malloc(ws_pkt->len+1);
 
-  //did we get the memory?
-  if (resp_arg->data == NULL)
-  {
-    ESP_LOGE(PH_TAG, "httpd_queue_work malloc failed to allocate %d", ws_pkt->len+1);
-    return ESP_ERR_NO_MEM;
-  }
+  // //did we get the memory?
+  // if (resp_arg->data == NULL)
+  // {
+  //   ESP_LOGE(PH_TAG, "httpd_queue_work malloc failed to allocate %d", ws_pkt->len+1);
+  //   return ESP_ERR_NO_MEM;
+  // }
 
   //copy it over and send it off
-  memcpy(resp_arg->data, ws_pkt->payload, ws_pkt->len+1);
-  esp_err_t err = httpd_queue_work(resp_arg->hd, PsychicHttpWebSocketConnection::queueMessageCallback, resp_arg);
-  if (err != ESP_OK)
-    ESP_LOGE(PH_TAG, "httpd_queue_work failed with %s", esp_err_to_name(err));
+  // memcpy(resp_arg->data, ws_pkt->payload, ws_pkt->len+1);
+  // esp_err_t err = httpd_queue_work(resp_arg->hd, PsychicHttpWebSocketConnection::queueMessageCallback, resp_arg);
+  // if (err != ESP_OK)
+  //   ESP_LOGE(PH_TAG, "httpd_queue_work failed with %s", esp_err_to_name(err));
 
-  return err;
+  return httpd_ws_send_frame_async(this->_server, this->_fd, ws_pkt);
 } 
 
 esp_err_t PsychicHttpWebSocketConnection::queueMessage(httpd_ws_type_t op, const void *data, size_t len)
@@ -1373,27 +1367,27 @@ esp_err_t PsychicHttpWebSocketConnection::queueMessage(const char *buf)
   return this->queueMessage(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
 
-void PsychicHttpWebSocketConnection::queueMessageCallback(void *arg)
-{
-  //get our handles and ids
-  struct async_resp_arg *resp_arg = (async_resp_arg *)arg;
-  httpd_handle_t hd = resp_arg->hd;
-  int fd = resp_arg->fd;
+// void PsychicHttpWebSocketConnection::queueMessageCallback(void *arg)
+// {
+//   //get our handles and ids
+//   struct async_resp_arg *resp_arg = (async_resp_arg *)arg;
+//   httpd_handle_t hd = resp_arg->hd;
+//   int fd = resp_arg->fd;
 
-  //construct our outgoing packet
-  httpd_ws_frame_t ws_pkt;
-  memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-  ws_pkt.payload = (uint8_t*)resp_arg->data;
-  ws_pkt.len = strlen(resp_arg->data);
-  ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+//   //construct our outgoing packet
+//   httpd_ws_frame_t ws_pkt;
+//   memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+//   ws_pkt.payload = (uint8_t*)resp_arg->data;
+//   ws_pkt.len = strlen(resp_arg->data);
+//   ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
-  //send the packet
-  httpd_ws_send_frame_async(hd, fd, &ws_pkt);
+//   //send the packet
+//   httpd_ws_send_frame_async(hd, fd, &ws_pkt);
 
-  //clean up our data
-  free(resp_arg->data);
-  free(resp_arg);
-}
+//   //clean up our data
+//   free(resp_arg->data);
+//   free(resp_arg);
+// }
 
 /*************************************/
 /*  PsychicStaticFileHandler         */

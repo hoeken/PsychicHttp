@@ -310,7 +310,7 @@ class PsychicHttpWebSocketConnection
     esp_err_t queueMessage(httpd_ws_frame_t * ws_pkt);
     esp_err_t queueMessage(httpd_ws_type_t op, const void *data, size_t len);
     esp_err_t queueMessage(const char *buf);
-    static void queueMessageCallback(void *arg);
+    //static void queueMessageCallback(void *arg);
 
     int id() { return this->_fd; }
 };
