@@ -24,18 +24,17 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 * No Async Event Source
 * No AP/STA filter
 
-# Roadmap:
+# Roadmap / Longterm TODO
 
 * investigate websocket performance gap
 * multipart file uploads
 * support for esp-idf framework
 * support for arduino 3.0 framework
 * Enable worker based multithreading with esp-idf v5.x
-  * #if ESP_ARDUINO_VERSION_MAJOR >= 3
 * 100-continue support
-* 'borrow' other nice features from ESPAsyncServer and Arduino WebServer
-    * https://github.com/me-no-dev/ESPAsyncWebServer
-      * AP/STA filter
+* 'borrow' other nice features from ESPAsyncServer
+     
+If anyone wants to take a crack at implementing any of the above features I am more than happy to accept pull requests.
 
 # Performance
 
