@@ -12,6 +12,10 @@
 
 PsychicHttpServer::PsychicHttpServer()
 {
+  //defaults
+  this->maxRequestBodySize = 16 * 1024; //maximum non-upload request body size (16kb)
+  this->maxUploadSize = 256 * 1024; //maximum file upload size (256kb)
+
   this->openHandler = NULL;
   this->closeHandler = NULL;
   this->staticHandler = NULL;
@@ -21,11 +25,19 @@ PsychicHttpServer::PsychicHttpServer()
   
   //for a regular server
   this->config = HTTPD_DEFAULT_CONFIG();
-  this->config.max_uri_handlers = 8;
-  this->config.stack_size = 10000;
   this->config.open_fn = PsychicHttpServer::openCallback;
   this->config.close_fn = PsychicHttpServer::closeCallback;
   this->config.uri_match_fn = httpd_uri_match_wildcard;
+  this->config.global_user_ctx = this;
+  this->config.global_user_ctx_free_fn = this->destroy;
+
+  //for a SSL server
+  this->ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
+  this->ssl_config.httpd.open_fn = PsychicHttpServer::openCallback;
+  this->ssl_config.httpd.close_fn = PsychicHttpServer::closeCallback;
+  this->ssl_config.httpd.uri_match_fn = httpd_uri_match_wildcard;
+  this->ssl_config.httpd.global_user_ctx = this;
+  this->ssl_config.httpd.global_user_ctx_free_fn = this->destroy;
 
   #ifdef ENABLE_ASYNC
     this->config.lru_purge_enable = true;
@@ -37,13 +49,6 @@ PsychicHttpServer::PsychicHttpServer()
     // longer be responsive.
     //this->config.max_open_sockets = ASYNC_WORKER_COUNT + 1;
   #endif
-
-  this->config.global_user_ctx = this;
-  this->config.global_user_ctx_free_fn = this->destroy;
-  
-  //for a SSL server
-  this->ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
-  this->ssl_config.httpd = this->config;
 
   // xFileSemaphore = xSemaphoreCreateMutex();
 }

@@ -8,13 +8,6 @@
   CONDITIONS OF ANY KIND, either express or implied.
 */
 
-#include <Arduino.h>
-#include <WiFi.h>
-#include <PsychicHttp.h>
-#include <LittleFS.h>
-#include <ArduinoJson.h>
-#include <ESPmDNS.h>
-
 /**********************************************************************************************
 * Note: this demo relies on the following libraries (Install via Library Manager)
 * ArduinoJson UrlEncode
@@ -24,6 +17,13 @@
 * Note: this demo relies on various files to be uploaded on the LittleFS partition
 * Follow instructions here: https://randomnerdtutorials.com/esp32-littlefs-arduino-ide/
 **********************************************************************************************/
+
+#include <Arduino.h>
+#include <WiFi.h>
+#include <PsychicHttp.h>
+#include <LittleFS.h>
+#include <ArduinoJSON.h>
+#include <ESPmDNS.h>
 
 //Enter your WIFI credentials here.
 const char *ssid = "";
@@ -194,8 +194,7 @@ void setup()
 
     //setup server config stuff here
     server.config.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
-    server.maxRequestBodySize = 10 * 1024; //maximum non-upload request body size (10kb)
-    server.maxUploadSize = 200 * 1024; //maximum file upload size (200kb)
+    server.ssl_config.httpd.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
 
     //do we want secure or not?
     if (app_enable_ssl)

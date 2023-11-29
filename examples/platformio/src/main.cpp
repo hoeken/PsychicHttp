@@ -8,17 +8,17 @@
   CONDITIONS OF ANY KIND, either express or implied.
 */
 
+/**********************************************************************************************
+* Note: this demo relies on various files to be uploaded on the LittleFS partition
+* PlatformIO -> Build Filesystem Image and then PlatformIO -> Upload Filesystem Image
+**********************************************************************************************/
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PsychicHttp.h>
 #include <LittleFS.h>
 #include <ArduinoJSON.h>
 #include <ESPmDNS.h>
-
-/**********************************************************************************************
-* Note: this demo relies on various files to be uploaded on the LittleFS partition
-* PlatformIO -> Build Filesystem Image and then PlatformIO -> Upload Filesystem Image
-**********************************************************************************************/
 
 //Enter your WIFI credentials here.
 const char *ssid = "";
@@ -33,11 +33,9 @@ const char *app_name = "Your App";
 const char *local_hostname = "psychic";
 
 //change this to true to enable SSL
-#ifdef PSY_ENABLE_SSL
-  bool app_enable_ssl = false;
-  String server_cert;
-  String server_key;
-#endif
+bool app_enable_ssl = false;
+String server_cert;
+String server_key;
 
 //our main server object
 PsychicHttpServer server;
@@ -155,56 +153,49 @@ void setup()
       return;
     }
 
-    #ifdef PSY_ENABLE_SSL
-      //look up our keys?
-      if (app_enable_ssl)
+    //look up our keys?
+    if (app_enable_ssl)
+    {
+      File fp = LittleFS.open("/server.crt");
+      if (fp)
       {
-        File fp = LittleFS.open("/server.crt");
-        if (fp)
-        {
-          server_cert = fp.readString();
+        server_cert = fp.readString();
 
-          // Serial.println("Server Cert:");
-          // Serial.println(server_cert);
-        }
-        else
-        {
-          Serial.println("server.pem not found, SSL not available");
-          app_enable_ssl = false;
-        }
-        fp.close();
-
-        File fp2 = LittleFS.open("/server.key");
-        if (fp2)
-        {
-          server_key = fp2.readString();
-
-          // Serial.println("Server Key:");
-          // Serial.println(server_key);
-        }
-        else
-        {
-          Serial.println("server.key not found, SSL not available");
-          app_enable_ssl = false;
-        }
-        fp2.close();
+        // Serial.println("Server Cert:");
+        // Serial.println(server_cert);
       }
-    #endif
+      else
+      {
+        Serial.println("server.pem not found, SSL not available");
+        app_enable_ssl = false;
+      }
+      fp.close();
+
+      File fp2 = LittleFS.open("/server.key");
+      if (fp2)
+      {
+        server_key = fp2.readString();
+
+        // Serial.println("Server Key:");
+        // Serial.println(server_key);
+      }
+      else
+      {
+        Serial.println("server.key not found, SSL not available");
+        app_enable_ssl = false;
+      }
+      fp2.close();
+    }
 
     //setup server config stuff here
     server.config.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
-    server.maxRequestBodySize = 10 * 1024; //maximum non-upload request body size (10kb)
-    server.maxUploadSize = 200 * 1024; //maximum file upload size (200kb)
+    server.ssl_config.httpd.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
 
     //do we want secure or not?
-    #ifdef PSY_ENABLE_SSL
-      if (app_enable_ssl)
-        server.listen(443, server_cert.c_str(), server_key.c_str());
-      else
-        server.listen(80);
-    #else
-        server.listen(80);
-    #endif
+    if (app_enable_ssl)
+      server.listen(443, server_cert.c_str(), server_key.c_str());
+    else
+      server.listen(80);
 
     //serve static files from LittleFS/www on /
     //this is where our /index.html file lives
