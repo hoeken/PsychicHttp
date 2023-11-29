@@ -22,7 +22,7 @@ jobs:
         run: |
           TAG_VERSION=$(sed "s/^v//" <<< $GITHUB_REF_NAME)
           PLATFORMIO_VERSION=$(jq ".version" library.json -r)
-          ARDUINO_VERSION=$(awk -F= '/version/{gsub(/"/, "", $2); print $2}' library.json)
+          ARDUINO_VERSION=$(awk -F= '/version/{gsub(/"/, "", $2); print $2}' library.properties)
           echo TAG_VERSION=$TAG_VERSION >> $GITHUB_ENV
           echo PLATFORMIO_VERSION=$PLATFORMIO_VERSION >> $GITHUB_ENV
           echo ARDUINO_VERSION=$ARDUINO_VERSION >> $GITHUB_ENV
