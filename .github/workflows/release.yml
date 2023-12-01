@@ -6,7 +6,6 @@ on:
   release:
     types:
       - released
-      - edited
 
 jobs:
   release_number:
