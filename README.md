@@ -54,7 +54,7 @@ Yes, PsychicHttp supports SSL out of the box, but there are a few caveats:
 To generate your own self signed certificate, you can use the command below:
 
 ```
-openssl req -x509 -newkey rsa:2048 -nodes -keyout server.key -out server.crt -sha256 -days 365
+openssl req -x509 -newkey rsa:4096 -nodes -keyout server.key -out server.crt -sha256 -days 365
 ```
 
 ## Analysis
