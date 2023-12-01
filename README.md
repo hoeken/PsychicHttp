@@ -41,6 +41,21 @@ If anyone wants to take a crack at implementing any of the above features I am m
 In order to really see the differences between libraries, I created some basic benchmark firmwares for PsychicHttp, ESPAsyncWebserver, and ArduinoMongoose.  I then ran the loadtest-http.sh and loadtest-websocket.sh scripts against each firmware to get some real numbers on the performance of each server library.  All of the code and results are available in the /benchmark folder.  If you want to see the collated data and graphs, there is a [LibreOffice spreadsheet](/benchmark/comparison.ods).
 
 ![Performance graph](/benchmark/performance.png)
+![Latency graph](/benchmark/latency.png)
+
+## HTTPS / SSL
+
+Yes, PsychicHttp supports SSL out of the box, but there are a few caveats:
+
+* Due to memory limitations, it can only handle 2 connections at a time. Each SSL connection takes about 45k ram, and a blank PsychicHttp sketch has about 150k ram free.
+* Speed and latency are still pretty good (see graph above) but the SSH handshake seems to take 1500ms.  With websockets or browser its not an issue since the connection is kept alive, but if you are loading requests in another way it will be a bit slow
+* Unless you want to expose your ESP to the internet, you are limited to self signed keys and the annoying browser security warnings that come with them.
+
+To generate your own self signed certificate, you can use the command below:
+
+```
+openssl req -x509 -newkey rsa:4096 -nodes -keyout server.key -out server.crt -sha256 -days 365
+```
 
 ## Analysis
 
