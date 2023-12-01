@@ -7,6 +7,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: arduino/arduino-lint-action@v1
         with:
-          library-manager: submit
+          library-manager: update
           project-type: library
           compliance: strict
