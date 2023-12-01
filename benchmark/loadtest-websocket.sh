@@ -6,6 +6,7 @@ TEST_IP="192.168.2.131"
 TEST_TIME=60
 LOG_FILE=psychic-websocket-loadtest.log
 PROTOCOL=ws
+#PROTOCOL=wss
 
 if test -f "$LOG_FILE"; then
   rm $LOG_FILE
