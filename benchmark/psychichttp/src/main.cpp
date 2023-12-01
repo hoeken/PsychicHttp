@@ -13,8 +13,8 @@
 #include <LittleFS.h>
 #include <ArduinoJSON.h>
 
-const char *ssid = "Phoenix";
-const char *password = "FulleSende";
+const char *ssid = "";
+const char *password = "";
 
 PsychicHttpServer server;
 
