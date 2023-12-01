@@ -17,6 +17,8 @@ const char *ssid = "Phoenix";
 const char *password = "FulleSende";
 
 PsychicHttpServer server;
+String server_cert;
+String server_key;
 
 const char *htmlContent = R"(
 <!DOCTYPE html>
@@ -85,7 +87,6 @@ bool connectToWifi()
   Serial.println(ssid);
 
   WiFi.setSleep(false);
-  WiFi.useStaticBuffers(true);
 
   WiFi.begin(ssid, password);
 
@@ -157,8 +158,26 @@ void setup()
       return;
     }
 
+    File fp = LittleFS.open("/server.crt");
+    if (fp) {
+      server_cert = fp.readString();
+    } else {
+      Serial.println("server.pem not found, SSL not available");
+      return;
+    }
+    fp.close();
+
+    File fp2 = LittleFS.open("/server.key");
+    if (fp2) {
+      server_key = fp2.readString();
+    } else {
+      Serial.println("server.key not found, SSL not available");
+      return;
+    }
+    fp2.close();
+
     //start our server
-    server.listen(80);
+    server.listen(443, server_cert.c_str(), server_key.c_str());
 
     //our index
     server.on("/", HTTP_GET, [](PsychicHttpServerRequest *request)
@@ -203,9 +222,9 @@ void setup()
 unsigned long last;
 void loop()
 {
-  // if (millis() - last > 1000)
-  // {
-  //   Serial.printf("Free Heap: %d\n", esp_get_free_heap_size());
-  //   last = millis();
-  // }
+  if (millis() - last > 1000)
+  {
+    Serial.printf("Free Heap: %d\n", esp_get_free_heap_size());
+    last = millis();
+  }
 }
