@@ -38,6 +38,12 @@ PsychicHttpServer::PsychicHttpServer()
   this->ssl_config.httpd.uri_match_fn = httpd_uri_match_wildcard;
   this->ssl_config.httpd.global_user_ctx = this;
   this->ssl_config.httpd.global_user_ctx_free_fn = this->destroy;
+  
+  // each SSL connection takes about 45kb of heap
+  // a barebones sketch with PsychicHttp has ~150kb of heap available
+  // if we set it higher than 2 and use all the connections, we get lots of memory errors.
+  // not to mention there is no heap left over for the program itself.
+  this->ssl_config.httpd.max_open_sockets = 2;
 
   #ifdef ENABLE_ASYNC
     this->config.lru_purge_enable = true;
