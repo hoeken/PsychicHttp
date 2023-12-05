@@ -8,7 +8,8 @@
   #error This library cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
 #endif
 
-PsychicHttpServer::PsychicHttpServer()
+PsychicHttpServer::PsychicHttpServer() :
+  _handlers(LinkedList<PsychicWebHandler*>([](PsychicWebHandler* h){ delete h; }))
 {
   //defaults
   this->maxRequestBodySize = 16 * 1024; //maximum non-upload request body size (16kb)
@@ -59,6 +60,8 @@ PsychicHttpServer::PsychicHttpServer()
 
 PsychicHttpServer::~PsychicHttpServer()
 {
+  _handlers.free();
+
   for (PsychicHttpServerEndpoint * endpoint : this->endpoints)
     delete(endpoint);
 
@@ -122,6 +125,15 @@ void PsychicHttpServer::stop()
     httpd_ssl_stop(this->server);
   else
     httpd_stop(this->server);
+}
+
+PsychicWebHandler& PsychicHttpServer::addHandler(PsychicWebHandler* handler){
+  _handlers.add(handler);
+  return *handler;
+}
+
+bool PsychicHttpServer::removeHandler(PsychicWebHandler *handler){
+  return _handlers.remove(handler);
 }
 
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri) {

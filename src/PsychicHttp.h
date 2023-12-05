@@ -25,6 +25,7 @@
 #include "MD5Builder.h"
 #include <UrlEncode.h>
 #include "FS.h"
+#include "StringArray.h"
 
 #ifdef ENABLE_ASYNC
   #include "async_worker.h"
@@ -291,6 +292,7 @@ class PsychicHttpServer
   protected:
     bool use_ssl = false;
     std::list<PsychicHttpServerEndpoint *> endpoints;
+    LinkedList<PsychicWebHandler*> _handlers;
 
     esp_err_t _start();
 
@@ -317,6 +319,9 @@ class PsychicHttpServer
     esp_err_t listen(uint16_t port);
     esp_err_t listen(uint16_t port, const char *cert, const char *private_key);
     void stop();
+
+    PsychicWebHandler& addHandler(PsychicWebHandler* handler);
+    bool removeHandler(PsychicWebHandler* handler);
 
     PsychicHttpServerEndpoint *on(const char* uri);
     PsychicHttpServerEndpoint *on(const char* uri, http_method method);
