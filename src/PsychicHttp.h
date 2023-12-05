@@ -64,52 +64,6 @@ class PsychicStaticFileHandler;
 
 #include "PsychicWebHandler.h"
 
-/*
- * PARAMETER :: Chainable object to hold GET/POST and FILE parameters
- * */
-
-// class PsychicWebParameter {
-//   private:
-//     String _name;
-//     String _value;
-//     size_t _size;
-//     bool _isForm;
-//     bool _isFile;
-
-//   public:
-
-//     PsychicWebParameter(const String& name, const String& value, bool form=false, bool file=false, size_t size=0): _name(name), _value(value), _size(size), _isForm(form), _isFile(file){}
-//     const String& name() const { return _name; }
-//     const String& value() const { return _value; }
-//     size_t size() const { return _size; }
-//     bool isPost() const { return _isForm; }
-//     bool isFile() const { return _isFile; }
-// };
-
-/*
- * HEADER :: Chainable object to hold the headers
- * */
-
-// class PsychichWebHeader {
-//   private:
-//     String _name;
-//     String _value;
-
-//   public:
-//     PsychichWebHeader(const String& name, const String& value): _name(name), _value(value){}
-//     PsychichWebHeader(const String& data): _name(), _value(){
-//       if(!data) return;
-//       int index = data.indexOf(':');
-//       if (index < 0) return;
-//       _name = data.substring(0, index);
-//       _value = data.substring(index + 2);
-//     }
-//     ~PsychichWebHeader(){}
-//     const String& name() const { return _name; }
-//     const String& value() const { return _value; }
-//     String toString() const { return String(_name+": "+_value+"\r\n"); }
-// };
-
 class PsychicHttpServerRequest {
   friend PsychicHttpServer;
 
@@ -170,7 +124,6 @@ class PsychicHttpServerRequest {
     esp_err_t redirect(const char *url);
     esp_err_t reply(int code);
     esp_err_t reply(const char *content);
-    //esp_err_t reply(int code, const char *content);
     esp_err_t reply(int code, const char *contentType, const char *content);
 };
 

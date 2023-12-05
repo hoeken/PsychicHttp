@@ -54,8 +54,6 @@ PsychicHttpServer::PsychicHttpServer() :
     // longer be responsive.
     //this->config.max_open_sockets = ASYNC_WORKER_COUNT + 1;
   #endif
-
-  // xFileSemaphore = xSemaphoreCreateMutex();
 }
 
 PsychicHttpServer::~PsychicHttpServer()
@@ -209,23 +207,10 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
   //do we have a static handler?
   if (server->staticHandler != NULL)
   {
-    //wait for our file semaphore
-    // if (xSemaphoreTake(xFileSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE)
-    // {
-      if (server->staticHandler->canHandle(&request))
-        result = server->staticHandler->handleRequest(&request);
-      else
-        result = server->defaultEndpoint._requestCallback(&request);
-    // }
-    // else
-    // {
-    //   ESP_LOGE(PH_TAG, "Failed to get file semaphore", esp_err_to_name(err));
-    //   result = request.reply(503, "text/html", "Unable to process request.");
-    //   //httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to get send file");
-    // }
-
-    //release our semaphore on the file lock
-    // xSemaphoreGive(xFileSemaphore);
+    if (server->staticHandler->canHandle(&request))
+      result = server->staticHandler->handleRequest(&request);
+    else
+      result = server->defaultEndpoint._requestCallback(&request);
   }
   //nope, just give them the default
   else
