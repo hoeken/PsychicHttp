@@ -1,0 +1,31 @@
+#ifndef async_worker_h
+#define async_worker_h
+
+#ifdef ENABLE_ASYNC
+
+  #include "freertos/FreeRTOS.h"
+  #include "freertos/semphr.h"
+
+  #define ASYNC_WORKER_TASK_PRIORITY      5
+  #define ASYNC_WORKER_TASK_STACK_SIZE    2048
+
+  #define ASYNC_WORKER_COUNT 8
+
+  // Async reqeusts are queued here while they wait to
+  // be processed by the workers
+  static QueueHandle_t async_req_queue;
+
+  // Track the number of free workers at any given time
+  static SemaphoreHandle_t worker_ready_count;
+
+  // Each worker has its own thread
+  static TaskHandle_t worker_handles[ASYNC_WORKER_COUNT];
+
+  typedef esp_err_t (*httpd_req_handler_t)(httpd_req_t *req);
+
+  typedef struct {
+      httpd_req_t* req;
+      httpd_req_handler_t handler;
+  } httpd_async_req_t;
+#endif
+#endif //async_worker_h

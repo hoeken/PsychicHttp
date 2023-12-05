@@ -1,14 +1,14 @@
 #ifndef PsychicHttp_h
 #define PsychicHttp_h
 
-//#define ENABLE_ASYNC
-//#define ENABLE_EVENT_SOURCE
+//#define ENABLE_ASYNC // This is something added in ESP-IDF 5.1.x where each request can be handled in its own thread
+//#define ENABLE_EVENT_SOURCE // Support for EventSource requests/responses
 
 #define PH_TAG "http"
 
 #define MAX_COOKIE_SIZE 256
 #define FILE_CHUNK_SIZE 4*1024
-#define MAX_UPLOAD_SIZE   (200*1024) // 200 KB
+#define MAX_UPLOAD_SIZE (200*1024) // 200 KB
 #define MAX_UPLOAD_SIZE_STR "200KB"
 
 #ifdef ARDUINO
@@ -27,31 +27,7 @@
 #include "FS.h"
 
 #ifdef ENABLE_ASYNC
-
-  #include "freertos/FreeRTOS.h"
-  #include "freertos/semphr.h"
-
-  #define ASYNC_WORKER_TASK_PRIORITY      5
-  #define ASYNC_WORKER_TASK_STACK_SIZE    2048
-
-  #define ASYNC_WORKER_COUNT 8
-
-  // Async reqeusts are queued here while they wait to
-  // be processed by the workers
-  static QueueHandle_t async_req_queue;
-
-  // Track the number of free workers at any given time
-  static SemaphoreHandle_t worker_ready_count;
-
-  // Each worker has its own thread
-  static TaskHandle_t worker_handles[ASYNC_WORKER_COUNT];
-
-  typedef esp_err_t (*httpd_req_handler_t)(httpd_req_t *req);
-
-  typedef struct {
-      httpd_req_t* req;
-      httpd_req_handler_t handler;
-  } httpd_async_req_t;
+  #include "async_worker.h"
 #endif
 
 typedef std::map<String, String> SessionData;
@@ -70,20 +46,13 @@ struct ContentDisposition {
 };
 
 //TODO: not quite used yet. for content-disposition
-struct MultipartContent {
-  char * content_type;
-  char * name;
-  char * filename;
-};
+// struct MultipartContent {
+//   char * content_type;
+//   char * name;
+//   char * filename;
+// };
 
 enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
-
-//used for async message sending
-struct async_resp_arg {
-    httpd_handle_t hd;
-    int fd;
-    char *data;
-};
 
 class PsychicHttpServer;
 class PsychicHttpServerRequest;
@@ -91,6 +60,8 @@ class PsychicHttpServerResponse;
 class PsychicHttpWebSocketRequest;
 class PsychicHttpWebSocketConnection;
 class PsychicStaticFileHandler;
+
+#include "PsychicWebHandler.h"
 
 /*
  * PARAMETER :: Chainable object to hold GET/POST and FILE parameters

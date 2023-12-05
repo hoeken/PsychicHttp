@@ -8,8 +8,6 @@
   #error This library cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
 #endif
 
-// SemaphoreHandle_t xFileSemaphore = NULL;
-
 PsychicHttpServer::PsychicHttpServer()
 {
   //defaults
@@ -1324,35 +1322,6 @@ PsychicHttpWebSocketConnection::PsychicHttpWebSocketConnection(httpd_handle_t se
 
 esp_err_t PsychicHttpWebSocketConnection::queueMessage(httpd_ws_frame_t * ws_pkt)
 {
-  //create a copy of this packet as its getting queued to the http server
-  //freed in queueMessageCallback
-  // struct async_resp_arg *resp_arg = (async_resp_arg *)malloc(sizeof(struct async_resp_arg));
-
-  // //did we get the memory?
-  // if (resp_arg == NULL)
-  // {
-  //   ESP_LOGE(PH_TAG, "queueMessage malloc failed to allocate");
-  //   return ESP_ERR_NO_MEM;
-  // }
-
-  // resp_arg->hd = this->_server;
-  // resp_arg->fd = this->_fd;
-  // //freed in queueMessageCallback
-  // resp_arg->data = (char *)malloc(ws_pkt->len+1);
-
-  // //did we get the memory?
-  // if (resp_arg->data == NULL)
-  // {
-  //   ESP_LOGE(PH_TAG, "httpd_queue_work malloc failed to allocate %d", ws_pkt->len+1);
-  //   return ESP_ERR_NO_MEM;
-  // }
-
-  //copy it over and send it off
-  // memcpy(resp_arg->data, ws_pkt->payload, ws_pkt->len+1);
-  // esp_err_t err = httpd_queue_work(resp_arg->hd, PsychicHttpWebSocketConnection::queueMessageCallback, resp_arg);
-  // if (err != ESP_OK)
-  //   ESP_LOGE(PH_TAG, "httpd_queue_work failed with %s", esp_err_to_name(err));
-
   return httpd_ws_send_frame_async(this->_server, this->_fd, ws_pkt);
 } 
 
@@ -1372,28 +1341,6 @@ esp_err_t PsychicHttpWebSocketConnection::queueMessage(const char *buf)
 {
   return this->queueMessage(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
-
-// void PsychicHttpWebSocketConnection::queueMessageCallback(void *arg)
-// {
-//   //get our handles and ids
-//   struct async_resp_arg *resp_arg = (async_resp_arg *)arg;
-//   httpd_handle_t hd = resp_arg->hd;
-//   int fd = resp_arg->fd;
-
-//   //construct our outgoing packet
-//   httpd_ws_frame_t ws_pkt;
-//   memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-//   ws_pkt.payload = (uint8_t*)resp_arg->data;
-//   ws_pkt.len = strlen(resp_arg->data);
-//   ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-
-//   //send the packet
-//   httpd_ws_send_frame_async(hd, fd, &ws_pkt);
-
-//   //clean up our data
-//   free(resp_arg->data);
-//   free(resp_arg);
-// }
 
 /*************************************/
 /*  PsychicStaticFileHandler         */
@@ -1800,122 +1747,3 @@ String urlDecode(const char* encoded)
 
   return output;
 }
-
-#ifdef ENABLE_ASYNC
-  bool is_on_async_worker_thread(void)
-  {
-      // is our handle one of the known async handles?
-      TaskHandle_t handle = xTaskGetCurrentTaskHandle();
-      for (int i = 0; i < ASYNC_WORKER_COUNT; i++) {
-          if (worker_handles[i] == handle) {
-              return true;
-          }
-      }
-      return false;
-  }
-
-// Submit an HTTP req to the async worker queue
-esp_err_t submit_async_req(httpd_req_t *req, httpd_req_handler_t handler)
-{
-    // must create a copy of the request that we own
-    httpd_req_t* copy = NULL;
-    esp_err_t err = httpd_req_async_handler_begin(req, &copy);
-    if (err != ESP_OK) {
-        return err;
-    }
-
-    httpd_async_req_t async_req = {
-        .req = copy,
-        .handler = handler,
-    };
-
-    // How should we handle resource exhaustion?
-    // In this example, we immediately respond with an
-    // http error if no workers are available.
-    int ticks = 0;
-
-    // counting semaphore: if success, we know 1 or
-    // more asyncReqTaskWorkers are available.
-    if (xSemaphoreTake(worker_ready_count, ticks) == false) {
-        ESP_LOGE(PH_TAG, "No workers are available");
-        httpd_req_async_handler_complete(copy); // cleanup
-        return ESP_FAIL;
-    }
-
-    // Since worker_ready_count > 0 the queue should already have space.
-    // But lets wait up to 100ms just to be safe.
-    if (xQueueSend(async_req_queue, &async_req, pdMS_TO_TICKS(100)) == false) {
-        ESP_LOGE(PH_TAG, "worker queue is full");
-        httpd_req_async_handler_complete(copy); // cleanup
-        return ESP_FAIL;
-    }
-
-    return ESP_OK;
-}
-
-void async_req_worker_task(void *p)
-{
-    ESP_LOGI(PH_TAG, "starting async req task worker");
-
-    while (true) {
-
-        // counting semaphore - this signals that a worker
-        // is ready to accept work
-        xSemaphoreGive(worker_ready_count);
-
-        // wait for a request
-        httpd_async_req_t async_req;
-        if (xQueueReceive(async_req_queue, &async_req, portMAX_DELAY)) {
-
-            ESP_LOGI(PH_TAG, "invoking %s", async_req.req->uri);
-
-            // call the handler
-            async_req.handler(async_req.req);
-
-            // Inform the server that it can purge the socket used for
-            // this request, if needed.
-            if (httpd_req_async_handler_complete(async_req.req) != ESP_OK) {
-                ESP_LOGE(PH_TAG, "failed to complete async req");
-            }
-        }
-    }
-
-    ESP_LOGW(PH_TAG, "worker stopped");
-    vTaskDelete(NULL);
-}
-
-void start_async_req_workers(void)
-{
-    // counting semaphore keeps track of available workers
-    worker_ready_count = xSemaphoreCreateCounting(
-        ASYNC_WORKER_COUNT,  // Max Count
-        0); // Initial Count
-    if (worker_ready_count == NULL) {
-        ESP_LOGE(PH_TAG, "Failed to create workers counting Semaphore");
-        return;
-    }
-
-    // create queue
-    async_req_queue = xQueueCreate(1, sizeof(httpd_async_req_t));
-    if (async_req_queue == NULL){
-        ESP_LOGE(PH_TAG, "Failed to create async_req_queue");
-        vSemaphoreDelete(worker_ready_count);
-        return;
-    }
-
-    // start worker tasks
-    for (int i = 0; i < ASYNC_WORKER_COUNT; i++) {
-
-        bool success = xTaskCreate(async_req_worker_task, "async_req_worker",
-                                    ASYNC_WORKER_TASK_STACK_SIZE, // stack size
-                                    (void *)0, // argument
-                                    ASYNC_WORKER_TASK_PRIORITY, // priority
-                                    &worker_handles[i]);
-
-        if (!success) {
-            ESP_LOGE(PH_TAG, "Failed to start asyncReqWorker");
-            continue;
-        }
-    }
-}
-#endif
