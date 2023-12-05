@@ -1,7 +1,8 @@
 #ifndef PsychicWebHandler_h
 #define PsychicWebHandler_h
 
-#include <Arduino.h>
+#include "PsychicCore.h"
+#include "PsychicHttpServerRequest.h"
 
 /*
  * HANDLER :: One instance can be attached to any Request (done by the Server)
