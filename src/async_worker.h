@@ -27,5 +27,11 @@
       httpd_req_t* req;
       httpd_req_handler_t handler;
   } httpd_async_req_t;
+
+  bool is_on_async_worker_thread(void);
+  esp_err_t submit_async_req(httpd_req_t *req, httpd_req_handler_t handler);
+  void async_req_worker_task(void *p);
+  void start_async_req_workers(void);
+
 #endif
 #endif //async_worker_h
