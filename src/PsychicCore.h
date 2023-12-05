@@ -14,7 +14,6 @@
 #endif
 
 #include <esp_https_server.h>
-#include <http_status.h>
 #include <map>
 #include <list>
 #include <libb64/cencode.h>

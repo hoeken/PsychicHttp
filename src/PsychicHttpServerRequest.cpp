@@ -1,5 +1,6 @@
 #include "PsychicHttpServerRequest.h"
 #include "PsychicHttpServerResponse.h"
+#include <http_status.h>
 
 PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req) :
   _server(server),

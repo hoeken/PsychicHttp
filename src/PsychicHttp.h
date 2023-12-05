@@ -4,6 +4,7 @@
 //#define ENABLE_ASYNC // This is something added in ESP-IDF 5.1.x where each request can be handled in its own thread
 //#define ENABLE_EVENT_SOURCE // Support for EventSource requests/responses
 
+#include <http_status.h>
 #include "PsychicHttpServer.h"
 #include "PsychicHttpServerRequest.h"
 #include "PsychicHttpServerResponse.h"
