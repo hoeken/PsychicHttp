@@ -2,8 +2,8 @@
 #define PsychicHttp_h
 
 //#define ENABLE_ASYNC
+//#define ENABLE_EVENT_SOURCE
 
-#define CORE_DEBUG_LEVEL ARDUHAL_LOG_LEVEL_WARN
 #define PH_TAG "http"
 
 #define MAX_COOKIE_SIZE 256

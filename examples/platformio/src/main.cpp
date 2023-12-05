@@ -15,10 +15,14 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <PsychicHttp.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
+#include <PsychicHttp.h>
+
+#ifdef ENABLE_EVENT_SOURCE
+  #include <AsyncEventSource.h>
+#endif
 
 //Enter your WIFI credentials here.
 const char *ssid = "";
