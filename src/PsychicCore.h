@@ -1,12 +1,19 @@
 #ifndef PsychicCore_h
 #define PsychicCore_h
 
-#define PH_TAG "http"
+#define PH_TAG "psychic"
 
-#define MAX_COOKIE_SIZE 256
-#define FILE_CHUNK_SIZE 4*1024
-#define MAX_UPLOAD_SIZE (200*1024) // 200 KB
-#define MAX_UPLOAD_SIZE_STR "200KB"
+#ifndef MAX_COOKIE_SIZE
+  #define MAX_COOKIE_SIZE 256
+#endif
+
+#ifndef FILE_CHUNK_SIZE
+  #define FILE_CHUNK_SIZE 4*1024
+#endif
+
+#ifndef MAX_UPLOAD_SIZE
+  #define MAX_UPLOAD_SIZE (2048*1024) // 2MB
+#endif
 
 #ifdef ARDUINO
   #include <Arduino.h>
