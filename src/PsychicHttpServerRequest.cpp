@@ -1,4 +1,5 @@
 #include "PsychicHttpServerRequest.h"
+#include "PsychicHttpServerResponse.h"
 
 PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req) :
   _server(server),

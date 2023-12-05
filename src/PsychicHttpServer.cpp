@@ -1,4 +1,8 @@
 #include "PsychicHttpServer.h"
+#include "PsychicHttpServerEndpoint.h"
+#include "PsychicWebHandler.h"
+#include "PsychicStaticFileHandler.h"
+#include "PsychicHttpWebsocket.h"
 
 PsychicHttpServer::PsychicHttpServer() :
   _handlers(LinkedList<PsychicWebHandler*>([](PsychicWebHandler* h){ delete h; }))
@@ -11,7 +15,7 @@ PsychicHttpServer::PsychicHttpServer() :
   this->closeHandler = NULL;
   this->staticHandler = NULL;
 
-  this->defaultEndpoint = PsychicHttpServerEndpoint(this, HTTP_GET);
+  this->defaultEndpoint = new PsychicHttpServerEndpoint(this, HTTP_GET);
   this->onNotFound(PsychicHttpServer::defaultNotFoundHandler);
   
   //for a regular server
@@ -57,6 +61,8 @@ PsychicHttpServer::~PsychicHttpServer()
 
   if (staticHandler != NULL)
     delete staticHandler;
+
+  delete defaultEndpoint;
 }
 
 void PsychicHttpServer::destroy(void *ctx)
@@ -186,7 +192,7 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
 
 void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 {
-  this->defaultEndpoint.onRequest(fn);
+  this->defaultEndpoint->onRequest(fn);
 }
 
 esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
@@ -202,11 +208,11 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
     if (server->staticHandler->canHandle(&request))
       result = server->staticHandler->handleRequest(&request);
     else
-      result = server->defaultEndpoint._requestCallback(&request);
+      result = server->defaultEndpoint->_requestCallback(&request);
   }
   //nope, just give them the default
   else
-    result = server->defaultEndpoint._requestCallback(&request);
+    result = server->defaultEndpoint->_requestCallback(&request);
 
   return result;
 }

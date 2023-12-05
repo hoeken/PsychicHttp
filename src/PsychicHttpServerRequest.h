@@ -2,7 +2,6 @@
 #define PsychicHttpServerRequest_h
 
 #include "PsychicCore.h"
-#include "PsychicHttpServer.h"
 
 class PsychicHttpServer;
 
@@ -68,9 +67,5 @@ class PsychicHttpServerRequest {
     esp_err_t reply(const char *content);
     esp_err_t reply(int code, const char *contentType, const char *content);
 };
-
-typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
-typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpBasicUploadHandler;
-typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpMultipartUploadHandler;
 
 #endif // PsychicHttpServerRequest_h

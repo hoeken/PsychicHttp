@@ -28,10 +28,6 @@
   #error This library cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
 #endif
 
-#ifdef ENABLE_ASYNC
-  #include "async_worker.h"
-#endif
-
 typedef std::map<String, String> SessionData;
 
 struct HTTPHeader {
@@ -57,5 +53,17 @@ struct ContentDisposition {
 enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
 
 String urlDecode(const char* encoded);
+
+class PsychicHttpServer;
+class PsychicHttpServerRequest;
+class PsychicHttpWebSocketRequest;
+
+//callback definitions
+typedef std::function<esp_err_t(PsychicHttpServer *server, int sockfd)> PsychicHttpConnectionHandler;
+typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
+typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpBasicUploadHandler;
+typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpMultipartUploadHandler;
+typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection)> PsychicHttpWebSocketRequestHandler;
+typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection, httpd_ws_frame *frame)> PsychicHttpWebSocketFrameHandler;
 
 #endif //PsychicCore_h

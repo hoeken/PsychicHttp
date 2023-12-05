@@ -1,5 +1,7 @@
 #include "PsychicHttpFileResponse.h"
 #include "PsychicHttpServerResponse.h"
+#include "PsychicHttpServerRequest.h"
+
 
 PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *request, FS &fs, const String& path, const String& contentType, bool download)
  : PsychicHttpServerResponse(request) {

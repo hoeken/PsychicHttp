@@ -2,9 +2,10 @@
 #define PsychicHttpServer_h
 
 #include "PsychicCore.h"
-#include "PsychicHttpServerEndpoint.h"
-#include "PsychicWebHandler.h"
-#include "PsychicStaticFileHandler.h"
+
+class PsychicHttpServerEndpoint;
+class PsychicWebHandler;
+class PsychicStaticFileHandler;
 
 class PsychicHttpServer
 {
@@ -29,7 +30,7 @@ class PsychicHttpServer
     unsigned long maxUploadSize = 200 * 1024;
     unsigned long maxRequestBodySize = 16 * 1024;
 
-    PsychicHttpServerEndpoint defaultEndpoint;
+    PsychicHttpServerEndpoint *defaultEndpoint;
     PsychicHttpConnectionHandler openHandler;
     PsychicHttpConnectionHandler closeHandler;
 
@@ -65,7 +66,5 @@ class PsychicHttpServer
     void sendAll(httpd_ws_type_t op, const void *data, size_t len);
     void sendAll(const char *buf);
 };
-
-typedef std::function<esp_err_t(PsychicHttpServer *server, int sockfd)> PsychicHttpConnectionHandler;
 
 #endif // PsychicHttpServer_h

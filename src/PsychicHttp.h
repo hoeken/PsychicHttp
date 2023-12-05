@@ -13,4 +13,8 @@
 #include "PsychicStaticFileHandler.h"
 #include "PsychicHttpWebsocket.h"
 
+#ifdef ENABLE_ASYNC
+  #include "async_worker.h"
+#endif
+
 #endif /* PsychicHttp_h */

@@ -2,7 +2,8 @@
 #define PsychicHttpServerResponse_h
 
 #include "PsychicCore.h"
-#include "PsychicHttpServerRequest.h"
+
+class PsychicHttpServerRequest;
 
 class PsychicHttpServerResponse
 {

@@ -3,7 +3,8 @@
 
 #include "PsychicCore.h"
 #include "PsychicHttpServerResponse.h"
-#include "PsychicHttpServerRequest.h"
+
+class PsychicHttpServerRequest;
 
 class PsychicHttpFileResponse: public PsychicHttpServerResponse
 {

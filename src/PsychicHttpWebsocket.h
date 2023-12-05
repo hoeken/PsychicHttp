@@ -41,8 +41,4 @@ class PsychicHttpWebSocketConnection
     int id() { return this->_fd; }
 };
 
-//callback definitions
-typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection)> PsychicHttpWebSocketRequestHandler;
-typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection, httpd_ws_frame *frame)> PsychicHttpWebSocketFrameHandler;
-
 #endif // PsychicHttpWebsocket_h
