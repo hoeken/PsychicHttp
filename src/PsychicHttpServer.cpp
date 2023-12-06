@@ -205,8 +205,10 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
 
 void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 {
-  //TODO: sort this out
-  //this->defaultEndpoint->getHandler()->onRequest(fn);
+  PsychicWebHandler *handler = new PsychicWebHandler();
+  handler->onRequest(fn);
+
+  this->defaultEndpoint->setHandler(handler);
 }
 
 esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
@@ -214,21 +216,20 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicHttpServerRequest request(server, req);
 
-  esp_err_t result = ESP_OK;
+  //loop through our global handlers and see if anyone wants it
+  for(const auto& h: server->_handlers) {
+    if (h->filter(&request) && h->canHandle(&request)) {
+      return h->handleRequest(&request);
+    }
+  }
 
-  // //do we have a static handler?
-  // if (server->staticHandler != NULL)
-  // {
-  //   if (server->staticHandler->canHandle(&request))
-  //     result = server->staticHandler->handleRequest(&request);
-  //   else
-  //     result = server->defaultEndpoint->_requestCallback(&request);
-  // }
-  // //nope, just give them the default
-  // else
-  //   result = server->defaultEndpoint->_requestCallback(&request);
+  //nothing found, give it to our defaultEndpoint
+  PsychicHandler *handler = server->defaultEndpoint->handler();
+  if (handler->filter(&request) && handler->canHandle(&request))
+    return handler->handleRequest(&request);
 
-  return result;
+  //not sure how we got this far.
+  return ESP_ERR_HTTPD_INVALID_REQ;
 }
 
 esp_err_t PsychicHttpServer::defaultNotFoundHandler(PsychicHttpServerRequest *request)
@@ -298,7 +299,7 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
 PsychicStaticFileHandler& PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control)
 {
   PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, fs, path, cache_control);
-  this->staticHandler = handler;
+  this->addHandler(handler);
 
   return *handler;
 }

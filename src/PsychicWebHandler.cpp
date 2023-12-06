@@ -1,7 +1,7 @@
 #include "PsychicWebHandler.h"
 
 PsychicWebHandler::PsychicWebHandler() : PsychicHandler() {}
-//PsychicWebHandler::~PsychicWebHandler() {}
+PsychicWebHandler::~PsychicWebHandler() {}
 
 bool PsychicWebHandler::canHandle(PsychicHttpServerRequest *request) {
   return true;

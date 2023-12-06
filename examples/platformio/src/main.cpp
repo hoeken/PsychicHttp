@@ -203,40 +203,7 @@ void setup()
 
     //serve static files from LittleFS/www on /
     //this is where our /index.html file lives
-    //server.serveStatic("/", LittleFS, "/www/");
-
-    // //a websocket echo server
-    // server.websocket("/ws")->
-    //   onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
-    //     Serial.println((char *)frame->payload);
-    //     request->reply(frame);
-    //     return ESP_OK;
-    //   })->
-    //   onConnect([](PsychicHttpWebSocketRequest *request) {
-    //     Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
-    //     return ESP_OK;
-    //   })->
-    //   onClose([](PsychicHttpServer *server, int sockfd) {
-    //     Serial.printf("[socket] connection closed (#%u)\n", sockfd);
-    //     return ESP_OK;
-    //   });
-
-    //Potential new style syntax
-    // PsychicWebsocketHandler ws();
-    // ws->onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
-    //     Serial.println((char *)frame->payload);
-    //     request->reply(frame);
-    //     return ESP_OK;
-    // });
-    // ws->onConnect([](PsychicHttpWebSocketRequest *request) {
-    //   Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
-    //   return ESP_OK;
-    // });
-    // ws->onClose([](PsychicHttpServer *server, int sockfd) {
-    //   Serial.printf("[socket] connection closed (#%u)\n", sockfd);
-    //   return ESP_OK;
-    // });
-    // server.websocket("/ws")->setHandler(&ws);
+    server.serveStatic("/", LittleFS, "/www/");
 
     //example callback everytime a connection is opened
     server.onOpen([](httpd_handle_t hd, int sockfd) {
@@ -347,21 +314,51 @@ void setup()
       return response.send();
     });
 
+    //example of getting POST variables
+    server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
+    {
+      String response = "Data: " + request->getParam("param1");
+      return request->reply(200, "text/html", response.c_str());
+    });
+
     // //single point basic file upload - POST to /upload?_filename=filename.ext
     // server.on("/upload", HTTP_POST)->onUpload(uploadHandler);
 
     // //wildcard basic file upload - POST to /upload/filename.ext
     // server.on("/upload/*", HTTP_POST)->onUpload(uploadHandler);
 
-    // //example of getting POST variables
-    // server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
-    // {
-    //   Serial.println(request->getParam("param1"));
+    // //a websocket echo server
+    // server.websocket("/ws")->
+    //   onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
+    //     Serial.println((char *)frame->payload);
+    //     request->reply(frame);
+    //     return ESP_OK;
+    //   })->
+    //   onConnect([](PsychicHttpWebSocketRequest *request) {
+    //     Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
+    //     return ESP_OK;
+    //   })->
+    //   onClose([](PsychicHttpServer *server, int sockfd) {
+    //     Serial.printf("[socket] connection closed (#%u)\n", sockfd);
+    //     return ESP_OK;
+    //   });
 
-    //   String response = "Data: " + request->getParam("param1");
-
-    //   return request->reply(200, "text/html", response.c_str());
+    //Potential new style syntax
+    // PsychicWebsocketHandler ws();
+    // ws->onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
+    //     Serial.println((char *)frame->payload);
+    //     request->reply(frame);
+    //     return ESP_OK;
     // });
+    // ws->onConnect([](PsychicHttpWebSocketRequest *request) {
+    //   Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
+    //   return ESP_OK;
+    // });
+    // ws->onClose([](PsychicHttpServer *server, int sockfd) {
+    //   Serial.printf("[socket] connection closed (#%u)\n", sockfd);
+    //   return ESP_OK;
+    // });
+    // server.websocket("/ws")->setHandler(&ws);
   }
 }
 
