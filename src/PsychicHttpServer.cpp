@@ -1,6 +1,7 @@
 #include "PsychicHttpServer.h"
 #include "PsychicHttpServerEndpoint.h"
 #include "PsychicHandler.h"
+#include "PsychicWebHandler.h"
 #include "PsychicStaticFileHandler.h"
 #include "PsychicHttpWebsocket.h"
 
@@ -15,7 +16,7 @@ PsychicHttpServer::PsychicHttpServer() :
   this->closeHandler = NULL;
   this->staticHandler = NULL;
 
-  this->defaultEndpoint = new PsychicHttpServerEndpoint(this, HTTP_GET);
+  this->defaultEndpoint = new PsychicHttpServerEndpoint(this, HTTP_GET, "");
   this->onNotFound(PsychicHttpServer::defaultNotFoundHandler);
   
   //for a regular server
@@ -136,40 +137,52 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri) {
   return on(uri, HTTP_GET);
 }
 
-PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, PsychicHttpRequestHandler onRequest)
+PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, PsychicHttpRequestHandler fn)
 {
-  return on(uri, HTTP_GET)->onRequest(onRequest);
+  return on(uri, HTTP_GET, fn);
 }
 
-PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest)
+PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestHandler fn)
 {
-  return on(uri, method)->onRequest(onRequest);
+  PsychicWebHandler *handler = new PsychicWebHandler();
+  handler->onRequest(fn);
+
+  PsychicHttpServerEndpoint *endpoint = on(uri, method);
+  endpoint->setHandler(handler);
+
+  return endpoint;
 }
 
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method)
 {
-  PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, method);
-  this->endpoints.push_back(handler);
-  
+  PsychicHttpServerEndpoint *endpoint = new PsychicHttpServerEndpoint(this, method, uri);
+
   // URI handler structure
   httpd_uri_t my_uri {
     .uri      = uri,
     .method   = method,
-    .handler  = PsychicHttpServerEndpoint::requestHandler,
-    .user_ctx = handler
+    .handler  = PsychicHttpServerEndpoint::requestCallback,
+    .user_ctx = endpoint
   };
 
-  // Register handler
+  // Register endpoint with ESP-IDF server
   esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
   if (ret != ESP_OK)
-    ESP_LOGE(PH_TAG, "Add request handler failed (%s)", esp_err_to_name(ret));
+    ESP_LOGE(PH_TAG, "Add endpoint failed (%s)", esp_err_to_name(ret));
 
-  return handler;
+  //set a basic handler
+  PsychicWebHandler *handler = new PsychicWebHandler();
+  endpoint->setHandler(handler);
+
+  //save it for later
+  this->endpoints.push_back(endpoint);
+
+  return endpoint;
 }
 
 PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
 {
-  PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, HTTP_GET);
+  PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, HTTP_GET, uri);
   handler->isWebsocket = true;
   this->endpoints.push_back(handler);
 
@@ -177,7 +190,7 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
   httpd_uri_t my_uri {
     .uri      = uri,
     .method   = HTTP_GET,
-    .handler  = PsychicHttpServerEndpoint::requestHandler,
+    .handler  = PsychicHttpServerEndpoint::requestCallback,
     .user_ctx = handler,
     .is_websocket = true
   };
@@ -192,7 +205,8 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
 
 void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 {
-  this->defaultEndpoint->onRequest(fn);
+  //TODO: sort this out
+  //this->defaultEndpoint->getHandler()->onRequest(fn);
 }
 
 esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
@@ -202,17 +216,17 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
 
   esp_err_t result = ESP_OK;
 
-  //do we have a static handler?
-  if (server->staticHandler != NULL)
-  {
-    if (server->staticHandler->canHandle(&request))
-      result = server->staticHandler->handleRequest(&request);
-    else
-      result = server->defaultEndpoint->_requestCallback(&request);
-  }
-  //nope, just give them the default
-  else
-    result = server->defaultEndpoint->_requestCallback(&request);
+  // //do we have a static handler?
+  // if (server->staticHandler != NULL)
+  // {
+  //   if (server->staticHandler->canHandle(&request))
+  //     result = server->staticHandler->handleRequest(&request);
+  //   else
+  //     result = server->defaultEndpoint->_requestCallback(&request);
+  // }
+  // //nope, just give them the default
+  // else
+  //   result = server->defaultEndpoint->_requestCallback(&request);
 
   return result;
 }

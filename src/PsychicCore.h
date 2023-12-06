@@ -17,7 +17,7 @@
 
 #ifdef ARDUINO
   #include <Arduino.h>
-  //#include <ArduinoTrace.h>
+  #include <ArduinoTrace.h>
 #endif
 
 #include <esp_https_server.h>

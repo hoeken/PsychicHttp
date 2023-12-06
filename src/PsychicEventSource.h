@@ -108,7 +108,7 @@ class PsychicEventSource : public PsychicHandler {
     void _addClient(PsychicEventSourceClient * client);
     void _handleDisconnect(PsychicEventSourceClient * client);
     virtual bool canHandle(PsychicHttpServerRequest *request) override final;
-    virtual void handleRequest(PsychicHttpServerRequest *request) override final;
+    virtual esp_err_t handleRequest(PsychicHttpServerRequest *request) override final;
 };
 
 class PsychicEventSourceResponse: public PsychicHttpServerResponse {

@@ -15,20 +15,21 @@ class PsychicHandler {
     PsychicHttpConnectionHandler _onclose;
     String _username;
     String _password;
+
   public:
     PsychicHandler();
-    virtual ~PsychicHandler();
+    //~PsychicHandler();
 
     PsychicHandler& onOpen(PsychicHttpConnectionHandler fn);
     PsychicHandler& onClose(PsychicHttpConnectionHandler fn);
 
     PsychicHandler& setFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicHttpServerRequest *request);
-    PsychicHandler& setAuthentication(const char *username, const char *password);
+    //PsychicHandler& setAuthentication(const char *username, const char *password);
 
-    virtual bool canHandle(PsychicHttpServerRequest *request __attribute__((unused)));
-    virtual void handleRequest(PsychicHttpServerRequest *request __attribute__((unused)));
-    virtual void handle(PsychicHttpServerRequest *request __attribute__((unused)));
+    //derived classes must implement these functions
+    virtual bool canHandle(PsychicHttpServerRequest *request) = 0;
+    virtual esp_err_t handleRequest(PsychicHttpServerRequest *request) = 0;
 };
 
 #endif

@@ -23,6 +23,8 @@ class PsychicHttpServerRequest {
     void *_tempObject;
     httpd_req_t *_req;
 
+    PsychicHttpServer * server();
+
     esp_err_t loadBody();
 
     //bool isUpload();

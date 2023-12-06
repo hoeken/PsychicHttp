@@ -25,8 +25,8 @@
 #endif
 
 //Enter your WIFI credentials here.
-const char *ssid = "";
-const char *password = "";
+const char *ssid = "Phoenix";
+const char *password = "FulleSende";
 
 //credentials for the /auth-basic and /auth-digest examples
 const char *app_user = "admin";
@@ -203,23 +203,23 @@ void setup()
 
     //serve static files from LittleFS/www on /
     //this is where our /index.html file lives
-    server.serveStatic("/", LittleFS, "/www/");
+    //server.serveStatic("/", LittleFS, "/www/");
 
-    //a websocket echo server
-    server.websocket("/ws")->
-      onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
-        Serial.println((char *)frame->payload);
-        request->reply(frame);
-        return ESP_OK;
-      })->
-      onConnect([](PsychicHttpWebSocketRequest *request) {
-        Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
-        return ESP_OK;
-      })->
-      onClose([](PsychicHttpServer *server, int sockfd) {
-        Serial.printf("[socket] connection closed (#%u)\n", sockfd);
-        return ESP_OK;
-      });
+    // //a websocket echo server
+    // server.websocket("/ws")->
+    //   onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
+    //     Serial.println((char *)frame->payload);
+    //     request->reply(frame);
+    //     return ESP_OK;
+    //   })->
+    //   onConnect([](PsychicHttpWebSocketRequest *request) {
+    //     Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
+    //     return ESP_OK;
+    //   })->
+    //   onClose([](PsychicHttpServer *server, int sockfd) {
+    //     Serial.printf("[socket] connection closed (#%u)\n", sockfd);
+    //     return ESP_OK;
+    //   });
 
     //Potential new style syntax
     // PsychicWebsocketHandler ws();
@@ -275,6 +275,12 @@ void setup()
       String jsonBuffer;
       serializeJson(output, jsonBuffer);
       return request->reply(200, "application/json", jsonBuffer.c_str());
+    });
+
+    //api - parameters passed in via query eg. /api/endpoint?foo=bar
+    server.on("/test", HTTP_GET, [](PsychicHttpServerRequest *request)
+    {
+      return request->reply(200, "text/html", "Hello World");
     });
 
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
@@ -341,21 +347,21 @@ void setup()
       return response.send();
     });
 
-    //single point basic file upload - POST to /upload?_filename=filename.ext
-    server.on("/upload", HTTP_POST)->onUpload(uploadHandler);
+    // //single point basic file upload - POST to /upload?_filename=filename.ext
+    // server.on("/upload", HTTP_POST)->onUpload(uploadHandler);
 
-    //wildcard basic file upload - POST to /upload/filename.ext
-    server.on("/upload/*", HTTP_POST)->onUpload(uploadHandler);
+    // //wildcard basic file upload - POST to /upload/filename.ext
+    // server.on("/upload/*", HTTP_POST)->onUpload(uploadHandler);
 
-    //example of getting POST variables
-    server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
-    {
-      Serial.println(request->getParam("param1"));
+    // //example of getting POST variables
+    // server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
+    // {
+    //   Serial.println(request->getParam("param1"));
 
-      String response = "Data: " + request->getParam("param1");
+    //   String response = "Data: " + request->getParam("param1");
 
-      return request->reply(200, "text/html", response.c_str());
-    });
+    //   return request->reply(200, "text/html", response.c_str());
+    // });
   }
 }
 

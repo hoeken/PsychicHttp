@@ -2,9 +2,9 @@
 #define PsychicHttpServer_h
 
 #include "PsychicCore.h"
+#include "PsychicHandler.h"
 
 class PsychicHttpServerEndpoint;
-class PsychicHandler;
 class PsychicStaticFileHandler;
 
 class PsychicHttpServer

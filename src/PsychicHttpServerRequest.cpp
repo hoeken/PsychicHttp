@@ -66,6 +66,11 @@ void PsychicHttpServerRequest::freeSession(void *ctx)
 //   return false;
 // }
 
+PsychicHttpServer * PsychicHttpServerRequest::server() {
+  return _server;
+}
+
+
 const String PsychicHttpServerRequest::getFilename()
 {
   //parse the content-disposition header
