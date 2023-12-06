@@ -238,10 +238,14 @@ bool PsychicHttpServerRequest::isMultipart()
 
 esp_err_t PsychicHttpServerRequest::redirect(const char *url)
 {
+  TRACE();
+
   PsychicHttpServerResponse response(this);
-  response.setCode(301);
+  response.setCode(307);
   response.addHeader("Location", url);
-  
+
+  TRACE();
+
   return response.send();
 }
 

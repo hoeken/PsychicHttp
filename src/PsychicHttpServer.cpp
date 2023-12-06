@@ -139,35 +139,46 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, PsychicHttpReq
 
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestHandler fn)
 {
+  //these basic requests need a basic web handler
   PsychicWebHandler *handler = new PsychicWebHandler();
   handler->onRequest(fn);
 
-  PsychicHttpServerEndpoint *endpoint = on(uri, method);
-  endpoint->setHandler(handler);
-
-  return endpoint;
+  return on(uri, method, handler);
 }
 
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method)
 {
+  PsychicWebHandler *handler = new PsychicWebHandler();
+
+  return on(uri, method, handler);
+}
+
+PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, PsychicHandler *handler)
+{
+  return on(uri, HTTP_GET, handler);
+}
+
+PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHandler *handler)
+{
+  //make our endpoint
   PsychicHttpServerEndpoint *endpoint = new PsychicHttpServerEndpoint(this, method, uri);
+
+  //set our handler
+  endpoint->setHandler(handler);
 
   // URI handler structure
   httpd_uri_t my_uri {
     .uri      = uri,
     .method   = method,
     .handler  = PsychicHttpServerEndpoint::requestCallback,
-    .user_ctx = endpoint
+    .user_ctx = endpoint,
+    //.is_websocket = handler.isWebsocket()
   };
 
   // Register endpoint with ESP-IDF server
   esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
   if (ret != ESP_OK)
     ESP_LOGE(PH_TAG, "Add endpoint failed (%s)", esp_err_to_name(ret));
-
-  //set a basic handler
-  PsychicWebHandler *handler = new PsychicWebHandler();
-  endpoint->setHandler(handler);
 
   //save it for later
   _endpoints.push_back(endpoint);

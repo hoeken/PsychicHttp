@@ -109,32 +109,6 @@ bool connectToWifi()
   return false;
 }
 
-esp_err_t uploadHandler(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)
-{
-  File file;
-  String path = "/www/" + filename;
-  Serial.println("Writing to: " + path);
-
-  //our first call?
-  if (!index)
-    file = LittleFS.open(path, FILE_WRITE);
-  else
-    file = LittleFS.open(path, FILE_APPEND);
-  
-  if(!file) {
-    Serial.println("Failed to open file");
-    return ESP_FAIL;
-  }
-
-  if(!file.write(data, len)) {
-    Serial.println("Write failed");
-    return ESP_FAIL;
-  }
-
-  file.close();
-  return ESP_OK;
-}
-
 void setup()
 {
   Serial.begin(115200);
@@ -282,7 +256,7 @@ void setup()
     //how to redirect a request
     server.on("/redirect", HTTP_GET, [](PsychicHttpServerRequest *request)
     {
-      return request->redirect("/");
+      return request->redirect("/alien.png");
     });
 
     //how to do basic auth
@@ -334,44 +308,61 @@ void setup()
       return request->reply(404, "text/html", "Custom 404 Handler");
     });
 
-    // //single point basic file upload - POST to /upload?_filename=filename.ext
-    // server.on("/upload", HTTP_POST)->onUpload(uploadHandler);
+    //create an upload handler for... handling our uploads :)
+    PsychicUploadHandler *uploadHandler = new PsychicUploadHandler();
+    uploadHandler->onUpload([](PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len) {
+      File file;
+      String path = "/www/" + filename;
+      Serial.println("Writing to: " + path);
 
-    // //wildcard basic file upload - POST to /upload/filename.ext
-    // server.on("/upload/*", HTTP_POST)->onUpload(uploadHandler);
+      //our first call?
+      if (!index)
+        file = LittleFS.open(path, FILE_WRITE);
+      else
+        file = LittleFS.open(path, FILE_APPEND);
+      
+      if(!file) {
+        Serial.println("Failed to open file");
+        return ESP_FAIL;
+      }
+
+      if(!file.write(data, len)) {
+        Serial.println("Write failed");
+        return ESP_FAIL;
+      }
+
+      return ESP_OK;
+    });
+
+    //gets called after upload has been handled
+    uploadHandler->onRequest([](PsychicHttpServerRequest *request)
+    {
+      String url = "/" + request->getFilename();
+      return request->reply(url.c_str());
+
+      //this crashes for some crazy reason???
+      //return request->redirect("/alien.png");
+    });
+
+    //wildcard basic file upload - POST to /upload/filename.ext
+    server.on("/upload/*", HTTP_POST, uploadHandler);
 
     // //a websocket echo server
-    // server.websocket("/ws")->
-    //   onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
-    //     Serial.println((char *)frame->payload);
-    //     request->reply(frame);
-    //     return ESP_OK;
-    //   })->
-    //   onConnect([](PsychicHttpWebSocketRequest *request) {
-    //     Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
-    //     return ESP_OK;
-    //   })->
-    //   onClose([](PsychicHttpServer *server, int sockfd) {
-    //     Serial.printf("[socket] connection closed (#%u)\n", sockfd);
-    //     return ESP_OK;
-    //   });
-
-    //Potential new style syntax
-    // PsychicWebsocketHandler ws();
-    // ws->onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
+    // PsychicWebsocketHandler websocketHandler = new PsychicWebsocketHandler();
+    // websocketHandler->onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
     //     Serial.println((char *)frame->payload);
     //     request->reply(frame);
     //     return ESP_OK;
     // });
-    // ws->onConnect([](PsychicHttpWebSocketRequest *request) {
+    // websocketHandler->onConnect([](PsychicHttpWebSocketRequest *request) {
     //   Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
     //   return ESP_OK;
     // });
-    // ws->onClose([](PsychicHttpServer *server, int sockfd) {
+    // websocketHandler->onClose([](PsychicHttpServer *server, int sockfd) {
     //   Serial.printf("[socket] connection closed (#%u)\n", sockfd);
     //   return ESP_OK;
     // });
-    // server.websocket("/ws")->setHandler(&ws);
+    // server.on("/ws", websocketHandler);
   }
 }
 

@@ -74,12 +74,22 @@ size_t PsychicHttpServerResponse::getContentLength()
 
 esp_err_t PsychicHttpServerResponse::send()
 {
+  TRACE();
+
   //get our headers out of the way first
   for (HTTPHeader header : this->headers)
+  {
+    DUMP(header.field);
+    DUMP(header.value);
     httpd_resp_set_hdr(this->_request->_req, header.field, header.value);
+  }
+
+  TRACE();
 
   //now send it off
   esp_err_t err = httpd_resp_send(this->_request->_req, this->getContent(), this->getContentLength());
+
+  TRACE();
 
   //clean up our header variables.  we have to do this since httpd_resp_send doesn't store copies
   for (HTTPHeader header : this->headers)
@@ -88,6 +98,8 @@ esp_err_t PsychicHttpServerResponse::send()
     free(header.value);
   }
   this->headers.clear();
+
+  TRACE();
 
   if (err != ESP_OK)
   {

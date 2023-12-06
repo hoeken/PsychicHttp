@@ -46,6 +46,8 @@ class PsychicHttpServer
     PsychicHttpServerEndpoint *on(const char* uri, http_method method);
     PsychicHttpServerEndpoint *on(const char* uri, PsychicHttpRequestHandler onRequest);
     PsychicHttpServerEndpoint *on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest);
+    PsychicHttpServerEndpoint *on(const char* uri, PsychicHandler *handler);
+    PsychicHttpServerEndpoint *on(const char* uri, http_method method, PsychicHandler *handler);
 
     PsychicHttpServerEndpoint *websocket(const char* uri);
 

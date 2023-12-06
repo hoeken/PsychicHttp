@@ -4,12 +4,14 @@ PsychicWebHandler::PsychicWebHandler() : PsychicHandler() {}
 PsychicWebHandler::~PsychicWebHandler() {}
 
 bool PsychicWebHandler::canHandle(PsychicHttpServerRequest *request) {
+  TRACE();
   return true;
 }
 
 esp_err_t PsychicWebHandler::handleRequest(PsychicHttpServerRequest *request)
 {
   TRACE();
+
   /* Request body cannot be larger than a limit */
   if (request->contentLength() > request->server()->maxRequestBodySize)
   {

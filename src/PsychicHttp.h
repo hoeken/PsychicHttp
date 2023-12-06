@@ -12,6 +12,7 @@
 #include "PsychicHttpServerEndpoint.h"
 #include "PsychicHandler.h"
 #include "PsychicStaticFileHandler.h"
+#include "PsychicUploadHandler.h"
 #include "PsychicHttpWebsocket.h"
 
 #ifdef ENABLE_ASYNC
