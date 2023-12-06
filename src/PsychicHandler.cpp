@@ -12,7 +12,7 @@ PsychicHandler& PsychicHandler::onClose(PsychicClientCallback fn) {
   return *this;
 }
 
-void PsychicHandler::clientClosed(PsychicClient *client) {}
+void PsychicHandler::closeCallback(PsychicClient *client) {}
 
 PsychicHandler& PsychicHandler::setFilter(PsychicRequestFilterFunction fn) {
   _filter = fn;

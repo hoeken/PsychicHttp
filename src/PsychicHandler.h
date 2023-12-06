@@ -22,12 +22,12 @@ class PsychicHandler {
 
     PsychicHandler& onOpen(PsychicClientCallback fn);
     PsychicHandler& onClose(PsychicClientCallback fn);
-    void clientClosed(PsychicClient *client);
 
     PsychicHandler& setFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicHttpServerRequest *request);
     //PsychicHandler& setAuthentication(const char *username, const char *password);
 
+    virtual void closeCallback(PsychicClient *client);
     virtual bool isWebsocket();
 
     //derived classes must implement these functions

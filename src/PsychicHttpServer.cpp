@@ -271,7 +271,7 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
     for (PsychicHttpServerEndpoint * endpoint : server->_endpoints)
     {
       PsychicHandler *handler = endpoint->handler();
-      handler->clientClosed(client);
+      handler->closeCallback(client);
     }
 
     //do we have a callback attached?

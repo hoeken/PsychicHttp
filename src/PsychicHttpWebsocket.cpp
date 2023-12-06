@@ -45,12 +45,12 @@ PsychicWebSocketClient::PsychicWebSocketClient(PsychicClient *client)
 {
 }
 
-esp_err_t PsychicWebSocketClient::queueMessage(httpd_ws_frame_t * ws_pkt)
+esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_frame_t * ws_pkt)
 {
   return httpd_ws_send_frame_async(this->server(), this->socket(), ws_pkt);
 } 
 
-esp_err_t PsychicWebSocketClient::queueMessage(httpd_ws_type_t op, const void *data, size_t len)
+esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_type_t op, const void *data, size_t len)
 {
   httpd_ws_frame_t ws_pkt;
   memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
@@ -59,12 +59,12 @@ esp_err_t PsychicWebSocketClient::queueMessage(httpd_ws_type_t op, const void *d
   ws_pkt.len = len;
   ws_pkt.type = op;
 
-  return this->queueMessage(&ws_pkt);
+  return this->sendMessage(&ws_pkt);
 }
 
-esp_err_t PsychicWebSocketClient::queueMessage(const char *buf)
+esp_err_t PsychicWebSocketClient::sendMessage(const char *buf)
 {
-  return this->queueMessage(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
+  return this->sendMessage(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
 
 PsychicWebsocketHandler::PsychicWebsocketHandler() : PsychicHandler() {}
@@ -119,8 +119,6 @@ esp_err_t PsychicWebsocketHandler::handleRequest(PsychicHttpServerRequest *reque
 
     return ESP_OK;
   }
-
-  TRACE();
 
   //init our memory for storing the packet
   httpd_ws_frame_t ws_pkt;
@@ -189,7 +187,7 @@ PsychicWebsocketHandler * PsychicWebsocketHandler::onClose(PsychicWebsocketClien
   return this;
 }
 
-void PsychicWebsocketHandler::clientClosed(PsychicClient *client) {
+void PsychicWebsocketHandler::closeCallback(PsychicClient *client) {
   PsychicWebSocketClient *wsclient = getClient(client);
   if (wsclient != NULL)
   {
@@ -206,7 +204,7 @@ void PsychicWebsocketHandler::sendAll(httpd_ws_frame_t * ws_pkt)
   {
     ESP_LOGI(PH_TAG, "Active client (fd=%d) -> sending async message", client->socket());
 
-    if (client->queueMessage(ws_pkt) != ESP_OK)
+    if (client->sendMessage(ws_pkt) != ESP_OK)
       break;
   }
 }

@@ -189,13 +189,13 @@ void setup()
 
     //example callback everytime a connection is opened
     server.onOpen([](PsychicClient *client) {
-      Serial.printf("[http] new connection #%u from %s\n", client->socket(), client->localIP().toString());
+      Serial.printf("[http] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
       return ESP_OK;
     });
 
     //example callback everytime a connection is closed
     server.onClose([](PsychicClient *client) {
-      Serial.printf("[http] connection closed #%u from %s\n", client->socket(), client->localIP().toString());
+      Serial.printf("[http] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
       return ESP_OK;
     });
 
@@ -351,17 +351,17 @@ void setup()
 
     //a websocket echo server
     websocketHandler->onOpen([](PsychicWebSocketClient *client) {
-      Serial.printf("[socket] new connection #%u from %s\n", client->socket(), client->localIP().toString());
-      client->queueMessage("Hello!");
+      Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
+      client->sendMessage("Hello!");
       return ESP_OK;
     });
     websocketHandler->onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
-        Serial.printf("[socket] %s\n", (char *)frame->payload);
+        Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char *)frame->payload);
         request->reply(frame);
         return ESP_OK;
     });
     websocketHandler->onClose([](PsychicWebSocketClient *client) {
-      Serial.printf("[socket] connection closed #%u from %s\n", client->socket(), client->localIP().toString());
+      Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
       return ESP_OK;
     });
     server.on("/ws", websocketHandler);

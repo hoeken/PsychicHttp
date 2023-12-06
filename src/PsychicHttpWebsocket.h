@@ -30,9 +30,9 @@ class PsychicWebSocketClient : public PsychicClient
   public:
     PsychicWebSocketClient(PsychicClient *client);
 
-    esp_err_t queueMessage(httpd_ws_frame_t * ws_pkt);
-    esp_err_t queueMessage(httpd_ws_type_t op, const void *data, size_t len);
-    esp_err_t queueMessage(const char *buf);
+    esp_err_t sendMessage(httpd_ws_frame_t * ws_pkt);
+    esp_err_t sendMessage(httpd_ws_type_t op, const void *data, size_t len);
+    esp_err_t sendMessage(const char *buf);
 };
 
 class PsychicWebsocketHandler : public PsychicHandler {
@@ -51,8 +51,7 @@ class PsychicWebsocketHandler : public PsychicHandler {
     bool canHandle(PsychicHttpServerRequest *request);
     esp_err_t handleRequest(PsychicHttpServerRequest *request);
 
-
-    void clientClosed(PsychicClient *client);
+    void closeCallback(PsychicClient *client) override;
     void addClient(PsychicWebSocketClient *client);
     void removeClient(PsychicWebSocketClient *client);
     PsychicWebSocketClient * getClient(PsychicClient *client);
