@@ -10,7 +10,7 @@
 #include "PsychicHttpServerResponse.h"
 #include "PsychicHttpFileResponse.h"
 #include "PsychicHttpServerEndpoint.h"
-#include "PsychicWebHandler.h"
+#include "PsychicHandler.h"
 #include "PsychicStaticFileHandler.h"
 #include "PsychicHttpWebsocket.h"
 

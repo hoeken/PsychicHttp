@@ -72,4 +72,7 @@ typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String&
 typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection)> PsychicHttpWebSocketRequestHandler;
 typedef std::function<esp_err_t(PsychicHttpWebSocketRequest *connection, httpd_ws_frame *frame)> PsychicHttpWebSocketFrameHandler;
 
+//filter function definition
+typedef std::function<bool(PsychicHttpServerRequest *request)> PsychicRequestFilterFunction;
+
 #endif //PsychicCore_h

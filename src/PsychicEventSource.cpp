@@ -119,8 +119,8 @@ PsychicEventSourceMessage::PsychicEventSourceMessage(const char * data, size_t l
 }
 
 PsychicEventSourceMessage::~PsychicEventSourceMessage() {
-     if(_data != NULL)
-        free(_data);
+  if(_data != NULL)
+    free(_data);
 }
 
 size_t PsychicEventSourceMessage::ack(size_t len, uint32_t time) {
@@ -254,9 +254,8 @@ void PsychicEventSourceClient::_runQueue(){
 
 // Handler
 
-PsychicEventSource::PsychicEventSource(const String& url)
-  : _url(url)
-  , _clients(LinkedList<PsychicEventSourceClient *>([](PsychicEventSourceClient *c){ delete c; }))
+PsychicEventSource::PsychicEventSource()
+  : _clients(LinkedList<PsychicEventSourceClient *>([](PsychicEventSourceClient *c){ delete c; }))
   , _connectcb(NULL)
 {}
 

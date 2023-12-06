@@ -22,7 +22,7 @@
 
 #include <Arduino.h>
 #include "PsychicCore.h"
-#include "PsychicWebHandler.h"
+#include "PsychicHandler.h"
 #include "PsychicHttpServerResponse.h"
 #include "StringArray.h"
 
@@ -90,16 +90,14 @@ class PsychicEventSourceClient {
     void _onDisconnect();
 };
 
-class PsychicEventSource : public PsychicWebHandler {
+class PsychicEventSource : public PsychicHandler {
   private:
-    String _url;
     LinkedList<PsychicEventSourceClient *> _clients;
     ArEventHandlerFunction _connectcb;
   public:
-    PsychicEventSource(const String& url);
+    PsychicEventSource();
     ~PsychicEventSource();
 
-    const char * url() const { return _url.c_str(); }
     void close();
     void onConnect(ArEventHandlerFunction cb);
     void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);

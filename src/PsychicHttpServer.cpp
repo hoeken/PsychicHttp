@@ -1,11 +1,11 @@
 #include "PsychicHttpServer.h"
 #include "PsychicHttpServerEndpoint.h"
-#include "PsychicWebHandler.h"
+#include "PsychicHandler.h"
 #include "PsychicStaticFileHandler.h"
 #include "PsychicHttpWebsocket.h"
 
 PsychicHttpServer::PsychicHttpServer() :
-  _handlers(LinkedList<PsychicWebHandler*>([](PsychicWebHandler* h){ delete h; }))
+  _handlers(LinkedList<PsychicHandler*>([](PsychicHandler* h){ delete h; }))
 {
   //defaults
   this->maxRequestBodySize = 16 * 1024; //maximum non-upload request body size (16kb)
@@ -123,12 +123,12 @@ void PsychicHttpServer::stop()
     httpd_stop(this->server);
 }
 
-PsychicWebHandler& PsychicHttpServer::addHandler(PsychicWebHandler* handler){
+PsychicHandler& PsychicHttpServer::addHandler(PsychicHandler* handler){
   _handlers.add(handler);
   return *handler;
 }
 
-bool PsychicHttpServer::removeHandler(PsychicWebHandler *handler){
+bool PsychicHttpServer::removeHandler(PsychicHandler *handler){
   return _handlers.remove(handler);
 }
 
@@ -330,4 +330,14 @@ void PsychicHttpServer::sendAll(httpd_ws_type_t op, const void *data, size_t len
 void PsychicHttpServer::sendAll(const char *buf)
 {
   this->sendAll(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
+}
+
+bool ON_STA_FILTER(PsychicHttpServerRequest *request) {
+  //return WiFi.localIP() == request->client()->localIP();
+  return true;
+}
+
+bool ON_AP_FILTER(PsychicHttpServerRequest *request) {
+  //return WiFi.localIP() != request->client()->localIP();
+  return true;
 }

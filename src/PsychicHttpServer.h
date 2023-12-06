@@ -4,7 +4,7 @@
 #include "PsychicCore.h"
 
 class PsychicHttpServerEndpoint;
-class PsychicWebHandler;
+class PsychicHandler;
 class PsychicStaticFileHandler;
 
 class PsychicHttpServer
@@ -12,7 +12,7 @@ class PsychicHttpServer
   protected:
     bool use_ssl = false;
     std::list<PsychicHttpServerEndpoint *> endpoints;
-    LinkedList<PsychicWebHandler*> _handlers;
+    LinkedList<PsychicHandler*> _handlers;
 
     esp_err_t _start();
 
@@ -40,8 +40,8 @@ class PsychicHttpServer
     esp_err_t listen(uint16_t port, const char *cert, const char *private_key);
     void stop();
 
-    PsychicWebHandler& addHandler(PsychicWebHandler* handler);
-    bool removeHandler(PsychicWebHandler* handler);
+    PsychicHandler& addHandler(PsychicHandler* handler);
+    bool removeHandler(PsychicHandler* handler);
 
     PsychicHttpServerEndpoint *on(const char* uri);
     PsychicHttpServerEndpoint *on(const char* uri, http_method method);
@@ -66,5 +66,8 @@ class PsychicHttpServer
     void sendAll(httpd_ws_type_t op, const void *data, size_t len);
     void sendAll(const char *buf);
 };
+
+bool ON_STA_FILTER(PsychicHttpServerRequest *request);
+bool ON_AP_FILTER(PsychicHttpServerRequest *request);
 
 #endif // PsychicHttpServer_h
