@@ -328,6 +328,12 @@ void setup()
       return request->reply(200, "text/html", response.c_str());
     });
 
+    //you can set up a custom 404 handler.
+    server.onNotFound([](PsychicHttpServerRequest *request)
+    {
+      return request->reply(404, "text/html", "Custom 404 Handler");
+    });
+
     // //single point basic file upload - POST to /upload?_filename=filename.ext
     // server.on("/upload", HTTP_POST)->onUpload(uploadHandler);
 

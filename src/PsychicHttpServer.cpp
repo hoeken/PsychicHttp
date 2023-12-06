@@ -8,48 +8,46 @@
 PsychicHttpServer::PsychicHttpServer() :
   _handlers(LinkedList<PsychicHandler*>([](PsychicHandler* h){ delete h; }))
 {
-  //defaults
-  this->maxRequestBodySize = 16 * 1024; //maximum non-upload request body size (16kb)
-  this->maxUploadSize = 256 * 1024; //maximum file upload size (256kb)
+  maxRequestBodySize = MAX_REQUEST_BODY_SIZE;
+  maxUploadSize = MAX_UPLOAD_SIZE;
 
-  this->openHandler = NULL;
-  this->closeHandler = NULL;
-  this->staticHandler = NULL;
+  _onOpen = NULL;
+  _onClose = NULL;
 
-  this->defaultEndpoint = new PsychicHttpServerEndpoint(this, HTTP_GET, "");
-  this->onNotFound(PsychicHttpServer::defaultNotFoundHandler);
+  defaultEndpoint = new PsychicHttpServerEndpoint(this, HTTP_GET, "");
+  onNotFound(PsychicHttpServer::defaultNotFoundHandler);
   
   //for a regular server
-  this->config = HTTPD_DEFAULT_CONFIG();
-  this->config.open_fn = PsychicHttpServer::openCallback;
-  this->config.close_fn = PsychicHttpServer::closeCallback;
-  this->config.uri_match_fn = httpd_uri_match_wildcard;
-  this->config.global_user_ctx = this;
-  this->config.global_user_ctx_free_fn = this->destroy;
+  config = HTTPD_DEFAULT_CONFIG();
+  config.open_fn = PsychicHttpServer::openCallback;
+  config.close_fn = PsychicHttpServer::closeCallback;
+  config.uri_match_fn = httpd_uri_match_wildcard;
+  config.global_user_ctx = this;
+  config.global_user_ctx_free_fn = destroy;
 
   //for a SSL server
-  this->ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
-  this->ssl_config.httpd.open_fn = PsychicHttpServer::openCallback;
-  this->ssl_config.httpd.close_fn = PsychicHttpServer::closeCallback;
-  this->ssl_config.httpd.uri_match_fn = httpd_uri_match_wildcard;
-  this->ssl_config.httpd.global_user_ctx = this;
-  this->ssl_config.httpd.global_user_ctx_free_fn = this->destroy;
+  ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
+  ssl_config.httpd.open_fn = PsychicHttpServer::openCallback;
+  ssl_config.httpd.close_fn = PsychicHttpServer::closeCallback;
+  ssl_config.httpd.uri_match_fn = httpd_uri_match_wildcard;
+  ssl_config.httpd.global_user_ctx = this;
+  ssl_config.httpd.global_user_ctx_free_fn = destroy;
   
   // each SSL connection takes about 45kb of heap
   // a barebones sketch with PsychicHttp has ~150kb of heap available
   // if we set it higher than 2 and use all the connections, we get lots of memory errors.
   // not to mention there is no heap left over for the program itself.
-  this->ssl_config.httpd.max_open_sockets = 2;
+  ssl_config.httpd.max_open_sockets = 2;
 
   #ifdef ENABLE_ASYNC
-    this->config.lru_purge_enable = true;
+    config.lru_purge_enable = true;
 
     // It is advisable that httpd_config_t->max_open_sockets > MAX_ASYNC_REQUESTS
     // Why? This leaves at least one socket still available to handle
     // quick synchronous requests. Otherwise, all the sockets will
     // get taken by the long async handlers, and your server will no
     // longer be responsive.
-    //this->config.max_open_sockets = ASYNC_WORKER_COUNT + 1;
+    //config.max_open_sockets = ASYNC_WORKER_COUNT + 1;
   #endif
 }
 
@@ -57,11 +55,8 @@ PsychicHttpServer::~PsychicHttpServer()
 {
   _handlers.free();
 
-  for (PsychicHttpServerEndpoint * endpoint : this->endpoints)
+  for (PsychicHttpServerEndpoint * endpoint : _endpoints)
     delete(endpoint);
-
-  if (staticHandler != NULL)
-    delete staticHandler;
 
   delete defaultEndpoint;
 }
@@ -74,7 +69,7 @@ void PsychicHttpServer::destroy(void *ctx)
 
 esp_err_t PsychicHttpServer::listen(uint16_t port)
 {
-  this->use_ssl = false;
+  this->_use_ssl = false;
   this->config.server_port = port;
 
   return this->_start();
@@ -82,7 +77,7 @@ esp_err_t PsychicHttpServer::listen(uint16_t port)
 
 esp_err_t PsychicHttpServer::listen(uint16_t port, const char *cert, const char *private_key)
 {
-  this->use_ssl = true;
+  this->_use_ssl = true;
 
   this->ssl_config.port_secure = port;
   this->ssl_config.cacert_pem = (uint8_t *)cert;
@@ -102,7 +97,7 @@ esp_err_t PsychicHttpServer::_start()
 
   //what mode to start in?
   esp_err_t err;
-  if (this->use_ssl)
+  if (this->_use_ssl)
     err = httpd_ssl_start(&this->server, &this->ssl_config);
   else
     err = httpd_start(&this->server, &this->config);
@@ -118,7 +113,7 @@ esp_err_t PsychicHttpServer::_start()
 void PsychicHttpServer::stop()
 {
   //Stop our http server
-  if (this->use_ssl)
+  if (this->_use_ssl)
     httpd_ssl_stop(this->server);
   else
     httpd_stop(this->server);
@@ -175,7 +170,7 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
   endpoint->setHandler(handler);
 
   //save it for later
-  this->endpoints.push_back(endpoint);
+  _endpoints.push_back(endpoint);
 
   return endpoint;
 }
@@ -184,7 +179,7 @@ PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
 {
   PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, HTTP_GET, uri);
   handler->isWebsocket = true;
-  this->endpoints.push_back(handler);
+  _endpoints.push_back(handler);
 
   // URI handler structure
   httpd_uri_t my_uri {
@@ -240,7 +235,7 @@ esp_err_t PsychicHttpServer::defaultNotFoundHandler(PsychicHttpServerRequest *re
 }
 
 void PsychicHttpServer::onOpen(PsychicHttpConnectionHandler handler) {
-  this->openHandler = handler;
+  this->_onOpen = handler;
 }
 
 esp_err_t PsychicHttpServer::openCallback(httpd_handle_t hd, int sockfd)
@@ -254,14 +249,14 @@ esp_err_t PsychicHttpServer::openCallback(httpd_handle_t hd, int sockfd)
 
   //do we have a callback attached?
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
-  if (server->openHandler != NULL)
-    server->openHandler(server, sockfd);
+  if (server->_onOpen != NULL)
+    server->_onOpen(server, sockfd);
 
   return ESP_OK;
 }
 
 void PsychicHttpServer::onClose(PsychicHttpConnectionHandler handler) {
-  this->closeHandler = handler;
+  this->_onClose = handler;
 }
 
 void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
@@ -271,7 +266,7 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
 
   //remove it from our connections list and do callback if needed
-  for (PsychicHttpServerEndpoint * endpoint : server->endpoints)
+  for (PsychicHttpServerEndpoint * endpoint : server->_endpoints)
   {
     if (endpoint->isWebsocket)
     {
@@ -289,8 +284,8 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   }
 
   //do we have a callback attached?
-  if (server->closeHandler != NULL)
-    server->closeHandler(server, sockfd);
+  if (server->_onClose != NULL)
+    server->_onClose(server, sockfd);
 
   //we need to close our own socket here!
   close(sockfd);

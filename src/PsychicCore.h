@@ -15,6 +15,10 @@
   #define MAX_UPLOAD_SIZE (2048*1024) // 2MB
 #endif
 
+#ifndef MAX_REQUEST_BODY_SIZE
+  #define MAX_REQUEST_BODY_SIZE (16*1024) //16K
+#endif
+
 #ifdef ARDUINO
   #include <Arduino.h>
   #include <ArduinoTrace.h>
