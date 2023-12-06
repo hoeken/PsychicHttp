@@ -2,9 +2,11 @@
 #define PsychicHttpServer_h
 
 #include "PsychicCore.h"
+#include "PsychicClient.h"
 #include "PsychicHandler.h"
 
 class PsychicHttpServerEndpoint;
+class PsychicHandler;
 class PsychicStaticFileHandler;
 
 class PsychicHttpServer
@@ -13,8 +15,10 @@ class PsychicHttpServer
     bool _use_ssl = false;
     std::list<PsychicHttpServerEndpoint *> _endpoints;
     LinkedList<PsychicHandler*> _handlers;
-    PsychicHttpConnectionHandler _onOpen;
-    PsychicHttpConnectionHandler _onClose;
+    std::list<PsychicClient*> _clients;
+
+    PsychicClientCallback _onOpen;
+    PsychicClientCallback _onClose;
 
     esp_err_t _start();
 
@@ -42,6 +46,12 @@ class PsychicHttpServer
     PsychicHandler& addHandler(PsychicHandler* handler);
     bool removeHandler(PsychicHandler* handler);
 
+    void addClient(PsychicClient *client);
+    void removeClient(PsychicClient *client);
+    PsychicClient * getClient(int socket);
+    PsychicClient * getClient(httpd_req_t *req);
+    bool hasClient(int socket);
+
     PsychicHttpServerEndpoint *on(const char* uri);
     PsychicHttpServerEndpoint *on(const char* uri, http_method method);
     PsychicHttpServerEndpoint *on(const char* uri, PsychicHttpRequestHandler onRequest);
@@ -55,17 +65,13 @@ class PsychicHttpServer
     static esp_err_t defaultNotFoundHandler(PsychicHttpServerRequest *request);
     void onNotFound(PsychicHttpRequestHandler fn);
 
-    void onOpen(PsychicHttpConnectionHandler handler);
-    void onClose(PsychicHttpConnectionHandler handler);
+    void onOpen(PsychicClientCallback handler);
+    void onClose(PsychicClientCallback handler);
     static esp_err_t openCallback(httpd_handle_t hd, int sockfd);
     static void closeCallback(httpd_handle_t hd, int sockfd);
 
     PsychicStaticFileHandler& serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
 
-    //TODO: move this to WebsocketHandler
-    void sendAll(httpd_ws_frame_t * ws_pkt);
-    void sendAll(httpd_ws_type_t op, const void *data, size_t len);
-    void sendAll(const char *buf);
 };
 
 bool ON_STA_FILTER(PsychicHttpServerRequest *request);

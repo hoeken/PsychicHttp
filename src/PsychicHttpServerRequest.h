@@ -2,6 +2,8 @@
 #define PsychicHttpServerRequest_h
 
 #include "PsychicCore.h"
+#include "PsychicHttpServer.h"
+#include "PsychicClient.h"
 
 class PsychicHttpServer;
 
@@ -15,15 +17,18 @@ class PsychicHttpServerRequest {
     String _query;
     String _body;
     SessionData *_session;
+    httpd_req_t *_req;
+    PsychicClient *_client;
 
   public:
     PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req);
     virtual ~PsychicHttpServerRequest();
 
     void *_tempObject;
-    httpd_req_t *_req;
 
     PsychicHttpServer * server();
+    httpd_req_t * request();
+    PsychicClient * client();
 
     esp_err_t loadBody();
 

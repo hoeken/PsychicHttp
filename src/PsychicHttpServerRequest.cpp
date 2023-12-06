@@ -7,6 +7,9 @@ PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, ht
   _req(req),
   _tempObject(NULL)
 {
+  //load up our client.
+  this->_client = server->getClient(req);
+
   //handle our session data
   if (req->sess_ctx != NULL)
     this->_session = (SessionData *)req->sess_ctx;
@@ -34,11 +37,6 @@ PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, ht
 
 PsychicHttpServerRequest::~PsychicHttpServerRequest()
 {
-  // if(this->_response) {
-  //   delete this->_response;
-  //   this->_response = NULL;
-  // }
-
   if (_tempObject != NULL)
     free(_tempObject);
 }
@@ -70,6 +68,13 @@ PsychicHttpServer * PsychicHttpServerRequest::server() {
   return _server;
 }
 
+httpd_req_t * PsychicHttpServerRequest::request() {
+  return _req;
+}
+
+PsychicClient * PsychicHttpServerRequest::client() {
+  return _client;
+}
 
 const String PsychicHttpServerRequest::getFilename()
 {

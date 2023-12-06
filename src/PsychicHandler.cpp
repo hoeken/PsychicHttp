@@ -2,15 +2,17 @@
 
 PsychicHandler::PsychicHandler() : _username(""), _password("") {}
 
-PsychicHandler& PsychicHandler::onOpen(PsychicHttpConnectionHandler fn) {
+PsychicHandler& PsychicHandler::onOpen(PsychicClientCallback fn) {
   _onopen = fn;
   return *this;
 }
 
-PsychicHandler& PsychicHandler::onClose(PsychicHttpConnectionHandler fn) {
+PsychicHandler& PsychicHandler::onClose(PsychicClientCallback fn) {
   _onclose = fn;
   return *this;
 }
+
+void PsychicHandler::clientClosed(PsychicClient *client) {}
 
 PsychicHandler& PsychicHandler::setFilter(PsychicRequestFilterFunction fn) {
   _filter = fn;
@@ -19,6 +21,10 @@ PsychicHandler& PsychicHandler::setFilter(PsychicRequestFilterFunction fn) {
 
 bool PsychicHandler::filter(PsychicHttpServerRequest *request){
   return _filter == NULL || _filter(request);
+}
+
+bool PsychicHandler::isWebsocket() {
+  return false;
 }
 
 // PsychicHandler& PsychicHandler::setAuthentication(const char *username, const char *password) {

@@ -11,8 +11,8 @@
 class PsychicHandler {
   protected:
     PsychicRequestFilterFunction _filter;
-    PsychicHttpConnectionHandler _onopen;
-    PsychicHttpConnectionHandler _onclose;
+    PsychicClientCallback _onopen;
+    PsychicClientCallback _onclose;
     String _username;
     String _password;
 
@@ -20,12 +20,15 @@ class PsychicHandler {
     PsychicHandler();
     //~PsychicHandler();
 
-    PsychicHandler& onOpen(PsychicHttpConnectionHandler fn);
-    PsychicHandler& onClose(PsychicHttpConnectionHandler fn);
+    PsychicHandler& onOpen(PsychicClientCallback fn);
+    PsychicHandler& onClose(PsychicClientCallback fn);
+    void clientClosed(PsychicClient *client);
 
     PsychicHandler& setFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicHttpServerRequest *request);
     //PsychicHandler& setAuthentication(const char *username, const char *password);
+
+    virtual bool isWebsocket();
 
     //derived classes must implement these functions
     virtual bool canHandle(PsychicHttpServerRequest *request) = 0;

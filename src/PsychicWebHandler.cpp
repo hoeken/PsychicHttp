@@ -4,14 +4,11 @@ PsychicWebHandler::PsychicWebHandler() : PsychicHandler() {}
 PsychicWebHandler::~PsychicWebHandler() {}
 
 bool PsychicWebHandler::canHandle(PsychicHttpServerRequest *request) {
-  TRACE();
   return true;
 }
 
 esp_err_t PsychicWebHandler::handleRequest(PsychicHttpServerRequest *request)
 {
-  TRACE();
-
   /* Request body cannot be larger than a limit */
   if (request->contentLength() > request->server()->maxRequestBodySize)
   {
@@ -20,7 +17,7 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicHttpServerRequest *request)
     /* Respond with 400 Bad Request */
     char error[60];
     sprintf(error, "Request body must be less than %u bytes!", request->server()->maxRequestBodySize);
-    httpd_resp_send_err(request->_req, HTTPD_400_BAD_REQUEST, error);
+    httpd_resp_send_err(request->request(), HTTPD_400_BAD_REQUEST, error);
 
     /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
     return ESP_FAIL;

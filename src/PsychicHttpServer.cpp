@@ -57,6 +57,11 @@ PsychicHttpServer::~PsychicHttpServer()
 
   for (PsychicHttpServerEndpoint * endpoint : _endpoints)
     delete(endpoint);
+  _endpoints.clear();
+
+  for (PsychicClient * client : _clients)
+    delete(client);
+  _clients.clear();
 
   delete defaultEndpoint;
 }
@@ -172,9 +177,9 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
     .method   = method,
     .handler  = PsychicHttpServerEndpoint::requestCallback,
     .user_ctx = endpoint,
-    //.is_websocket = handler.isWebsocket()
+    .is_websocket = handler->isWebsocket()
   };
-
+  
   // Register endpoint with ESP-IDF server
   esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
   if (ret != ESP_OK)
@@ -184,29 +189,6 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
   _endpoints.push_back(endpoint);
 
   return endpoint;
-}
-
-PsychicHttpServerEndpoint *PsychicHttpServer::websocket(const char* uri)
-{
-  PsychicHttpServerEndpoint *handler = new PsychicHttpServerEndpoint(this, HTTP_GET, uri);
-  handler->isWebsocket = true;
-  _endpoints.push_back(handler);
-
-  // URI handler structure
-  httpd_uri_t my_uri {
-    .uri      = uri,
-    .method   = HTTP_GET,
-    .handler  = PsychicHttpServerEndpoint::requestCallback,
-    .user_ctx = handler,
-    .is_websocket = true
-  };
-
-  // Register handler
-  esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
-  if (ret != ESP_OK)
-    ESP_LOGE(PH_TAG, "Add websocket handler failed (%s)", esp_err_to_name(ret));
-
-  return handler;
 }
 
 void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
@@ -245,7 +227,7 @@ esp_err_t PsychicHttpServer::defaultNotFoundHandler(PsychicHttpServerRequest *re
   return ESP_OK;
 }
 
-void PsychicHttpServer::onOpen(PsychicHttpConnectionHandler handler) {
+void PsychicHttpServer::onOpen(PsychicClientCallback handler) {
   this->_onOpen = handler;
 }
 
@@ -253,20 +235,25 @@ esp_err_t PsychicHttpServer::openCallback(httpd_handle_t hd, int sockfd)
 {
   ESP_LOGI(PH_TAG, "New client connected %d", sockfd);
 
-  if (httpd_ws_get_fd_info(hd, sockfd) == HTTPD_WS_CLIENT_WEBSOCKET)
-  {
-    ESP_LOGI(PH_TAG, "Websocket connected %d", sockfd);
-  }
-
   //do we have a callback attached?
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
+
+  //lookup our client
+  PsychicClient *client = server->getClient(sockfd);
+  if (client == NULL)
+  {
+    client = new PsychicClient(hd, sockfd);
+    server->addClient(client);
+  }
+
+  //user callback
   if (server->_onOpen != NULL)
-    server->_onOpen(server, sockfd);
+    server->_onOpen(client);
 
   return ESP_OK;
 }
 
-void PsychicHttpServer::onClose(PsychicHttpConnectionHandler handler) {
+void PsychicHttpServer::onClose(PsychicClientCallback handler) {
   this->_onClose = handler;
 }
 
@@ -276,29 +263,28 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
 
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
 
-  //remove it from our connections list and do callback if needed
-  for (PsychicHttpServerEndpoint * endpoint : server->_endpoints)
+  //lookup our client
+  PsychicClient *client = server->getClient(sockfd);
+  if (client != NULL)
   {
-    if (endpoint->isWebsocket)
+    //remove it from our connections list and do callback if needed
+    for (PsychicHttpServerEndpoint * endpoint : server->_endpoints)
     {
-      // Check if the value is in the list
-      auto it = std::find(endpoint->websocketConnections.begin(), endpoint->websocketConnections.end(), sockfd);
-      if (it != endpoint->websocketConnections.end())
-      {
-        endpoint->websocketConnections.erase(it);
-
-        //callback?
-        if (endpoint->_wsCloseCallback != NULL)
-          endpoint->_wsCloseCallback(server, sockfd);
-      }    
+      PsychicHandler *handler = endpoint->handler();
+      handler->clientClosed(client);
     }
+
+    //do we have a callback attached?
+    if (server->_onClose != NULL)
+      server->_onClose(client);
+
+    //remove it from our list
+    server->removeClient(client);
   }
+  else
+    ESP_LOGE(PH_TAG, "No client record %d", sockfd);
 
-  //do we have a callback attached?
-  if (server->_onClose != NULL)
-    server->_onClose(server, sockfd);
-
-  //we need to close our own socket here!
+  //finally close it out.
   close(sockfd);
 }
 
@@ -310,47 +296,29 @@ PsychicStaticFileHandler& PsychicHttpServer::serveStatic(const char* uri, fs::FS
   return *handler;
 }
 
-void PsychicHttpServer::sendAll(httpd_ws_frame_t * ws_pkt)
-{
-  size_t max_clients = this->config.max_open_sockets;
-  size_t clients = max_clients;
-  int    client_fds[max_clients];
-
-  if (httpd_get_client_list(this->server, &clients, client_fds) == ESP_OK)
-  {
-    for (size_t i=0; i < clients; ++i)
-    {
-      int sock = client_fds[i];
-      if (httpd_ws_get_fd_info(this->server, sock) == HTTPD_WS_CLIENT_WEBSOCKET)
-      {
-        ESP_LOGI(PH_TAG, "Active client (fd=%d) -> sending async message", sock);
-
-        PsychicHttpWebSocketConnection connection(this->server, sock);
-        if (connection.queueMessage(ws_pkt) != ESP_OK)
-          break;
-      }
-    }
-  } else {
-    ESP_LOGE(PH_TAG, "httpd_get_client_list failed!");
-    return;
-  }
+void PsychicHttpServer::addClient(PsychicClient *client) {
+  _clients.push_back(client);
 }
 
-void PsychicHttpServer::sendAll(httpd_ws_type_t op, const void *data, size_t len)
-{
-  httpd_ws_frame_t ws_pkt;
-  memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-
-  ws_pkt.payload = (uint8_t*)data;
-  ws_pkt.len = len;
-  ws_pkt.type = op;
-
-  this->sendAll(&ws_pkt);
+void PsychicHttpServer::removeClient(PsychicClient *client) {
+  _clients.remove(client);
+  delete client;
 }
 
-void PsychicHttpServer::sendAll(const char *buf)
-{
-  this->sendAll(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
+PsychicClient * PsychicHttpServer::getClient(int socket) {
+  for (PsychicClient * client : _clients)
+    if (client->socket() == socket)
+      return client;
+
+  return NULL;
+}
+
+PsychicClient * PsychicHttpServer::getClient(httpd_req_t *req) {
+  return getClient(httpd_req_to_sockfd(req));
+}
+
+bool PsychicHttpServer::hasClient(int socket) {
+  return getClient(socket) != NULL;
 }
 
 bool ON_STA_FILTER(PsychicHttpServerRequest *request) {
@@ -361,4 +329,37 @@ bool ON_STA_FILTER(PsychicHttpServerRequest *request) {
 bool ON_AP_FILTER(PsychicHttpServerRequest *request) {
   //return WiFi.localIP() != request->client()->localIP();
   return true;
+}
+
+String urlDecode(const char* encoded)
+{
+  size_t length = strlen(encoded);
+  char* decoded = (char*)malloc(length + 1);
+  if (!decoded) {
+    return "";
+  }
+
+  size_t i, j = 0;
+  for (i = 0; i < length; ++i) {
+      if (encoded[i] == '%' && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2])) {
+          // Valid percent-encoded sequence
+          int hex;
+          sscanf(encoded + i + 1, "%2x", &hex);
+          decoded[j++] = (char)hex;
+          i += 2;  // Skip the two hexadecimal characters
+      } else if (encoded[i] == '+') {
+          // Convert '+' to space
+          decoded[j++] = ' ';
+      } else {
+          // Copy other characters as they are
+          decoded[j++] = encoded[i];
+      }
+  }
+
+  decoded[j] = '\0';  // Null-terminate the decoded string
+
+  String output(decoded);
+  free(decoded);
+
+  return output;
 }

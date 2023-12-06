@@ -43,6 +43,7 @@ String server_key;
 
 //our main server object
 PsychicHttpServer server;
+PsychicWebsocketHandler *websocketHandler = new PsychicWebsocketHandler();
 
 bool connectToWifi()
 {
@@ -187,14 +188,14 @@ void setup()
     server.serveStatic("/myfile.txt", LittleFS, "/custom.txt");
 
     //example callback everytime a connection is opened
-    server.onOpen([](httpd_handle_t hd, int sockfd) {
-      Serial.printf("[http] new connection (#%u)\n", sockfd);
+    server.onOpen([](PsychicClient *client) {
+      Serial.printf("[http] new connection #%u from %s\n", client->socket(), client->localIP().toString());
       return ESP_OK;
     });
 
     //example callback everytime a connection is closed
-    server.onClose([](httpd_handle_t hd, int sockfd) {
-      Serial.printf("[http] connection closed (#%u)\n", sockfd);
+    server.onClose([](PsychicClient *client) {
+      Serial.printf("[http] connection closed #%u from %s\n", client->socket(), client->localIP().toString());
       return ESP_OK;
     });
 
@@ -226,9 +227,10 @@ void setup()
     });
 
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/test", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/ip", HTTP_GET, [](PsychicHttpServerRequest *request)
     {
-      return request->reply(200, "text/html", "Hello World");
+      String output = "Your IP is: " + request->client()->localIP().toString();
+      return request->reply(output.c_str());
     });
 
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
@@ -347,25 +349,35 @@ void setup()
     //wildcard basic file upload - POST to /upload/filename.ext
     server.on("/upload/*", HTTP_POST, uploadHandler);
 
-    // //a websocket echo server
-    // PsychicWebsocketHandler websocketHandler = new PsychicWebsocketHandler();
-    // websocketHandler->onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
-    //     Serial.println((char *)frame->payload);
-    //     request->reply(frame);
-    //     return ESP_OK;
-    // });
-    // websocketHandler->onConnect([](PsychicHttpWebSocketRequest *request) {
-    //   Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
-    //   return ESP_OK;
-    // });
-    // websocketHandler->onClose([](PsychicHttpServer *server, int sockfd) {
-    //   Serial.printf("[socket] connection closed (#%u)\n", sockfd);
-    //   return ESP_OK;
-    // });
-    // server.on("/ws", websocketHandler);
+    //a websocket echo server
+    websocketHandler->onOpen([](PsychicWebSocketClient *client) {
+      Serial.printf("[socket] new connection #%u from %s\n", client->socket(), client->localIP().toString());
+      client->queueMessage("Hello!");
+      return ESP_OK;
+    });
+    websocketHandler->onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
+        Serial.printf("[socket] %s\n", (char *)frame->payload);
+        request->reply(frame);
+        return ESP_OK;
+    });
+    websocketHandler->onClose([](PsychicWebSocketClient *client) {
+      Serial.printf("[socket] connection closed #%u from %s\n", client->socket(), client->localIP().toString());
+      return ESP_OK;
+    });
+    server.on("/ws", websocketHandler);
   }
 }
 
+unsigned long lastSocketUpdate = 0;
+char output[60];
+
 void loop()
 {
+  if (millis() - lastSocketUpdate > 5000)
+  {
+    sprintf(output, "Millis: %d\n", millis());
+    websocketHandler->sendAll(output);
+
+    lastSocketUpdate = millis();
+  }
 }

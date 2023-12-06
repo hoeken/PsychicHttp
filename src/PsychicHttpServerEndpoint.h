@@ -14,10 +14,6 @@ class PsychicHttpServerEndpoint
     http_method _method;
     PsychicHandler *_handler;
 
-    PsychicHttpWebSocketRequestHandler _wsConnectCallback;
-    PsychicHttpWebSocketFrameHandler _wsFrameCallback;
-    PsychicHttpConnectionHandler _wsCloseCallback;
-
   public:
     PsychicHttpServerEndpoint();
     PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method, const char * uri);
@@ -32,13 +28,9 @@ class PsychicHttpServerEndpoint
 
     String uri();
 
-    PsychicHttpServerEndpoint *onConnect(PsychicHttpWebSocketRequestHandler handler);
-    PsychicHttpServerEndpoint *onFrame(PsychicHttpWebSocketFrameHandler handler);
-    PsychicHttpServerEndpoint *onClose(PsychicHttpConnectionHandler handler);
-
     static esp_err_t requestCallback(httpd_req_t *req);
 
-    esp_err_t _websocketHandler(PsychicHttpWebSocketRequest &request);
+    esp_err_t _websocketHandler(PsychicWebSocketRequest &request);
 };
 
 #endif // PsychicHttpServerEndpoint_h

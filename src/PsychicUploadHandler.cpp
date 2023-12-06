@@ -19,7 +19,7 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicHttpServerRequest *request)
     /* Respond with 400 Bad Request */
     char error[50];
     sprintf(error, "File size must be less than %u bytes!", request->server()->maxUploadSize);
-    httpd_resp_send_err(request->_req, HTTPD_400_BAD_REQUEST, error);
+    httpd_resp_send_err(request->request(), HTTPD_400_BAD_REQUEST, error);
 
     /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
     return ESP_FAIL;
@@ -65,14 +65,14 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicHttpServerRequest *re
   unsigned long index = 0; 
 
   /* Content length of the request gives the size of the file being uploaded */
-  int remaining = request->_req->content_len;
+  int remaining = request->contentLength();
 
   while (remaining > 0)
   {
     ESP_LOGI(PH_TAG, "Remaining size : %d", remaining);
 
     /* Receive the file part by part into a buffer */
-    if ((received = httpd_req_recv(request->_req, buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)
+    if ((received = httpd_req_recv(request->request(), buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)
     {
       /* Retry if timeout occurred */
       if (received == HTTPD_SOCK_ERR_TIMEOUT)
@@ -116,7 +116,7 @@ esp_err_t PsychicUploadHandler::_multipartUploadHandler(PsychicHttpServerRequest
   ESP_LOGE(PH_TAG,"Multipart uploads not (yet) supported.");
 
   /* Respond with 400 Bad Request */
-  httpd_resp_send_err(request->_req, HTTPD_400_BAD_REQUEST, "Multipart uploads not (yet) supported.");
+  httpd_resp_send_err(request->request(), HTTPD_400_BAD_REQUEST, "Multipart uploads not (yet) supported.");
 
   /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
   //return ESP_ERR_HTTPD_INVALID_REQ;   

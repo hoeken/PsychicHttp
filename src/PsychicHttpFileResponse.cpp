@@ -118,7 +118,7 @@ esp_err_t PsychicHttpFileResponse::send()
   {
     //get our headers out of the way first
     for (HTTPHeader header : this->headers)
-      httpd_resp_set_hdr(this->_request->_req, header.field, header.value);
+      httpd_resp_set_hdr(this->_request->request(), header.field, header.value);
 
     /* Retrieve the pointer to scratch buffer for temporary storage */
     char *chunk = (char *)malloc(FILE_CHUNK_SIZE);
@@ -129,16 +129,16 @@ esp_err_t PsychicHttpFileResponse::send()
         if (chunksize > 0)
         {
           /* Send the buffer contents as HTTP response chunk */
-          err = httpd_resp_send_chunk(this->_request->_req, chunk, chunksize);
+          err = httpd_resp_send_chunk(this->_request->request(), chunk, chunksize);
           if (err != ESP_OK)
           {
             ESP_LOGE(PH_TAG, "File sending failed (%s)", esp_err_to_name(err));
 
             /* Abort sending file */
-            httpd_resp_sendstr_chunk(this->_request->_req, NULL);
+            httpd_resp_sendstr_chunk(this->_request->request(), NULL);
 
             /* Respond with 500 Internal Server Error */
-            httpd_resp_send_err(this->_request->_req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+            httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
 
             //bail
             break;
@@ -156,7 +156,7 @@ esp_err_t PsychicHttpFileResponse::send()
       ESP_LOGI(PH_TAG, "File sending complete");
 
       /* Respond with an empty chunk to signal HTTP response completion */
-      httpd_resp_send_chunk(this->_request->_req, NULL, 0);
+      httpd_resp_send_chunk(this->_request->request(), NULL, 0);
     }
 
     /* Close file after sending complete */

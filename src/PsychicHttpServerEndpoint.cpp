@@ -6,10 +6,7 @@ PsychicHttpServerEndpoint::PsychicHttpServerEndpoint() :
   _server(NULL),
   _method(HTTP_GET),
   _uri(""),
-  _wsConnectCallback(NULL),
-  _wsFrameCallback(NULL),
-  isUpload(false),
-  isWebsocket(false)
+  _handler(NULL)
 {
 }
 
@@ -17,11 +14,7 @@ PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, 
   _server(server),
   _method(method),
   _uri(uri),
-  _handler(NULL),
-  _wsConnectCallback(NULL),
-  _wsFrameCallback(NULL),
-  isUpload(false),
-  isWebsocket(false)
+  _handler(NULL)
 {
 }
 
@@ -42,24 +35,6 @@ PsychicHandler * PsychicHttpServerEndpoint::handler()
 
 String PsychicHttpServerEndpoint::uri() {
   return _uri;
-}
-
-PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onConnect(PsychicHttpWebSocketRequestHandler handler) {
-  this->_wsConnectCallback = handler;
-  this->isWebsocket = true;
-  return this;
-}
-
-PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onFrame(PsychicHttpWebSocketFrameHandler handler) {
-  this->_wsFrameCallback = handler;
-  this->isWebsocket = true;
-  return this;
-}
-
-PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::onClose(PsychicHttpConnectionHandler handler) {
-  this->_wsCloseCallback = handler;
-  this->isWebsocket = true;
-  return this;
 }
 
 esp_err_t PsychicHttpServerEndpoint::requestCallback(httpd_req_t *req)
@@ -104,88 +79,5 @@ esp_err_t PsychicHttpServerEndpoint::requestCallback(httpd_req_t *req)
   else
     return request.reply(500, "text/html", "No handler registered.");
 
-  // if (self->isWebsocket)
-  // {
-  //   PsychicHttpWebSocketRequest connection(self->_server, req);
-  //   err = self->_websocketHandler(connection);
-  // }
-  // else
-  // {
-  //   PsychicHttpServerRequest request(self->_server, req);
-
-  //   //is this a file upload?
-  //   if (self->isUpload)
-  //     err = self->_uploadHandler(request);
-  //   //no, its a regular request
-  //   else
-  //     err = self->_requestHandler(request);
-  // }
-
   return err;
-}
-
-esp_err_t PsychicHttpServerEndpoint::_websocketHandler(PsychicHttpWebSocketRequest &request)
-{
-  // beginning of the ws URI handler and our onConnect hook
-  if (request._req->method == HTTP_GET)
-  {
-    if (this->_wsConnectCallback != NULL)  
-      this->_wsConnectCallback(&request);
-
-    //add it to our list of connections
-    this->websocketConnections.push_back(httpd_req_to_sockfd(request._req));
-
-    return ESP_OK;
-  }
-
-  //init our memory for storing the packet
-  httpd_ws_frame_t ws_pkt;
-  memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-  ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-  uint8_t *buf = NULL;
-
-  /* Set max_len = 0 to get the frame len */
-  esp_err_t ret = httpd_ws_recv_frame(request._req, &ws_pkt, 0);
-  if (ret != ESP_OK) {
-    ESP_LOGE(PH_TAG, "httpd_ws_recv_frame failed to get frame len with %s", esp_err_to_name(ret));
-    return ret;
-  }
-
-  //okay, now try to load the packet
-  ESP_LOGI(PH_TAG, "frame len is %d", ws_pkt.len);
-  if (ws_pkt.len) {
-    /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
-    buf = (uint8_t*) calloc(1, ws_pkt.len + 1);
-    if (buf == NULL) {
-      ESP_LOGE(PH_TAG, "Failed to calloc memory for buf");
-      return ESP_ERR_NO_MEM;
-    }
-    ws_pkt.payload = buf;
-    /* Set max_len = ws_pkt.len to get the frame payload */
-    ret = httpd_ws_recv_frame(request._req, &ws_pkt, ws_pkt.len);
-    if (ret != ESP_OK) {
-      ESP_LOGE(PH_TAG, "httpd_ws_recv_frame failed with %s", esp_err_to_name(ret));
-      free(buf);
-      return ret;
-    }
-    ESP_LOGI(PH_TAG, "Got packet with message: %s", ws_pkt.payload);
-  }
-
-  // Text messages are our payload.
-  if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
-  {
-    if (this->_wsFrameCallback != NULL)
-      ret = this->_wsFrameCallback(&request, &ws_pkt);
-  }
-
-  //logging housekeeping
-  if (ret != ESP_OK)
-    ESP_LOGE(PH_TAG, "httpd_ws_send_frame failed with %s", esp_err_to_name(ret));
-  ESP_LOGI(PH_TAG, "ws_handler: httpd_handle_t=%p, sockfd=%d, client_info:%d", req->handle,
-    httpd_req_to_sockfd(req), httpd_ws_get_fd_info(req->handle, httpd_req_to_sockfd(req)));
-
-  //dont forget to release our buffer memory
-  free(buf);
-
-  return ret;
 }
