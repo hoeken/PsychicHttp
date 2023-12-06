@@ -205,6 +205,13 @@ void setup()
     //this is where our /index.html file lives
     server.serveStatic("/", LittleFS, "/www/");
 
+    //serve static files from LittleFS/img on /img
+    //it's more efficient to serve everything from a single www directory, but this is also possible.
+    server.serveStatic("/img", LittleFS, "/img/");
+
+    //you can also serve single files
+    server.serveStatic("/myfile.txt", LittleFS, "/custom.txt");
+
     //example callback everytime a connection is opened
     server.onOpen([](httpd_handle_t hd, int sockfd) {
       Serial.printf("[http] new connection (#%u)\n", sockfd);

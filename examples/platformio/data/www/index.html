@@ -8,7 +8,7 @@
     </head>
     <body>
         <main>
-            <h1>Examples</h1>
+            <h1>Basic Request Examples</h1>
             <ul>
                 <li><a href="/api?foo=bar">API Call</a></li>
                 <li><a href="/redirect">Redirection</a></li>
@@ -17,41 +17,41 @@
                 <li><a href="/cookies">Cookies Demo</a></li>
                 <li><a href="/404">404</a></li>
             </ul>
-            <h1>POST Form</h1>
+
+            <h1>Static Serving</h1>
+            <p>
+                <a href="/alien.png"><img width="60" src="/alien.png"></a>
+                <a href="/img/request_flow.png"><img width="60" src="/img/request_flow.png"></a>
+            </p>
+            <p><a href="/myfile.txt">Text File</a></p>
+
+            <h1>Simple POST Form</h1>
             <form action="/post" method="post">
                 <label for="param1">Parameter 1:</label>
                 <input type="text" id="param1" name="param1">            
                 <br>
                 <input type="submit" value="Submit">
             </form>            
-            <h1>File Upload</h1>
-            <table class="fixed" border="0">
+
+            <h1>Basic File Upload</h1>
+            <table border="0">
                 <tr>
                     <td>
-                        <h2>ESP32 File Server</h2>
+                        <label for="newfile">Upload a file</label>
+                    </td>
+                    <td colspan="2">
+                        <input id="newfile" type="file" onchange="setpath()" style="width:100%;">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="filepath">Set path on server</label>
                     </td>
                     <td>
-                        <table border="0">
-                            <tr>
-                                <td>
-                                    <label for="newfile">Upload a file</label>
-                                </td>
-                                <td colspan="2">
-                                    <input id="newfile" type="file" onchange="setpath()" style="width:100%;">
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <label for="filepath">Set path on server</label>
-                                </td>
-                                <td>
-                                    <input id="filepath" type="text" style="width:100%;">
-                                </td>
-                                <td>
-                                    <button id="upload" type="button" onclick="upload()">Upload</button>
-                                </td>
-                            </tr>
-                        </table>
+                        <input id="filepath" type="text" style="width:100%;">
+                    </td>
+                    <td>
+                        <button id="upload" type="button" onclick="upload()">Upload</button>
                     </td>
                 </tr>
             </table>
@@ -67,8 +67,8 @@
 
                 /* Max size of an individual file. Make sure this
                 * value is same as that set in file_server.c */
-                var MAX_FILE_SIZE = 200*1024;
-                var MAX_FILE_SIZE_STR = "200KB";
+                var MAX_FILE_SIZE = 2048*1024;
+                var MAX_FILE_SIZE_STR = "2MB";
 
                 if (fileInput.length == 0) {
                     alert("No file selected!");
