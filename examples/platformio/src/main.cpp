@@ -21,7 +21,7 @@
 #include <PsychicHttp.h>
 
 #ifdef ENABLE_EVENT_SOURCE
-  #include <AsyncEventSource.h>
+  #include <PsychicEventSource.h>
 #endif
 
 //Enter your WIFI credentials here.
@@ -220,6 +220,23 @@ void setup()
         Serial.printf("[socket] connection closed (#%u)\n", sockfd);
         return ESP_OK;
       });
+
+    //Potential new style syntax
+    // PsychicWebsocketHandler ws();
+    // ws->onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
+    //     Serial.println((char *)frame->payload);
+    //     request->reply(frame);
+    //     return ESP_OK;
+    // });
+    // ws->onConnect([](PsychicHttpWebSocketRequest *request) {
+    //   Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
+    //   return ESP_OK;
+    // });
+    // ws->onClose([](PsychicHttpServer *server, int sockfd) {
+    //   Serial.printf("[socket] connection closed (#%u)\n", sockfd);
+    //   return ESP_OK;
+    // });
+    // server.websocket("/ws")->setHandler(&ws);
 
     //example callback everytime a connection is opened
     server.onOpen([](httpd_handle_t hd, int sockfd) {

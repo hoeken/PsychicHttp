@@ -18,7 +18,7 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "Arduino.h"
-#include "AsyncEventSource.h"
+#include "PsychicEventSource.h"
 
 static String generateEventMessage(const char *message, const char *event, uint32_t id, uint32_t reconnect){
   String ev = "";
@@ -106,7 +106,7 @@ static String generateEventMessage(const char *message, const char *event, uint3
 
 // Message
 
-AsyncEventSourceMessage::AsyncEventSourceMessage(const char * data, size_t len)
+PsychicEventSourceMessage::PsychicEventSourceMessage(const char * data, size_t len)
 : _data(nullptr), _len(len), _sent(0), _acked(0)
 {
   _data = (uint8_t*)malloc(_len+1);
@@ -118,12 +118,12 @@ AsyncEventSourceMessage::AsyncEventSourceMessage(const char * data, size_t len)
   }
 }
 
-AsyncEventSourceMessage::~AsyncEventSourceMessage() {
+PsychicEventSourceMessage::~PsychicEventSourceMessage() {
      if(_data != NULL)
         free(_data);
 }
 
-size_t AsyncEventSourceMessage::ack(size_t len, uint32_t time) {
+size_t PsychicEventSourceMessage::ack(size_t len, uint32_t time) {
   (void)time;
   // If the whole message is now acked...
   if(_acked + len > _len){
@@ -137,7 +137,7 @@ size_t AsyncEventSourceMessage::ack(size_t len, uint32_t time) {
   return 0;
 }
 
-size_t AsyncEventSourceMessage::send(PsychicConnection *client) {
+size_t PsychicEventSourceMessage::send(PsychicConnection *client) {
   //TODO: implement this.
   // const size_t len = _len - _sent;
   // if(client->space() < len){
@@ -153,8 +153,8 @@ size_t AsyncEventSourceMessage::send(PsychicConnection *client) {
 
 // Client
 
-AsyncEventSourceClient::AsyncEventSourceClient(PsychicHttpServerRequest *request, AsyncEventSource *server)
-: _messageQueue(LinkedList<AsyncEventSourceMessage *>([](AsyncEventSourceMessage *m){ delete  m; }))
+PsychicEventSourceClient::PsychicEventSourceClient(PsychicHttpServerRequest *request, PsychicEventSource *server)
+: _messageQueue(LinkedList<PsychicEventSourceMessage *>([](PsychicEventSourceMessage *m){ delete  m; }))
 {
 //  _client = request->client();
   _server = server;
@@ -165,22 +165,22 @@ AsyncEventSourceClient::AsyncEventSourceClient(PsychicHttpServerRequest *request
   //TODO: figure out what we need here    
   // _client->setRxTimeout(0);
   // _client->onError(NULL, NULL);
-  // _client->onAck([](void *r, PsychicConnection* c, size_t len, uint32_t time){ (void)c; ((AsyncEventSourceClient*)(r))->_onAck(len, time); }, this);
-  // _client->onPoll([](void *r, PsychicConnection* c){ (void)c; ((AsyncEventSourceClient*)(r))->_onPoll(); }, this);
+  // _client->onAck([](void *r, PsychicConnection* c, size_t len, uint32_t time){ (void)c; ((PsychicEventSourceClient*)(r))->_onAck(len, time); }, this);
+  // _client->onPoll([](void *r, PsychicConnection* c){ (void)c; ((PsychicEventSourceClient*)(r))->_onPoll(); }, this);
   // _client->onData(NULL, NULL);
-  // _client->onTimeout([this](void *r, PsychicConnection* c __attribute__((unused)), uint32_t time){ ((AsyncEventSourceClient*)(r))->_onTimeout(time); }, this);
-  // _client->onDisconnect([this](void *r, PsychicConnection* c){ ((AsyncEventSourceClient*)(r))->_onDisconnect(); delete c; }, this);
+  // _client->onTimeout([this](void *r, PsychicConnection* c __attribute__((unused)), uint32_t time){ ((PsychicEventSourceClient*)(r))->_onTimeout(time); }, this);
+  // _client->onDisconnect([this](void *r, PsychicConnection* c){ ((PsychicEventSourceClient*)(r))->_onDisconnect(); delete c; }, this);
 
   _server->_addClient(this);
   delete request;
 }
 
-AsyncEventSourceClient::~AsyncEventSourceClient(){
+PsychicEventSourceClient::~PsychicEventSourceClient(){
    _messageQueue.free();
   close();
 }
 
-void AsyncEventSourceClient::_queueMessage(AsyncEventSourceMessage *dataMessage){
+void PsychicEventSourceClient::_queueMessage(PsychicEventSourceMessage *dataMessage){
   //TODO: implement
   // if(dataMessage == NULL)
   //   return;
@@ -198,7 +198,7 @@ void AsyncEventSourceClient::_queueMessage(AsyncEventSourceMessage *dataMessage)
   //   _runQueue();
 }
 
-void AsyncEventSourceClient::_onAck(size_t len, uint32_t time){
+void PsychicEventSourceClient::_onAck(size_t len, uint32_t time){
   while(len && !_messageQueue.isEmpty()){
     len = _messageQueue.front()->ack(len, time);
     if(_messageQueue.front()->finished())
@@ -208,39 +208,39 @@ void AsyncEventSourceClient::_onAck(size_t len, uint32_t time){
   _runQueue();
 }
 
-void AsyncEventSourceClient::_onPoll(){
+void PsychicEventSourceClient::_onPoll(){
   if(!_messageQueue.isEmpty()){
     _runQueue();
   }
 }
 
 
-void AsyncEventSourceClient::_onTimeout(uint32_t time __attribute__((unused))){
+void PsychicEventSourceClient::_onTimeout(uint32_t time __attribute__((unused))){
   //TODO
   //_client->close(true);
 }
 
-void AsyncEventSourceClient::_onDisconnect(){
+void PsychicEventSourceClient::_onDisconnect(){
   _client = NULL;
   _server->_handleDisconnect(this);
 }
 
-void AsyncEventSourceClient::close(){
+void PsychicEventSourceClient::close(){
   // TODO
   // if(_client != NULL)
   //   _client->close();
 }
 
-void AsyncEventSourceClient::write(const char * message, size_t len){
-  _queueMessage(new AsyncEventSourceMessage(message, len));
+void PsychicEventSourceClient::write(const char * message, size_t len){
+  _queueMessage(new PsychicEventSourceMessage(message, len));
 }
 
-void AsyncEventSourceClient::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
+void PsychicEventSourceClient::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
   String ev = generateEventMessage(message, event, id, reconnect);
-  _queueMessage(new AsyncEventSourceMessage(ev.c_str(), ev.length()));
+  _queueMessage(new PsychicEventSourceMessage(ev.c_str(), ev.length()));
 }
 
-void AsyncEventSourceClient::_runQueue(){
+void PsychicEventSourceClient::_runQueue(){
   while(!_messageQueue.isEmpty() && _messageQueue.front()->finished()){
     _messageQueue.remove(_messageQueue.front());
   }
@@ -252,24 +252,23 @@ void AsyncEventSourceClient::_runQueue(){
   }
 }
 
-
 // Handler
 
-AsyncEventSource::AsyncEventSource(const String& url)
+PsychicEventSource::PsychicEventSource(const String& url)
   : _url(url)
-  , _clients(LinkedList<AsyncEventSourceClient *>([](AsyncEventSourceClient *c){ delete c; }))
+  , _clients(LinkedList<PsychicEventSourceClient *>([](PsychicEventSourceClient *c){ delete c; }))
   , _connectcb(NULL)
 {}
 
-AsyncEventSource::~AsyncEventSource(){
+PsychicEventSource::~PsychicEventSource(){
   close();
 }
 
-void AsyncEventSource::onConnect(ArEventHandlerFunction cb){
+void PsychicEventSource::onConnect(ArEventHandlerFunction cb){
   _connectcb = cb;
 }
 
-void AsyncEventSource::_addClient(AsyncEventSourceClient * client){
+void PsychicEventSource::_addClient(PsychicEventSourceClient * client){
   /*char * temp = (char *)malloc(2054);
   if(temp != NULL){
     memset(temp+1,' ',2048);
@@ -288,11 +287,11 @@ void AsyncEventSource::_addClient(AsyncEventSourceClient * client){
     _connectcb(client);
 }
 
-void AsyncEventSource::_handleDisconnect(AsyncEventSourceClient * client){
+void PsychicEventSource::_handleDisconnect(PsychicEventSourceClient * client){
   _clients.remove(client);
 }
 
-void AsyncEventSource::close(){
+void PsychicEventSource::close(){
   //TODO
   // for(const auto &c: _clients){
   //   if(c->connected())
@@ -301,7 +300,7 @@ void AsyncEventSource::close(){
 }
 
 // pmb fix
-size_t AsyncEventSource::avgPacketsWaiting() const {
+size_t PsychicEventSource::avgPacketsWaiting() const {
   if(_clients.isEmpty())
     return 0;
   
@@ -319,7 +318,7 @@ size_t AsyncEventSource::avgPacketsWaiting() const {
   return ((aql) + (nConnectedClients/2))/(nConnectedClients); // round up
 }
 
-void AsyncEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
+void PsychicEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
 
 
   String ev = generateEventMessage(message, event, id, reconnect);
@@ -331,16 +330,16 @@ void AsyncEventSource::send(const char *message, const char *event, uint32_t id,
   }
 }
 
-size_t AsyncEventSource::count() const {
+size_t PsychicEventSource::count() const {
   //TODO
-  // return _clients.count_if([](AsyncEventSourceClient *c){
+  // return _clients.count_if([](PsychicEventSourceClient *c){
   //   return c->connected();
   // });
   return 0;
 }
 
 //TODO
-// bool AsyncEventSource::canHandle(PsychicHttpServerRequest *request){
+// bool PsychicEventSource::canHandle(PsychicHttpServerRequest *request){
 //   if(request->method() != HTTP_GET || !request->url().equals(_url)) {
 //     return false;
 //   }
@@ -349,15 +348,15 @@ size_t AsyncEventSource::count() const {
 // }
 
 //TODO
-// void AsyncEventSource::handleRequest(PsychicHttpServerRequest *request){
+// void PsychicEventSource::handleRequest(PsychicHttpServerRequest *request){
 //   if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
 //     return request->requestAuthentication();
-//   request->send(new AsyncEventSourceResponse(this));
+//   request->send(new PsychicEventSourceResponse(this));
 // }
 
 // Response
 
-AsyncEventSourceResponse::AsyncEventSourceResponse(AsyncEventSource *server, PsychicHttpServerRequest *request) 
+PsychicEventSourceResponse::PsychicEventSourceResponse(PsychicEventSource *server, PsychicHttpServerRequest *request) 
   : PsychicHttpServerResponse(request)
 {
   _server = server;
@@ -369,16 +368,16 @@ AsyncEventSourceResponse::AsyncEventSourceResponse(AsyncEventSource *server, Psy
   addHeader("Connection", "keep-alive");
 }
 
-void AsyncEventSourceResponse::_respond(PsychicHttpServerRequest *request){
+void PsychicEventSourceResponse::_respond(PsychicHttpServerRequest *request){
   // TODO
   // String out = _assembleHead(request->version());
   // request->client()->write(out.c_str(), _headLength);
   // _state = RESPONSE_WAIT_ACK;
 }
 
-size_t AsyncEventSourceResponse::_ack(PsychicHttpServerRequest *request, size_t len, uint32_t time __attribute__((unused))){
+size_t PsychicEventSourceResponse::_ack(PsychicHttpServerRequest *request, size_t len, uint32_t time __attribute__((unused))){
   if(len){
-    new AsyncEventSourceClient(request, _server);
+    new PsychicEventSourceClient(request, _server);
   }
   return 0;
 }

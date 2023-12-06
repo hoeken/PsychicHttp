@@ -17,63 +17,63 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#ifndef ASYNCEVENTSOURCE_H_
-#define ASYNCEVENTSOURCE_H_
+#ifndef PsychicEventSource_H_
+#define PsychicEventSource_H_
 
 #include <Arduino.h>
-#define SSE_MAX_QUEUED_MESSAGES 32
+#include "PsychicCore.h"
+#include "PsychicWebHandler.h"
+#include "PsychicHttpServerResponse.h"
+#include "StringArray.h"
 
-#include <PsychicHttp.h>
-#include <StringArray.h>
-//#include "AsyncWebSynchronization.h"
-
-// #ifdef ESP8266
-// #include <Hash.h>
-// #ifdef CRYPTO_HASH_h // include Hash.h from espressif framework if the first include was from the crypto library
-// #include <../src/Hash.h>
-// #endif
-// #endif
-
-#ifdef ESP32
-  #define DEFAULT_MAX_SSE_CLIENTS 8
-#else
-  #define DEFAULT_MAX_SSE_CLIENTS 4
+#ifndef SSE_MAX_QUEUED_MESSAGES
+  #define SSE_MAX_QUEUED_MESSAGES 32
 #endif
 
-class AsyncEventSource;
-class AsyncEventSourceResponse;
-class AsyncEventSourceClient;
-class PsychicConnection;
-typedef std::function<void(AsyncEventSourceClient *client)> ArEventHandlerFunction;
+#ifndef DEFAULT_MAX_SSE_CLIENTS
+  #ifdef ESP32
+    #define DEFAULT_MAX_SSE_CLIENTS 8
+  #else
+    #define DEFAULT_MAX_SSE_CLIENTS 4
+  #endif
+#endif
 
-class AsyncEventSourceMessage {
+class PsychicEventSource;
+class PsychicEventSourceResponse;
+class PsychicEventSourceClient;
+class PsychicConnection;
+class PsychicHttpServerResponse;
+
+typedef std::function<void(PsychicEventSourceClient *client)> ArEventHandlerFunction;
+
+class PsychicEventSourceMessage {
   private:
     uint8_t * _data; 
     size_t _len;
     size_t _sent;
     size_t _acked; 
   public:
-    AsyncEventSourceMessage(const char * data, size_t len);
-    ~AsyncEventSourceMessage();
+    PsychicEventSourceMessage(const char * data, size_t len);
+    ~PsychicEventSourceMessage();
     size_t ack(size_t len, uint32_t time __attribute__((unused)));
     size_t send(PsychicConnection *client);
     bool finished(){ return _acked == _len; }
     bool sent() { return _sent == _len; }
 };
 
-class AsyncEventSourceClient {
+class PsychicEventSourceClient {
   private:
     PsychicConnection *_client;
-    AsyncEventSource *_server;
+    PsychicEventSource *_server;
     uint32_t _lastId;
-    LinkedList<AsyncEventSourceMessage *> _messageQueue;
-    void _queueMessage(AsyncEventSourceMessage *dataMessage);
+    LinkedList<PsychicEventSourceMessage *> _messageQueue;
+    void _queueMessage(PsychicEventSourceMessage *dataMessage);
     void _runQueue();
 
   public:
 
-    AsyncEventSourceClient(PsychicHttpServerRequest *request, AsyncEventSource *server);
-    ~AsyncEventSourceClient();
+    PsychicEventSourceClient(PsychicHttpServerRequest *request, PsychicEventSource *server);
+    ~PsychicEventSourceClient();
 
     PsychicConnection* client(){ return _client; }
     void close();
@@ -90,15 +90,14 @@ class AsyncEventSourceClient {
     void _onDisconnect();
 };
 
-//class AsyncEventSource: public AsyncWebHandler {
-class AsyncEventSource {
+class PsychicEventSource : public PsychicWebHandler {
   private:
     String _url;
-    LinkedList<AsyncEventSourceClient *> _clients;
+    LinkedList<PsychicEventSourceClient *> _clients;
     ArEventHandlerFunction _connectcb;
   public:
-    AsyncEventSource(const String& url);
-    ~AsyncEventSource();
+    PsychicEventSource(const String& url);
+    ~PsychicEventSource();
 
     const char * url() const { return _url.c_str(); }
     void close();
@@ -108,18 +107,18 @@ class AsyncEventSource {
     size_t  avgPacketsWaiting() const;
 
     //system callbacks (do not call)
-    void _addClient(AsyncEventSourceClient * client);
-    void _handleDisconnect(AsyncEventSourceClient * client);
-    //virtual bool canHandle(PsychicHttpServerRequest *request) override final;
-    //virtual void handleRequest(PsychicHttpServerRequest *request) override final;
+    void _addClient(PsychicEventSourceClient * client);
+    void _handleDisconnect(PsychicEventSourceClient * client);
+    virtual bool canHandle(PsychicHttpServerRequest *request) override final;
+    virtual void handleRequest(PsychicHttpServerRequest *request) override final;
 };
 
-class AsyncEventSourceResponse: public PsychicHttpServerResponse {
+class PsychicEventSourceResponse: public PsychicHttpServerResponse {
   private:
     String _content;
-    AsyncEventSource *_server;
+    PsychicEventSource *_server;
   public:
-    AsyncEventSourceResponse(AsyncEventSource *server, PsychicHttpServerRequest *request);
+    PsychicEventSourceResponse(PsychicEventSource *server, PsychicHttpServerRequest *request);
     void _respond(PsychicHttpServerRequest *request);
     size_t _ack(PsychicHttpServerRequest *request, size_t len, uint32_t time);
     bool _sourceValid() const { return true; }
@@ -130,4 +129,4 @@ class PsychicConnection {
     ~PsychicConnection();
 };
 
-#endif /* ASYNCEVENTSOURCE_H_ */
+#endif /* PsychicEventSource_H_ */
