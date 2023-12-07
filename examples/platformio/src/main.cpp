@@ -20,13 +20,9 @@
 #include <ESPmDNS.h>
 #include <PsychicHttp.h>
 
-#ifdef ENABLE_EVENT_SOURCE
-  #include <PsychicEventSource.h>
-#endif
-
 //Enter your WIFI credentials here.
-const char *ssid = "Phoenix";
-const char *password = "FulleSende";
+const char *ssid = "";
+const char *password = "";
 
 // Set your SoftAP credentials
 const char *softap_ssid = "PsychicHttp";

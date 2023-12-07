@@ -20,14 +20,19 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <PsychicHttp.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
+#include <PsychicHttp.h>
 
 //Enter your WIFI credentials here.
 const char *ssid = "";
 const char *password = "";
+
+// Set your SoftAP credentials
+const char *softap_ssid = "PsychicHttp";
+const char *softap_password = "";
+IPAddress softap_ip(10, 0, 0, 1);  
 
 //credentials for the /auth-basic and /auth-digest examples
 const char *app_user = "admin";
@@ -44,9 +49,21 @@ String server_key;
 
 //our main server object
 PsychicHttpServer server;
+PsychicWebSocketHandler websocketHandler;
+PsychicEventSource eventSource;
 
 bool connectToWifi()
 {
+  //dual client and AP mode
+  WiFi.mode(WIFI_AP_STA);
+
+  // Configure SoftAP
+  WiFi.softAPConfig(softap_ip, softap_ip, IPAddress(255, 255, 255, 0)); // subnet FF FF FF 00
+  WiFi.softAP(softap_ssid, softap_password);
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("SoftAP IP Address: ");
+  Serial.println(myIP);
+
   Serial.println();
   Serial.print("[WiFi] Connecting to ");
   Serial.println(ssid);
@@ -108,32 +125,6 @@ bool connectToWifi()
   }
 
   return false;
-}
-
-esp_err_t uploadHandler(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)
-{
-  File file;
-  String path = "/www/" + filename;
-  Serial.println("Writing to: " + path);
-
-  //our first call?
-  if (!index)
-    file = LittleFS.open(path, FILE_WRITE);
-  else
-    file = LittleFS.open(path, FILE_APPEND);
-  
-  if(!file) {
-    Serial.println("Failed to open file");
-    return ESP_FAIL;
-  }
-
-  if(!file.write(data, len)) {
-    Serial.println("Write failed");
-    return ESP_FAIL;
-  }
-
-  file.close();
-  return ESP_OK;
 }
 
 void setup()
@@ -198,44 +189,48 @@ void setup()
 
     //do we want secure or not?
     if (app_enable_ssl)
+    {
       server.listen(443, server_cert.c_str(), server_key.c_str());
+      
+      //this creates a 2nd server listening on port 80 and redirects all requests HTTPS
+      PsychicHttpServer *redirectServer = new PsychicHttpServer();
+      redirectServer->config.ctrl_port = 20424;
+      redirectServer->listen(80);
+      redirectServer->onNotFound([](PsychicRequest *request) {
+        String url = "https://" + request->host() + request->url();
+        return request->redirect(url.c_str());
+      });
+    }
     else
       server.listen(80);
 
-    //serve static files from LittleFS/www on /
+    //serve static files from LittleFS/www on / only to clients on same wifi network
     //this is where our /index.html file lives
-    server.serveStatic("/", LittleFS, "/www/");
+    server.serveStatic("/", LittleFS, "/www/")->setFilter(ON_STA_FILTER);
 
-    //a websocket echo server
-    server.websocket("/ws")->
-      onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
-        Serial.println((char *)frame->payload);
-        request->reply(frame);
-        return ESP_OK;
-      })->
-      onConnect([](PsychicHttpWebSocketRequest *request) {
-        Serial.printf("[socket] new connection (#%u)\n", request->connection->id());
-        return ESP_OK;
-      })->
-      onClose([](PsychicHttpServer *server, int sockfd) {
-        Serial.printf("[socket] connection closed (#%u)\n", sockfd);
-        return ESP_OK;
-      });
+    //serve static files from LittleFS/www-ap on / only to clients on SoftAP
+    //this is where our /index.html file lives
+    server.serveStatic("/", LittleFS, "/www-ap/")->setFilter(ON_AP_FILTER);
+
+    //serve static files from LittleFS/img on /img
+    //it's more efficient to serve everything from a single www directory, but this is also possible.
+    server.serveStatic("/img", LittleFS, "/img/");
+
+    //you can also serve single files
+    server.serveStatic("/myfile.txt", LittleFS, "/custom.txt");
 
     //example callback everytime a connection is opened
-    server.onOpen([](httpd_handle_t hd, int sockfd) {
-      Serial.printf("[http] new connection (#%u)\n", sockfd);
-      return ESP_OK;
+    server.onOpen([](PsychicClient *client) {
+      Serial.printf("[http] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
     });
 
     //example callback everytime a connection is closed
-    server.onClose([](httpd_handle_t hd, int sockfd) {
-      Serial.printf("[http] connection closed (#%u)\n", sockfd);
-      return ESP_OK;
+    server.onClose([](PsychicClient *client) {
+      Serial.printf("[http] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
     });
 
     //api - json message passed in as post body
-    server.on("/api", HTTP_POST, [](PsychicHttpServerRequest *request)
+    server.on("/api", HTTP_POST, [](PsychicRequest *request)
     {
       //load our JSON request
       StaticJsonDocument<1024> json;
@@ -262,7 +257,14 @@ void setup()
     });
 
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/api", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/ip", HTTP_GET, [](PsychicRequest *request)
+    {
+      String output = "Your IP is: " + request->client()->remoteIP().toString();
+      return request->reply(output.c_str());
+    });
+
+    //api - parameters passed in via query eg. /api/endpoint?foo=bar
+    server.on("/api", HTTP_GET, [](PsychicRequest *request)
     {
       //create a response object
       StaticJsonDocument<128> output;
@@ -273,7 +275,7 @@ void setup()
       //work with some params
       if (request->hasParam("foo"))
       {
-        String foo = request->getParam("foo");
+        String foo = request->getParam("foo")->name();
         output["foo"] = foo;
       }
 
@@ -284,13 +286,13 @@ void setup()
     });
 
     //how to redirect a request
-    server.on("/redirect", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/redirect", HTTP_GET, [](PsychicRequest *request)
     {
-      return request->redirect("/");
+      return request->redirect("/alien.png");
     });
 
     //how to do basic auth
-    server.on("/auth-basic", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/auth-basic", HTTP_GET, [](PsychicRequest *request)
     {
       if (!request->authenticate(app_user, app_pass))
         return request->requestAuthentication(BASIC_AUTH, app_name, "You must log in.");
@@ -298,7 +300,7 @@ void setup()
     });
 
     //how to do digest auth
-    server.on("/auth-digest", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/auth-digest", HTTP_GET, [](PsychicRequest *request)
     {
       if (!request->authenticate(app_user, app_pass))
         return request->requestAuthentication(DIGEST_AUTH, app_name, "You must log in.");
@@ -306,9 +308,9 @@ void setup()
     });
 
     //example of getting / setting cookies
-    server.on("/cookies", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/cookies", HTTP_GET, [](PsychicRequest *request)
     {
-      PsychicHttpServerResponse response(request);
+      PsychicResponse response(request);
 
       int counter = 0;
       if (request->hasCookie("counter"))
@@ -325,24 +327,152 @@ void setup()
       return response.send();
     });
 
-    //single point basic file upload - POST to /upload?_filename=filename.ext
-    server.on("/upload", HTTP_POST)->onUpload(uploadHandler);
+    //example of getting POST variables
+    server.on("/post", HTTP_POST, [](PsychicRequest *request)
+    {
+      String output;
+      output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+      output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+
+      return request->reply(output.c_str());
+    });
+
+    //you can set up a custom 404 handler.
+    server.onNotFound([](PsychicRequest *request)
+    {
+      return request->reply(404, "text/html", "Custom 404 Handler");
+    });
+
+    //handle a very basic upload as post body
+    PsychicUploadHandler *uploadHandler = new PsychicUploadHandler();
+    uploadHandler->onUpload([](PsychicRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
+      File file;
+      String path = "/www/" + filename;
+
+      Serial.printf("Writing %d/%d bytes to: %s\n", (int)index+(int)len, request->contentLength(), path.c_str());
+
+      if (last)
+        Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index+(int)len);
+
+      //our first call?
+      if (!index)
+        file = LittleFS.open(path, FILE_WRITE);
+      else
+        file = LittleFS.open(path, FILE_APPEND);
+      
+      if(!file) {
+        Serial.println("Failed to open file");
+        return ESP_FAIL;
+      }
+
+      if(!file.write(data, len)) {
+        Serial.println("Write failed");
+        return ESP_FAIL;
+      }
+
+      return ESP_OK;
+    });
+
+    //gets called after upload has been handled
+    uploadHandler->onRequest([](PsychicRequest *request)
+    {
+      String url = "/" + request->getFilename();
+      String output = "<a href=\"" + url + "\">" + url + "</a>";
+
+      return request->reply(output.c_str());
+    });
 
     //wildcard basic file upload - POST to /upload/filename.ext
-    server.on("/upload/*", HTTP_POST)->onUpload(uploadHandler);
+    server.on("/upload/*", HTTP_POST, uploadHandler);
 
-    //example of getting POST variables
-    server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
-    {
-      Serial.println(request->getParam("param1"));
+    //a little bit more complicated multipart form
+    PsychicUploadHandler *multipartHandler = new PsychicUploadHandler();
+    multipartHandler->onUpload([](PsychicRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
+      File file;
+      String path = "/www/" + filename;
 
-      String response = "Data: " + request->getParam("param1");
+      //some progress over serial.
+      Serial.printf("Writing %d bytes to: %s\n", (int)len, path.c_str());
+      if (last)
+        Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index+(int)len);
 
-      return request->reply(200, "text/html", response.c_str());
+      //our first call?
+      if (!index)
+        file = LittleFS.open(path, FILE_WRITE);
+      else
+        file = LittleFS.open(path, FILE_APPEND);
+      
+      if(!file) {
+        Serial.println("Failed to open file");
+        return ESP_FAIL;
+      }
+
+      if(!file.write(data, len)) {
+        Serial.println("Write failed");
+        return ESP_FAIL;
+      }
+
+      return ESP_OK;
     });
+
+    //gets called after upload has been handled
+    multipartHandler->onRequest([](PsychicRequest *request)
+    {
+      PsychicWebParameter *file = request->getParam("file_upload");
+
+      String url = "/" + file->value();
+      String output;
+
+      output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
+      output += "Bytes: " + String(file->size()) + "<br/>\n";
+      output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+      output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+      
+      return request->reply(output.c_str());
+    });
+
+    //wildcard basic file upload - POST to /upload/filename.ext
+    server.on("/multipart", HTTP_POST, multipartHandler);
+
+    //a websocket echo server
+    websocketHandler.onOpen([](PsychicWebSocketClient *client) {
+      Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
+      client->sendMessage("Hello!");
+    });
+    websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
+        Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char *)frame->payload);
+        return request->reply(frame);
+    });
+    websocketHandler.onClose([](PsychicWebSocketClient *client) {
+      Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
+    });
+    server.on("/ws", &websocketHandler);
+
+    //EventSource server
+    eventSource.onOpen([](PsychicEventSourceClient *client) {
+      Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
+      client->send("Hello user!", NULL, millis(), 1000);
+    });
+    eventSource.onClose([](PsychicEventSourceClient *client) {
+      Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
+    });
+    server.on("/events", &eventSource);
   }
 }
 
+unsigned long lastUpdate = 0;
+char output[60];
+
 void loop()
 {
+  if (millis() - lastUpdate > 2000)
+  {
+    sprintf(output, "Millis: %d\n", millis());
+    websocketHandler.sendAll(output);
+
+    sprintf(output, "%d", millis());
+    eventSource.send(output, "millis", millis(), 0);
+
+    lastUpdate = millis();
+  }
 }
