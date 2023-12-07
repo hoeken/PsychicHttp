@@ -20,7 +20,6 @@ class PsychicUploadHandler : public PsychicWebHandler {
     PsychicHttpServerRequest *_request;
 
     String _temp;
-    uint8_t _parseState;
     size_t _parsedLength;
     uint8_t _multiParseState;
     String _boundary;
@@ -49,6 +48,20 @@ class PsychicUploadHandler : public PsychicWebHandler {
     esp_err_t handleRequest(PsychicHttpServerRequest *request) override;
 
     PsychicUploadHandler * onUpload(PsychicUploadCallback fn);
+};
+
+enum {
+  EXPECT_BOUNDARY,
+  PARSE_HEADERS,
+  WAIT_FOR_RETURN1,
+  EXPECT_FEED1,
+  EXPECT_DASH1,
+  EXPECT_DASH2,
+  BOUNDARY_OR_DATA,
+  DASH3_OR_RETURN2,
+  EXPECT_FEED2,
+  PARSING_FINISHED,
+  PARSE_ERROR
 };
 
 #endif // PsychicUploadHandler_h

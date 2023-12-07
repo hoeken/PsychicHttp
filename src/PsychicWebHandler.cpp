@@ -28,6 +28,9 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicHttpServerRequest *request)
   if (err != ESP_OK)
     return err;
 
+  //load our params in.
+  request->loadParams();
+
   //okay, pass on to our callback.
   if (this->_requestCallback != NULL)
     err = this->_requestCallback(request);

@@ -20,6 +20,15 @@ class PsychicHttpServerRequest {
     httpd_req_t *_req;
     PsychicClient *_client;
 
+    std::list<PsychicWebParameter*> _params;
+
+    void _addParams(const String& params);
+    void _parseGETParams();
+    void _parsePOSTParams();
+
+    const String _extractParam(const String& authReq, const String& param, const char delimit);
+    const String _getRandomHexString();
+
   public:
     PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req);
     virtual ~PsychicHttpServerRequest();
@@ -30,9 +39,8 @@ class PsychicHttpServerRequest {
     httpd_req_t * request();
     PsychicClient * client();
 
-    esp_err_t loadBody();
-
     bool isMultipart();
+    esp_err_t loadBody();
 
     const String header(const char *name);
     bool hasHeader(const char *name);
@@ -54,15 +62,16 @@ class PsychicHttpServerRequest {
     size_t contentLength();
     const String& body();
     const ContentDisposition getContentDisposition();
-
     const String queryString();
+
+    void loadParams();
+    PsychicWebParameter * addParam(PsychicWebParameter *param);
+    PsychicWebParameter * addParam(const String &name, const String &value, bool decode = true);
     bool hasParam(const char *key);
-    const String getParam(const char *name);
+    PsychicWebParameter * getParam(const char *name);
 
     const String getFilename();
 
-    const String _extractParam(const String& authReq, const String& param, const char delimit);
-    const String _getRandomHexString();
     bool authenticate(const char * username, const char * password);
     esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const char* authFailMsg);
 

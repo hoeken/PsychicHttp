@@ -1,6 +1,21 @@
 #include "PsychicUploadHandler.h"
 
-PsychicUploadHandler::PsychicUploadHandler() : PsychicWebHandler() {}
+PsychicUploadHandler::PsychicUploadHandler() : 
+  PsychicWebHandler()
+  , _temp()
+  , _parsedLength(0)
+  , _multiParseState(EXPECT_BOUNDARY)
+  , _boundaryPosition(0)
+  , _itemStartIndex(0)
+  , _itemSize(0)
+  , _itemName()
+  , _itemFilename()
+  , _itemType()
+  , _itemValue()
+  , _itemBuffer(0)
+  , _itemBufferIndex(0)
+  , _itemIsFile(false)
+  {}
 PsychicUploadHandler::~PsychicUploadHandler() {}
 
 bool PsychicUploadHandler::canHandle(PsychicHttpServerRequest *request) {
@@ -115,14 +130,60 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicHttpServerRequest *re
 
 esp_err_t PsychicUploadHandler::_multipartUploadHandler(PsychicHttpServerRequest *request)
 {
-  ESP_LOGE(PH_TAG,"Multipart uploads not (yet) supported.");
+  esp_err_t err = ESP_OK;
 
-  /* Respond with 400 Bad Request */
-  httpd_resp_send_err(request->request(), HTTPD_400_BAD_REQUEST, "Multipart uploads not (yet) supported.");
+  String value = request->header("Content-Type");
+  if (value.startsWith("multipart/")){
+    _boundary = value.substring(value.indexOf('=')+1);
+    _boundary.replace("\"","");
+  } else {
+    ESP_LOGE(PH_TAG, "No multipart boundary found.");
+    return request->reply(400, "text/html", "No multipart boundary found.");
+  }
 
-  /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
-  //return ESP_ERR_HTTPD_INVALID_REQ;   
-  return ESP_FAIL;
+  char *buf = (char *)malloc(FILE_CHUNK_SIZE);
+  int received;
+  unsigned long index = 0; 
+
+  /* Content length of the request gives the size of the file being uploaded */
+  int remaining = request->contentLength();
+
+  while (remaining > 0)
+  {
+    ESP_LOGI(PH_TAG, "Remaining size : %d", remaining);
+
+    /* Receive the file part by part into a buffer */
+    if ((received = httpd_req_recv(request->request(), buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)
+    {
+      /* Retry if timeout occurred */
+      if (received == HTTPD_SOCK_ERR_TIMEOUT)
+        continue;
+      //bail if we got an error
+      else if (received == HTTPD_SOCK_ERR_FAIL)
+      {
+        ESP_LOGE(PH_TAG, "Socket error");
+        err = ESP_FAIL;
+        break;
+      }
+    }
+
+    //parse it 1 byte at a time.
+    for (int i=0; i<received; i++)
+    {
+      /* Keep track of remaining size of the file left to be uploaded */
+      remaining--;
+      index++;
+
+      //send it to our parser
+      _parseMultipartPostByte(buf[i], !remaining);
+      _parsedLength++;
+    }
+  }
+
+  //dont forget to free our buffer
+  free(buf);
+
+  return err;
 }
 
 PsychicUploadHandler * PsychicUploadHandler::onUpload(PsychicUploadCallback fn) {
@@ -142,23 +203,21 @@ void PsychicUploadHandler::_handleUploadByte(uint8_t data, bool last)
   }
 }
 
-enum {
-  EXPECT_BOUNDARY,
-  PARSE_HEADERS,
-  WAIT_FOR_RETURN1,
-  EXPECT_FEED1,
-  EXPECT_DASH1,
-  EXPECT_DASH2,
-  BOUNDARY_OR_DATA,
-  DASH3_OR_RETURN2,
-  EXPECT_FEED2,
-  PARSING_FINISHED,
-  PARSE_ERROR
-};
-
 #define itemWriteByte(b) do { _itemSize++; if(_itemIsFile) _handleUploadByte(b, last); else _itemValue+=(char)(b); } while(0)
 
-void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last) {
+void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last) 
+{
+  if (_multiParseState == PARSE_ERROR)
+  {
+    // not sure we can end up with an error during buffer fill, but jsut to be safe
+    if (_itemBuffer != NULL)
+    {
+      free(_itemBuffer);    
+      _itemBuffer = NULL;
+    }
+
+    return;
+  }
 
   if(!_parsedLength){
     _multiParseState = EXPECT_BOUNDARY;
@@ -176,16 +235,20 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last) {
     }
   } else if(_multiParseState == EXPECT_BOUNDARY){
     if(_parsedLength < 2 && data != '-'){
+      ESP_LOGE(PH_TAG, "Multipart: No boundary");
       _multiParseState = PARSE_ERROR;
       return;
     } else if(_parsedLength - 2 < _boundary.length() && _boundary.c_str()[_parsedLength - 2] != data){
+      ESP_LOGE(PH_TAG, "Multipart: Multipart malformed");
       _multiParseState = PARSE_ERROR;
       return;
     } else if(_parsedLength - 2 == _boundary.length() && data != '\r'){
+      ESP_LOGE(PH_TAG, "Multipart: Multipart missing carriage return");
       _multiParseState = PARSE_ERROR;
       return;
     } else if(_parsedLength - 3 == _boundary.length()){
       if(data != '\n'){
+        ESP_LOGE(PH_TAG, "Multipart: Multipart missing newline");
         _multiParseState = PARSE_ERROR;
         return;
       }
@@ -234,6 +297,7 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last) {
             free(_itemBuffer);
           _itemBuffer = (uint8_t*)malloc(FILE_CHUNK_SIZE);
           if(_itemBuffer == NULL){
+            ESP_LOGE(PH_TAG, "Multipart: Failed to allocate buffer");
             _multiParseState = PARSE_ERROR;
             return;
           }
@@ -274,15 +338,14 @@ void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last) {
     } else if(_boundaryPosition == _boundary.length() - 1){
       _multiParseState = DASH3_OR_RETURN2;
       if(!_itemIsFile){
-        //TODO: fix this (get/set/has Param overhaul)
+        _request->addParam(_itemName, _itemValue);
         //_addParam(new AsyncWebParameter(_itemName, _itemValue, true));
       } else {
         if(_itemSize){
-          //TODO: fix this
-          // if(_uploadCallback)
-          //   _uploadCallback(_request, _itemFilename, _itemSize - _itemBufferIndex, _itemBuffer, _itemBufferIndex, true);
-          // _itemBufferIndex = 0;
-          // _addParam(new AsyncWebParameter(_itemName, _itemFilename, true, true, _itemSize));
+          if(_uploadCallback)
+            _uploadCallback(_request, _itemFilename, _itemSize - _itemBufferIndex, _itemBuffer, _itemBufferIndex, true);
+          _itemBufferIndex = 0;
+          _request->addParam(new PsychicWebParameter(_itemName, _itemFilename, true, true, _itemSize));
         }
         free(_itemBuffer);
         _itemBuffer = NULL;

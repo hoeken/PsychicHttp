@@ -24,21 +24,18 @@ PsychicHttpServerRequest::PsychicHttpServerRequest(PsychicHttpServer *server, ht
 
   //load up some data
   this->_uri = String(this->_req->uri);
-
-  //did we get a query string?
-  size_t query_len = httpd_req_get_url_query_len(this->_req);
-  if (query_len)
-  {
-    char query[query_len+1];
-    httpd_req_get_url_query_str(this->_req, query, sizeof(query));
-    this->_query.concat(query);
-  }
 }
 
 PsychicHttpServerRequest::~PsychicHttpServerRequest()
 {
+  //temorary user object
   if (_tempObject != NULL)
     free(_tempObject);
+
+  //our web parameters
+  for (auto *param : _params)
+    delete(param);
+  _params.clear();
 }
 
 void PsychicHttpServerRequest::freeSession(void *ctx)
@@ -49,20 +46,6 @@ void PsychicHttpServerRequest::freeSession(void *ctx)
     delete session;
   }
 }
-
-// bool PsychicHttpServerRequest::isUpload()
-// {
-//   if (this->header("Expect").equals("100-continue"))
-//     return true;
-    
-//   if (this->hasHeader("Content-Disposition"))
-//     return true;
-
-//   if (this->isMultipart())
-//     return true;
-
-//   return false;
-// }
 
 PsychicHttpServer * PsychicHttpServerRequest::server() {
   return _server;
@@ -87,8 +70,9 @@ const String PsychicHttpServerRequest::getFilename()
   }
 
   //fall back to passed in query string
-  if (this->hasParam("_filename"))
-    return this->getParam("_filename");
+  PsychicWebParameter *param = getParam("_filename");
+  if (param != NULL)
+    return param->name();
 
   //fall back to parsing it from url (useful for wildcard uploads)
   String uri = this->uri();
@@ -134,7 +118,6 @@ const ContentDisposition PsychicHttpServerRequest::getContentDisposition()
 
   return cd;
 }
-
 
 esp_err_t PsychicHttpServerRequest::loadBody()
 {
@@ -278,44 +261,66 @@ const String PsychicHttpServerRequest::getCookie(const char *key)
     return "";
 }
 
-//TODO: modify this to reference a _param list that is prepopulated
-bool PsychicHttpServerRequest::hasParam(const char *key)
+void PsychicHttpServerRequest::loadParams()
 {
-  String query = this->queryString();
-  char value[query.length()];
-  esp_err_t err = httpd_query_key_value(query.c_str(), key, value, query.length());
+  //did we get a query string?
+  size_t query_len = httpd_req_get_url_query_len(_req);
+  if (query_len)
+  {
+    char query[query_len+1];
+    httpd_req_get_url_query_str(_req, query, sizeof(query));
+    _query.concat(query);
 
-  //did we get anything?
-  if (err == ESP_OK || err == ESP_ERR_HTTPD_RESULT_TRUNC)
-    return true;
-  else
-    return false;
-}
+    //parse them.
+    _addParams(_query);
+  }
 
-//TODO: modify this to reference a _param list that is prepopulated
-const String PsychicHttpServerRequest::getParam(const char *key)
-{
-  esp_err_t err;
-
-  //TODO: we need urldecoding here.
-  //POST parameters are in the body:
+  //did we get form data as body?
   if (this->method() == HTTP_POST && this->contentType() == "application/x-www-form-urlencoded")
   {
-    String body = this->body();
-    char pvalue[body.length()];
-    err = httpd_query_key_value(body.c_str(), key, pvalue, body.length());
-    if (err == ESP_OK)
-      return urlDecode(pvalue);
+    _addParams(_body);
   }
-  
-  //okay, look for it in our query string.
-  String query = this->queryString();
-  char gvalue[query.length()];
-  err = httpd_query_key_value(query.c_str(), key, gvalue, query.length());
-  if (err == ESP_OK)
-    return urlDecode(gvalue);
+}
 
-  return "";
+void PsychicHttpServerRequest::_addParams(const String& params){
+  size_t start = 0;
+  while (start < params.length()){
+    int end = params.indexOf('&', start);
+    if (end < 0) end = params.length();
+    int equal = params.indexOf('=', start);
+    if (equal < 0 || equal > end) equal = end;
+    String name = params.substring(start, equal);
+    String value = equal + 1 < end ? params.substring(equal + 1, end) : String();
+    addParam(name, value);
+    start = end + 1;
+  }
+}
+
+PsychicWebParameter * PsychicHttpServerRequest::addParam(const String &name, const String &value, bool decode)
+{
+  if (decode)
+    return addParam(new PsychicWebParameter(urlDecode(name.c_str()), urlDecode(value.c_str())));
+  else
+    return addParam(new PsychicWebParameter(name, value));
+}
+
+PsychicWebParameter * PsychicHttpServerRequest::addParam(PsychicWebParameter *param) {
+  _params.push_back(param);
+  return param;
+}
+
+bool PsychicHttpServerRequest::hasParam(const char *key)
+{
+  return getParam(key) != NULL;
+}
+
+PsychicWebParameter * PsychicHttpServerRequest::getParam(const char *key)
+{
+  for (auto *param : _params)
+    if (param->name().equals(key))
+      return param;
+
+  return NULL;
 }
 
 bool PsychicHttpServerRequest::hasSessionKey(const String& key)
@@ -514,7 +519,7 @@ esp_err_t PsychicHttpServerRequest::reply(const char *content)
   PsychicHttpServerResponse response(this);
 
   response.setCode(200);
-  response.setContentType("text/plain");
+  response.setContentType("text/html");
   response.setContent(content);
 
   return response.send();

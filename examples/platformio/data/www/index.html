@@ -28,7 +28,10 @@
             <h1>Simple POST Form</h1>
             <form action="/post" method="post">
                 <label for="param1">Parameter 1:</label>
-                <input type="text" id="param1" name="param1">            
+                <input type="text" id="param1" name="param1" value="Parameter 1">            
+                <br>
+                <label for="param2">Parameter 2:</label>
+                <input type="text" id="param2" name="param2" value="Parameter 2">            
                 <br>
                 <input type="submit" value="Submit">
             </form>            
@@ -50,6 +53,8 @@
                     <td>
                         <input id="filepath" type="text" style="width:100%;">
                     </td>
+                </tr>
+                <tr>
                     <td>
                         <button id="upload" type="button" onclick="upload()">Upload</button>
                     </td>
@@ -110,13 +115,16 @@
 
             <h1>Multipart POST Form</h1>
             <form action="/multipart" method="post" enctype="multipart/form-data">
-                <label for="text-field">Text Field:</label>
-                <input type="text" id="text-field" name="text_field" required>
+                <label for="param1">Parameter 1:</label>
+                <input type="text" id="param1" name="param1" value="Parameter 1">            
                 <br>
-            
+
+                <label for="param2">Parameter 2:</label>
+                <input type="text" id="param2" name="param2" value="Parameter 2">            
+                <br>
+
                 <label for="file-upload">File Upload:</label>
                 <input type="file" id="file-upload" name="file_upload" accept=".txt, .html, .pdf, .png, .jpg, .gif" required>
-                <!-- The 'accept' attribute restricts the file types that can be selected -->
                 <br>
             
                 <input type="submit" value="Upload File">

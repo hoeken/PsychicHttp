@@ -265,7 +265,7 @@ void setup()
       //work with some params
       if (request->hasParam("foo"))
       {
-        String foo = request->getParam("foo");
+        String foo = request->getParam("foo")->name();
         output["foo"] = foo;
       }
 
@@ -320,8 +320,11 @@ void setup()
     //example of getting POST variables
     server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
     {
-      String response = "Data: " + request->getParam("param1");
-      return request->reply(200, "text/html", response.c_str());
+      String output;
+      output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+      output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+
+      return request->reply(output.c_str());
     });
 
     //you can set up a custom 404 handler.
@@ -330,18 +333,16 @@ void setup()
       return request->reply(404, "text/html", "Custom 404 Handler");
     });
 
-    //create an upload handler for... handling our uploads :)
+    //handle a very basic upload as post body
     PsychicUploadHandler *uploadHandler = new PsychicUploadHandler();
     uploadHandler->onUpload([](PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
       File file;
       String path = "/www/" + filename;
 
-      char output[512];
-      sprintf(output, "Writing %d/%d bytes to: %s", (int)index+(int)len, request->contentLength(), path.c_str());
-      Serial.println(output);
+      Serial.printf("Writing %d/%d bytes to: %s\n", (int)index+(int)len, request->contentLength(), path.c_str());
 
       if (last)
-        Serial.println("File is finished.");
+        Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index+(int)len);
 
       //our first call?
       if (!index)
@@ -366,13 +367,62 @@ void setup()
     uploadHandler->onRequest([](PsychicHttpServerRequest *request)
     {
       String url = "/" + request->getFilename();
-      String redir = "<a href=\"" + url + "\">" + url + "</a>";
-      
-      return request->reply(redir.c_str());
+      String output = "<a href=\"" + url + "\">" + url + "</a>";
+
+      return request->reply(output.c_str());
     });
 
     //wildcard basic file upload - POST to /upload/filename.ext
     server.on("/upload/*", HTTP_POST, uploadHandler);
+
+    //a little bit more complicated multipart form
+    PsychicUploadHandler *multipartHandler = new PsychicUploadHandler();
+    multipartHandler->onUpload([](PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
+      File file;
+      String path = "/www/" + filename;
+
+      //some progress over serial.
+      Serial.printf("Writing %d bytes to: %s\n", (int)len, path.c_str());
+      if (last)
+        Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index+(int)len);
+
+      //our first call?
+      if (!index)
+        file = LittleFS.open(path, FILE_WRITE);
+      else
+        file = LittleFS.open(path, FILE_APPEND);
+      
+      if(!file) {
+        Serial.println("Failed to open file");
+        return ESP_FAIL;
+      }
+
+      if(!file.write(data, len)) {
+        Serial.println("Write failed");
+        return ESP_FAIL;
+      }
+
+      return ESP_OK;
+    });
+
+    //gets called after upload has been handled
+    multipartHandler->onRequest([](PsychicHttpServerRequest *request)
+    {
+      PsychicWebParameter *file = request->getParam("file_upload");
+
+      String url = "/" + file->value();
+      String output;
+
+      output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
+      output += "Bytes: " + String(file->size()) + "<br/>\n";
+      output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+      output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+      
+      return request->reply(output.c_str());
+    });
+
+    //wildcard basic file upload - POST to /upload/filename.ext
+    server.on("/multipart", HTTP_POST, multipartHandler);
 
     //a websocket echo server
     websocketHandler.onOpen([](PsychicWebSocketClient *client) {
