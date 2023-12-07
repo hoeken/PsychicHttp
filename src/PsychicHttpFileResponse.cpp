@@ -117,7 +117,7 @@ esp_err_t PsychicHttpFileResponse::send()
   else
   {
     //get our headers out of the way first
-    for (HTTPHeader header : this->headers)
+    for (HTTPHeader header : _headers)
       httpd_resp_set_hdr(this->_request->request(), header.field, header.value);
 
     /* Retrieve the pointer to scratch buffer for temporary storage */
@@ -163,12 +163,12 @@ esp_err_t PsychicHttpFileResponse::send()
     _content.close();
 
     //clean up our header variables.  we have to do this since httpd_resp_send doesn't store copies
-    for (HTTPHeader header : this->headers)
+    for (HTTPHeader header : _headers)
     {
       free(header.field);
       free(header.value);
     }
-    this->headers.clear();
+    _headers.clear();
   }
 
   return err;

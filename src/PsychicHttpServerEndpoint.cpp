@@ -1,6 +1,4 @@
-#include "PsychicCore.h"
 #include "PsychicHttpServerEndpoint.h"
-#include "PsychicHttpWebsocket.h"
 
 PsychicHttpServerEndpoint::PsychicHttpServerEndpoint() :
   _server(NULL),

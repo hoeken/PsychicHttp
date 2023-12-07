@@ -9,11 +9,12 @@ class PsychicHttpServerResponse
 {
   protected:
     PsychicHttpServerRequest *_request;
-    int64_t _contentLength;
-    char _status[60];
-    const char * body;
 
-    std::list<HTTPHeader> headers;
+    int _code;
+    char _status[60];
+    std::list<HTTPHeader> _headers;
+    int64_t _contentLength;
+    const char * _body;
 
   public:
     PsychicHttpServerResponse(PsychicHttpServerRequest *request);

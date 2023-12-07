@@ -18,8 +18,8 @@ class PsychicWebHandler : public PsychicHandler {
     PsychicWebHandler();
     ~PsychicWebHandler();
 
-    bool canHandle(PsychicHttpServerRequest *request);
-    esp_err_t handleRequest(PsychicHttpServerRequest *request);
+    bool canHandle(PsychicHttpServerRequest *request) override;
+    esp_err_t handleRequest(PsychicHttpServerRequest *request) override;
     PsychicWebHandler * onRequest(PsychicHttpRequestHandler fn);
 };
 

@@ -29,8 +29,6 @@ class PsychicHttpServerEndpoint
     String uri();
 
     static esp_err_t requestCallback(httpd_req_t *req);
-
-    esp_err_t _websocketHandler(PsychicWebSocketRequest &request);
 };
 
 #endif // PsychicHttpServerEndpoint_h

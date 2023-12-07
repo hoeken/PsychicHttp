@@ -315,7 +315,10 @@ void setup()
     uploadHandler->onUpload([](PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len) {
       File file;
       String path = "/www/" + filename;
-      Serial.println("Writing to: " + path);
+
+      char output[512];
+      sprintf(output, "Writing %d/%d bytes to: %s", (int)index+(int)len, request->contentLength(), path.c_str());
+      Serial.println(output);
 
       //our first call?
       if (!index)
@@ -340,10 +343,9 @@ void setup()
     uploadHandler->onRequest([](PsychicHttpServerRequest *request)
     {
       String url = "/" + request->getFilename();
-      return request->reply(url.c_str());
-
-      //this crashes for some crazy reason???
-      //return request->redirect("/alien.png");
+      String redir = "<a href=\"" + url + "\">" + url + "</a>";
+      
+      return request->reply(redir.c_str());
     });
 
     //wildcard basic file upload - POST to /upload/filename.ext

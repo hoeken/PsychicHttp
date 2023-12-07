@@ -3,13 +3,23 @@
 #include <http_status.h>
 
 PsychicHttpServerResponse::PsychicHttpServerResponse(PsychicHttpServerRequest *request) :
-  _request(request)
+  _request(request),
+  _code(200),
+  _status(""),
+  _contentLength(0),
+  _body("")
 {
-  this->setCode(200);
 }
 
 PsychicHttpServerResponse::~PsychicHttpServerResponse()
 {
+  //clean up our header variables.  we have to do this since httpd_resp_send doesn't store copies
+  for (HTTPHeader header : _headers)
+  {
+    free(header.field);
+    free(header.value);
+  }
+  _headers.clear();
 }
 
 void PsychicHttpServerResponse::addHeader(const char *field, const char *value)
@@ -22,7 +32,7 @@ void PsychicHttpServerResponse::addHeader(const char *field, const char *value)
   strlcpy(header.field, field, strlen(field)+1);
   strlcpy(header.value, value, strlen(value)+1);
 
-  this->headers.push_back(header);
+  _headers.push_back(header);
 }
 
 void PsychicHttpServerResponse::setCookie(const char *name, const char *value, unsigned long max_age)
@@ -33,61 +43,61 @@ void PsychicHttpServerResponse::setCookie(const char *name, const char *value, u
   output += "; SameSite=Lax";
   output += "; Max-Age=" + String(max_age);
 
-  this->addHeader("Set-Cookie", output.c_str());
+  addHeader("Set-Cookie", output.c_str());
 }
 
 void PsychicHttpServerResponse::setCode(int code)
 {
-  //esp-idf makes you set the whole status.
-  sprintf(this->_status, "%u %s", code, http_status_reason(code));
-
-  httpd_resp_set_status(this->_request->request(), this->_status);
+  _code = code;
 }
 
 void PsychicHttpServerResponse::setContentType(const char *contentType)
 {
-  httpd_resp_set_type(this->_request->request(), contentType);
+  httpd_resp_set_type(_request->request(), contentType);
 }
 
 void PsychicHttpServerResponse::setContent(const char *content)
 {
-  this->body = content;
+  _body = content;
   setContentLength(strlen(content));
 }
 
 void PsychicHttpServerResponse::setContent(const uint8_t *content, size_t len)
 {
-  this->body = (char *)content;
-
+  _body = (char *)content;
   setContentLength(len);
 }
 
 const char * PsychicHttpServerResponse::getContent()
 {
-  return this->body;
+  return _body;
 }
 
 size_t PsychicHttpServerResponse::getContentLength()
 {
-  return this->_contentLength;
+  return _contentLength;
 }
 
 esp_err_t PsychicHttpServerResponse::send()
 {
+  //esp-idf makes you set the whole status.
+  sprintf(_status, "%u %s", _code, http_status_reason(_code));
+  httpd_resp_set_status(_request->request(), _status);
+
   //get our headers out of the way first
-  for (HTTPHeader header : this->headers)
-    httpd_resp_set_hdr(this->_request->request(), header.field, header.value);
+  for (HTTPHeader header : _headers)
+    httpd_resp_set_hdr(_request->request(), header.field, header.value);
 
   //now send it off
-  esp_err_t err = httpd_resp_send(this->_request->request(), this->getContent(), this->getContentLength());
+  esp_err_t err = httpd_resp_send(_request->request(), getContent(), getContentLength());
 
   //clean up our header variables.  we have to do this since httpd_resp_send doesn't store copies
-  for (HTTPHeader header : this->headers)
+  for (HTTPHeader header : _headers)
   {
     free(header.field);
     free(header.value);
   }
-  this->headers.clear();
+  _headers.clear();
 
   if (err != ESP_OK)
   {

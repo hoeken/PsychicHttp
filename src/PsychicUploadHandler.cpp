@@ -25,10 +25,9 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicHttpServerRequest *request)
     return ESP_FAIL;
   }
 
-  //TODO: support for the 100 header
+  //TODO: support for the 100 header.  not sure if we can do it.
   // if (request->header("Expect").equals("100-continue"))
   // {
-  //   TRACE();
   //   char response[] = "100 Continue";
   //   httpd_socket_send(self->server, httpd_req_to_sockfd(req), response, strlen(response), 0);
   // }

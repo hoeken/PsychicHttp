@@ -28,8 +28,8 @@ class PsychicStaticFileHandler : public PsychicWebHandler {
     uint8_t _gzipStats;
   public:
     PsychicStaticFileHandler(const char* uri, FS& fs, const char* path, const char* cache_control);
-    bool canHandle(PsychicHttpServerRequest *request);
-    esp_err_t handleRequest(PsychicHttpServerRequest *request);
+    bool canHandle(PsychicHttpServerRequest *request) override;
+    esp_err_t handleRequest(PsychicHttpServerRequest *request) override;
     PsychicStaticFileHandler& setIsDir(bool isDir);
     PsychicStaticFileHandler& setDefaultFile(const char* filename);
     PsychicStaticFileHandler& setCacheControl(const char* cache_control);

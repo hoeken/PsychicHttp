@@ -25,38 +25,22 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 * No AP/STA filter
 
 # v1.1: Event Source Plan
-    * update Endpoint to have a Handler that gets called
-        * default to PsychicWebHandler
-            server.on creates and sets the webhandler, passes on the callback
-        * make PsychicWebsocketHandler
-            * user creates a PsychicWebsocketHandler with callbacks
-            * then sets setHandler() on endpoint returned from server.websocket()         
-        * make PsychicBasicUploadHandler
-            * user creates a PsychicBasicUploadHandler with callback
-            * then sets setHandler() on endpoint returned from server.on()
-        * make PsychicMultipartUploadHandler
-            * user creates a PsychicMultipartUploadHandler with callback
-            * then sets setHandler() on endpoint returned from server.on()
-        * remove all the hardcoded _callbacks from Endpoint
-    * re-implement the generic Handler functionality
-        * generic handlers run in the PsychicHttpServer::notFoundHandler function
-            * loop through handlers and call canHandle()
-            * also call filter()
-            * if match, call the handler with the request
-            * if no handlers match, then run the defaultEndpoint handler
-        * convert PsychicStaticFileHandler and serveStatic
-            * we can have multiple calls to serveStatic
-            * serveStatic instanciates the PsychicStaticFileHandler and adds it
+    * make PsychicMultipartUploadHandler
+        * user creates a PsychicMultipartUploadHandler with callback
+        * then sets setHandler() on endpoint returned from server.on()
     * EventSourceHandler
         * Convert all calls to AsyncClient to new PsychicConnection or PsychicClient class
         * determine which callbacks we can support
             * definitely onConnect / onOpen
             * definitely onDisconnect / onClose
-                * update the PsychicHttpServer::closeCallback to loop thru endpoint handlers + generic handlers
-                * if handler has onClose, call it.
             * add the addClient/hasClient/removeClient functionality to base handler class
-                * maybe we can simplify that onClose callback by checking to see if the endpoint hasClient()
-                * handlers like Websocket and EventSource can handle those lists internally then call the user callback
+    * figure out why redirect() on uploadhandler is crashing???
+    * test the filters in wifi dual mode
+        * add in setFilter convenience function to endpoint
+    * inspect the code for memory leaks and other issues
+    * update the benchmark to be v1.1 compatible
+    * make a curl script that loads a page over and over to test the clients stuff.
+    * run loadtest benchmarks
 
 # Roadmap / Longterm TODO
 

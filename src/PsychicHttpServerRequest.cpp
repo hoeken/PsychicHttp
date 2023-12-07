@@ -243,17 +243,12 @@ bool PsychicHttpServerRequest::isMultipart()
 
 esp_err_t PsychicHttpServerRequest::redirect(const char *url)
 {
-  TRACE();
-
   PsychicHttpServerResponse response(this);
-  response.setCode(307);
+  response.setCode(301);
   response.addHeader("Location", url);
-
-  TRACE();
 
   return response.send();
 }
-
 
 bool PsychicHttpServerRequest::hasCookie(const char *key)
 {
@@ -512,17 +507,6 @@ esp_err_t PsychicHttpServerRequest::reply(const char *content)
 
   return response.send();
 }
-
-// esp_err_t PsychicHttpServerRequest::reply(int code, const char *content)
-// {
-//   PsychicHttpServerResponse response(this);
-
-//   response.setCode(code);
-//   response.setContentType("text/plain");
-//   response.setContent(content);
-
-//   return response.send();
-// }
 
 esp_err_t PsychicHttpServerRequest::reply(int code, const char *contentType, const char *content)
 {
