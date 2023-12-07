@@ -17,6 +17,8 @@ const char *ssid = "";
 const char *password = "";
 
 PsychicHttpServer server;
+PsychicWebSocketHandler websocketHandler;
+
 String server_cert;
 String server_key;
 
@@ -180,7 +182,7 @@ void setup()
     server.listen(443, server_cert.c_str(), server_key.c_str());
 
     //our index
-    server.on("/", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/", HTTP_GET, [](PsychicRequest *request)
     {
       return request->reply(200, "text/html", htmlContent);
     });
@@ -189,14 +191,14 @@ void setup()
     server.serveStatic("/", LittleFS, "/www/");
 
     //a websocket echo server
-    server.websocket("/ws")->
-      onFrame([](PsychicHttpWebSocketRequest *request, httpd_ws_frame *frame) {
-        request->reply(frame);
-        return ESP_OK;
-      });
+    websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
+      request->reply(frame);
+      return ESP_OK;
+    });
+    server.on("/ws", &websocketHandler);
 
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/api", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/api", HTTP_GET, [](PsychicRequest *request)
     {
       //create a response object
       StaticJsonDocument<128> output;
@@ -207,7 +209,7 @@ void setup()
       //work with some params
       if (request->hasParam("foo"))
       {
-        String foo = request->getParam("foo");
+        String foo = request->getParam("foo")->value();
         output["foo"] = foo;
       }
 
