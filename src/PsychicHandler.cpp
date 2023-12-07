@@ -10,16 +10,6 @@ PsychicHandler::PsychicHandler() :
 
 PsychicHandler::~PsychicHandler() {}
 
-PsychicHandler* PsychicHandler::onOpen(PsychicClientCallback fn) {
-  _onopen = fn;
-  return this;
-}
-
-PsychicHandler* PsychicHandler::onClose(PsychicClientCallback fn) {
-  _onclose = fn;
-  return this;
-}
-
 PsychicHandler* PsychicHandler::setFilter(PsychicRequestFilterFunction fn) {
   _filter = fn;
   return this;

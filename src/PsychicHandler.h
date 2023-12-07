@@ -11,8 +11,6 @@
 class PsychicHandler {
   protected:    
     PsychicRequestFilterFunction _filter;
-    PsychicClientCallback _onopen;
-    PsychicClientCallback _onclose;
 
     String _username;
     String _password;
@@ -23,9 +21,6 @@ class PsychicHandler {
   public:
     PsychicHandler();
     ~PsychicHandler();
-
-    PsychicHandler* onOpen(PsychicClientCallback fn);
-    PsychicHandler* onClose(PsychicClientCallback fn);
 
     PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicRequest *request);

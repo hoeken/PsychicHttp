@@ -210,13 +210,11 @@ void setup()
     //example callback everytime a connection is opened
     server.onOpen([](PsychicClient *client) {
       Serial.printf("[http] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
-      return ESP_OK;
     });
 
     //example callback everytime a connection is closed
     server.onClose([](PsychicClient *client) {
       Serial.printf("[http] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
-      return ESP_OK;
     });
 
     //api - json message passed in as post body
@@ -428,27 +426,22 @@ void setup()
     websocketHandler.onOpen([](PsychicWebSocketClient *client) {
       Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
       client->sendMessage("Hello!");
-      return ESP_OK;
     });
     websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
         Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char *)frame->payload);
-        request->reply(frame);
-        return ESP_OK;
+        return request->reply(frame);
     });
     websocketHandler.onClose([](PsychicWebSocketClient *client) {
       Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
-      return ESP_OK;
     });
     server.on("/ws", &websocketHandler);
 
     //EventSource server
     eventSource.onOpen([](PsychicEventSourceClient *client) {
       Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
-      return ESP_OK;
     });
     eventSource.onClose([](PsychicEventSourceClient *client) {
       Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
-      return ESP_OK;
     });
     server.on("/events", &eventSource);
   }

@@ -52,13 +52,6 @@ struct ContentDisposition {
   String name;
 };
 
-//TODO: not quite used yet. for content-disposition
-// struct MultipartContent {
-//   char * content_type;
-//   char * name;
-//   char * filename;
-// };
-
 enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
 
 String urlDecode(const char* encoded);
@@ -69,7 +62,7 @@ class PsychicWebSocketRequest;
 class PsychicClient;
 
 //callback definitions
-typedef std::function<esp_err_t(PsychicClient *client)> PsychicClientCallback;
+typedef std::function<void(PsychicClient *client)> PsychicClientCallback;
 typedef std::function<esp_err_t(PsychicRequest *request)> PsychicHttpRequestHandler;
 
 //filter function definition

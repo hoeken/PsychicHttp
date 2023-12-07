@@ -30,7 +30,7 @@ class PsychicEventSourceResponse;
 class PsychicEventSourceClient;
 class PsychicResponse;
 
-typedef std::function<esp_err_t(PsychicEventSourceClient *client)> PsychicEventSourceClientCallback;
+typedef std::function<void(PsychicEventSourceClient *client)> PsychicEventSourceClientCallback;
 
 class PsychicEventSource : public PsychicHandler {
   private:
