@@ -35,7 +35,7 @@ class PsychicHttpServerResponse
     const char * getContent();
     size_t getContentLength();
 
-    esp_err_t send();
+    virtual esp_err_t send();
 };
 
 #endif // PsychicHttpServerResponse_h

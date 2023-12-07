@@ -31,7 +31,7 @@ class PsychicHandler {
     virtual bool isWebsocket();
 
     //derived classes must implement these functions
-    virtual bool canHandle(PsychicHttpServerRequest *request) = 0;
+    virtual bool canHandle(PsychicHttpServerRequest *request) { return true; };
     virtual esp_err_t handleRequest(PsychicHttpServerRequest *request) = 0;
 };
 

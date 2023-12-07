@@ -43,7 +43,8 @@ String server_key;
 
 //our main server object
 PsychicHttpServer server;
-PsychicWebsocketHandler *websocketHandler = new PsychicWebsocketHandler();
+PsychicWebsocketHandler websocketHandler;
+PsychicEventSource eventSource;
 
 bool connectToWifi()
 {
@@ -352,34 +353,48 @@ void setup()
     server.on("/upload/*", HTTP_POST, uploadHandler);
 
     //a websocket echo server
-    websocketHandler->onOpen([](PsychicWebSocketClient *client) {
+    websocketHandler.onOpen([](PsychicWebSocketClient *client) {
       Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
       client->sendMessage("Hello!");
       return ESP_OK;
     });
-    websocketHandler->onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
+    websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
         Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char *)frame->payload);
         request->reply(frame);
         return ESP_OK;
     });
-    websocketHandler->onClose([](PsychicWebSocketClient *client) {
+    websocketHandler.onClose([](PsychicWebSocketClient *client) {
       Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
       return ESP_OK;
     });
-    server.on("/ws", websocketHandler);
+    server.on("/ws", &websocketHandler);
+
+    //EventSource server
+    eventSource.onOpen([](PsychicEventSourceClient *client) {
+      Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
+      return ESP_OK;
+    });
+    eventSource.onClose([](PsychicEventSourceClient *client) {
+      Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
+      return ESP_OK;
+    });
+    server.on("/events", &eventSource);
   }
 }
 
-unsigned long lastSocketUpdate = 0;
+unsigned long lastUpdate = 0;
 char output[60];
 
 void loop()
 {
-  if (millis() - lastSocketUpdate > 5000)
+  if (millis() - lastUpdate > 2000)
   {
     sprintf(output, "Millis: %d\n", millis());
-    websocketHandler->sendAll(output);
+    websocketHandler.sendAll(output);
 
-    lastSocketUpdate = millis();
+    sprintf(output, "%d", millis());
+    eventSource.send(output, "millis", millis(), 0);
+
+    lastUpdate = millis();
   }
 }

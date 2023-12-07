@@ -59,6 +59,9 @@ esp_err_t PsychicHttpServerEndpoint::requestCallback(httpd_req_t *req)
   //make sure we have a handler
   if (handler != NULL)
   {
+    // if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
+    //   return request->requestAuthentication();
+
     if (handler->filter(&request) && handler->canHandle(&request))
     {
       err = handler->handleRequest(&request);

@@ -26,12 +26,6 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 
 # v1.1: Event Source Plan
     * make PsychicMultipartUploadHandler
-    * EventSourceHandler
-        * Convert all calls to AsyncClient to PsychicClient class
-        * determine which callbacks we can support
-            * definitely onConnect / onOpen
-            * definitely onDisconnect / onClose
-            * add the addClient/hasClient/removeClient functionality to base handler class
     * test the filters in wifi dual mode
         * add in setFilter convenience function to endpoint
     * figure out how to hook in authenticate() with handlers
@@ -41,6 +35,7 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
     * make a curl script that loads a page over and over to test the clients stuff for memory leaks
     * make a javascript page that open and closes websocket connections over and over to test that.
     * make a javascript page that open and closes eventsource connections over and over to test that.
+    * remove the esp_err_t call from onOpen and onClose callbacks
     * run loadtest benchmarks
     * figure out how to redirect http requests to https
 

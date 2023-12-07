@@ -67,8 +67,19 @@ esp_err_t PsychicWebSocketClient::sendMessage(const char *buf)
   return this->sendMessage(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
 
-PsychicWebsocketHandler::PsychicWebsocketHandler() : PsychicHandler() {}
-PsychicWebsocketHandler::~PsychicWebsocketHandler() {}
+PsychicWebsocketHandler::PsychicWebsocketHandler() :
+  PsychicHandler(),
+  _onOpen(NULL),
+  _onFrame(NULL),
+  _onClose(NULL)
+  {
+  }
+
+PsychicWebsocketHandler::~PsychicWebsocketHandler() {
+  for (auto *client : _clients)
+    delete(client);
+  _clients.clear();
+}
 
 void PsychicWebsocketHandler::addClient(PsychicWebSocketClient *client) {
   _clients.push_back(client);

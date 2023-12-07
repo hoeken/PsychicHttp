@@ -172,6 +172,43 @@
                 }
             </script>
 
+            <h1>EventSource Demo</h1>
+            <button onclick="eventSourceConnect()">Connect</button>
+            <div>
+                <textarea id="eventsource_output" style="width: 50%; height: 250px;"></textarea>
+            </div>
+
+            <script>
+                const dataElement = document.getElementById('eventsource_output');
+
+                function eventSourceConnect()
+                {
+                    const eventSource = new EventSource('/events');
+            
+                    eventSource.onopen = () => {
+                        dataElement.value += `[connected]\n`;
+                        dataElement.scrollTop = dataElement.scrollHeight;
+                    };
+
+                    eventSource.addEventListener('millis', (event) => {
+                        let data = event.data.trim()
+                        dataElement.value += `[millis] ${data}\n`;
+                        dataElement.scrollTop = dataElement.scrollHeight;
+                    });
+
+                    eventSource.onmessage = (event) => {
+                        let data = event.data.trim()
+                        dataElement.value += `[message] ${data}\n`;
+                        dataElement.scrollTop = dataElement.scrollHeight;
+                    };
+                
+                    eventSource.onerror = (error) => {
+                        dataElement.value += `[error] ${error}\n`;
+                        dataElement.scrollTop = dataElement.scrollHeight;
+                        eventSource.close();
+                    };
+                }
+              </script>
         </main>
     </body>
 </html>
