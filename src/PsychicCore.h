@@ -32,7 +32,6 @@
 #include "MD5Builder.h"
 #include <UrlEncode.h>
 #include "FS.h"
-#include "StringArray.h"
 
 #if !CONFIG_HTTPD_WS_SUPPORT
   #error This library cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration

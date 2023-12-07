@@ -18,7 +18,7 @@ class PsychicHandler {
 
   public:
     PsychicHandler();
-    //~PsychicHandler();
+    ~PsychicHandler();
 
     PsychicHandler& onOpen(PsychicClientCallback fn);
     PsychicHandler& onClose(PsychicClientCallback fn);

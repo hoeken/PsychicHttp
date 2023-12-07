@@ -24,7 +24,6 @@
 #include "PsychicCore.h"
 #include "PsychicHandler.h"
 #include "PsychicHttpServerResponse.h"
-#include "StringArray.h"
 
 #ifndef SSE_MAX_QUEUED_MESSAGES
   #define SSE_MAX_QUEUED_MESSAGES 32
@@ -66,7 +65,7 @@ class PsychicEventSourceClient {
     PsychicConnection *_client;
     PsychicEventSource *_server;
     uint32_t _lastId;
-    LinkedList<PsychicEventSourceMessage *> _messageQueue;
+    std::list<PsychicEventSourceMessage*> _messageQueue;
     void _queueMessage(PsychicEventSourceMessage *dataMessage);
     void _runQueue();
 
@@ -81,7 +80,7 @@ class PsychicEventSourceClient {
     void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);
     //bool connected() const { return (_client != NULL) && _client->connected(); }
     uint32_t lastId() const { return _lastId; }
-    size_t  packetsWaiting() const { return _messageQueue.length(); }
+    size_t  packetsWaiting() const { return _messageQueue.size(); }
 
     //system callbacks (do not call)
     void _onAck(size_t len, uint32_t time);
@@ -92,7 +91,7 @@ class PsychicEventSourceClient {
 
 class PsychicEventSource : public PsychicHandler {
   private:
-    LinkedList<PsychicEventSourceClient *> _clients;
+    std::list<PsychicEventSourceClient*> _clients;
     ArEventHandlerFunction _connectcb;
   public:
     PsychicEventSource();

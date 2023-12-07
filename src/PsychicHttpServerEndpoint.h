@@ -18,11 +18,6 @@ class PsychicHttpServerEndpoint
     PsychicHttpServerEndpoint();
     PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method, const char * uri);
 
-    std::list<int> websocketConnections;
-
-    bool isUpload;
-    bool isWebsocket;
-
     PsychicHttpServerEndpoint *setHandler(PsychicHandler *handler);
     PsychicHandler *handler();
 

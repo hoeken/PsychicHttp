@@ -154,7 +154,6 @@ size_t PsychicEventSourceMessage::send(PsychicConnection *client) {
 // Client
 
 PsychicEventSourceClient::PsychicEventSourceClient(PsychicHttpServerRequest *request, PsychicEventSource *server)
-: _messageQueue(LinkedList<PsychicEventSourceMessage *>([](PsychicEventSourceMessage *m){ delete  m; }))
 {
 //  _client = request->client();
   _server = server;
@@ -176,8 +175,9 @@ PsychicEventSourceClient::PsychicEventSourceClient(PsychicHttpServerRequest *req
 }
 
 PsychicEventSourceClient::~PsychicEventSourceClient(){
-   _messageQueue.free();
-  close();
+  for (auto *message : _messageQueue)
+    delete(message);
+  _messageQueue.clear();
 }
 
 void PsychicEventSourceClient::_queueMessage(PsychicEventSourceMessage *dataMessage){
@@ -199,21 +199,20 @@ void PsychicEventSourceClient::_queueMessage(PsychicEventSourceMessage *dataMess
 }
 
 void PsychicEventSourceClient::_onAck(size_t len, uint32_t time){
-  while(len && !_messageQueue.isEmpty()){
-    len = _messageQueue.front()->ack(len, time);
-    if(_messageQueue.front()->finished())
-      _messageQueue.remove(_messageQueue.front());
-  }
+  // while(len && !_messageQueue.isEmpty()){
+  //   len = _messageQueue.front()->ack(len, time);
+  //   if(_messageQueue.front()->finished())
+  //     _messageQueue.remove(_messageQueue.front());
+  // }
 
-  _runQueue();
+  // _runQueue();
 }
 
 void PsychicEventSourceClient::_onPoll(){
-  if(!_messageQueue.isEmpty()){
-    _runQueue();
-  }
+  // if(!_messageQueue.isEmpty()){
+  //   _runQueue();
+  // }
 }
-
 
 void PsychicEventSourceClient::_onTimeout(uint32_t time __attribute__((unused))){
   //TODO
@@ -221,8 +220,8 @@ void PsychicEventSourceClient::_onTimeout(uint32_t time __attribute__((unused)))
 }
 
 void PsychicEventSourceClient::_onDisconnect(){
-  _client = NULL;
-  _server->_handleDisconnect(this);
+  // _client = NULL;
+  // _server->_handleDisconnect(this);
 }
 
 void PsychicEventSourceClient::close(){
@@ -241,26 +240,24 @@ void PsychicEventSourceClient::send(const char *message, const char *event, uint
 }
 
 void PsychicEventSourceClient::_runQueue(){
-  while(!_messageQueue.isEmpty() && _messageQueue.front()->finished()){
-    _messageQueue.remove(_messageQueue.front());
-  }
+  // while(!_messageQueue.isEmpty() && _messageQueue.front()->finished()){
+  //   _messageQueue.remove(_messageQueue.front());
+  // }
 
-  for(auto i = _messageQueue.begin(); i != _messageQueue.end(); ++i)
-  {
-    if(!(*i)->sent())
-      (*i)->send(_client);
-  }
+  // for(auto i = _messageQueue.begin(); i != _messageQueue.end(); ++i)
+  // {
+  //   if(!(*i)->sent())
+  //     (*i)->send(_client);
+  // }
 }
 
 // Handler
 
-PsychicEventSource::PsychicEventSource()
-  : _clients(LinkedList<PsychicEventSourceClient *>([](PsychicEventSourceClient *c){ delete c; }))
-  , _connectcb(NULL)
+PsychicEventSource::PsychicEventSource() :
+  _connectcb(NULL)
 {}
 
-PsychicEventSource::~PsychicEventSource(){
-  close();
+PsychicEventSource::~PsychicEventSource() {
 }
 
 void PsychicEventSource::onConnect(ArEventHandlerFunction cb){
@@ -281,7 +278,7 @@ void PsychicEventSource::_addClient(PsychicEventSourceClient * client){
     free(temp);
   }*/
   
-  _clients.add(client);
+  _clients.push_back(client);
   if(_connectcb)
     _connectcb(client);
 }
@@ -300,7 +297,7 @@ void PsychicEventSource::close(){
 
 // pmb fix
 size_t PsychicEventSource::avgPacketsWaiting() const {
-  if(_clients.isEmpty())
+  if(_clients.size() == 0)
     return 0;
   
   size_t    aql=0;

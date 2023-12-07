@@ -32,11 +32,8 @@ class PsychicHttpServerRequest {
 
     esp_err_t loadBody();
 
-    //bool isUpload();
     bool isMultipart();
-    //virtual bool isWebSocket() { return false; }
 
-    //int headers();
     const String header(const char *name);
     bool hasHeader(const char *name);
 

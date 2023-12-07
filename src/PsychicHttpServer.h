@@ -13,8 +13,8 @@ class PsychicHttpServer
 {
   protected:
     bool _use_ssl = false;
-    std::list<PsychicHttpServerEndpoint *> _endpoints;
-    LinkedList<PsychicHandler*> _handlers;
+    std::list<PsychicHttpServerEndpoint*> _endpoints;
+    std::list<PsychicHandler*> _handlers;
     std::list<PsychicClient*> _clients;
 
     PsychicClientCallback _onOpen;
@@ -44,7 +44,7 @@ class PsychicHttpServer
     void stop();
 
     PsychicHandler& addHandler(PsychicHandler* handler);
-    bool removeHandler(PsychicHandler* handler);
+    void removeHandler(PsychicHandler* handler);
 
     void addClient(PsychicClient *client);
     void removeClient(PsychicClient *client);

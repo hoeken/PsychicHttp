@@ -5,8 +5,7 @@
 #include "PsychicStaticFileHandler.h"
 #include "PsychicHttpWebsocket.h"
 
-PsychicHttpServer::PsychicHttpServer() :
-  _handlers(LinkedList<PsychicHandler*>([](PsychicHandler* h){ delete h; }))
+PsychicHttpServer::PsychicHttpServer()
 {
   maxRequestBodySize = MAX_REQUEST_BODY_SIZE;
   maxUploadSize = MAX_UPLOAD_SIZE;
@@ -53,15 +52,17 @@ PsychicHttpServer::PsychicHttpServer() :
 
 PsychicHttpServer::~PsychicHttpServer()
 {
-  _handlers.free();
+  for (auto *client : _clients)
+    delete(client);
+  _clients.clear();
 
-  for (PsychicHttpServerEndpoint * endpoint : _endpoints)
+  for (auto *endpoint : _endpoints)
     delete(endpoint);
   _endpoints.clear();
 
-  for (PsychicClient * client : _clients)
-    delete(client);
-  _clients.clear();
+  for (auto *handler : _handlers)
+    delete(handler);
+  _handlers.clear();
 
   delete defaultEndpoint;
 }
@@ -125,12 +126,12 @@ void PsychicHttpServer::stop()
 }
 
 PsychicHandler& PsychicHttpServer::addHandler(PsychicHandler* handler){
-  _handlers.add(handler);
+  _handlers.push_back(handler);
   return *handler;
 }
 
-bool PsychicHttpServer::removeHandler(PsychicHandler *handler){
-  return _handlers.remove(handler);
+void PsychicHttpServer::removeHandler(PsychicHandler *handler){
+  _handlers.remove(handler);
 }
 
 PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri) {
@@ -205,7 +206,7 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
   PsychicHttpServerRequest request(server, req);
 
   //loop through our global handlers and see if anyone wants it
-  for(const auto& h: server->_handlers) {
+  for(auto *h: server->_handlers) {
     if (h->filter(&request) && h->canHandle(&request)) {
       return h->handleRequest(&request);
     }

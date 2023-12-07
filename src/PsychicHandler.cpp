@@ -1,6 +1,7 @@
 #include "PsychicHandler.h"
 
 PsychicHandler::PsychicHandler() : _username(""), _password("") {}
+PsychicHandler::~PsychicHandler() {}
 
 PsychicHandler& PsychicHandler::onOpen(PsychicClientCallback fn) {
   _onopen = fn;
