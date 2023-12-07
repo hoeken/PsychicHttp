@@ -19,10 +19,15 @@
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
 #include <PsychicHttp.h>
+#include "secret.h"
+
+#ifndef WIFI_SSID
+  #error "You need to enter your wifi credentials.  Rename _secret.h to secret.h and enter your credentials there."
+#endif
 
 //Enter your WIFI credentials here.
-const char *ssid = "";
-const char *password = "";
+const char *ssid = WIFI_SSID;
+const char *password = WIFI_PASS;
 
 // Set your SoftAP credentials
 const char *softap_ssid = "PsychicHttp";
