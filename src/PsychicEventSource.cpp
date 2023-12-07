@@ -25,6 +25,7 @@
 /*****************************************/
 
 PsychicEventSource::PsychicEventSource() :
+  PsychicHandler(),
   _onOpen(NULL),
   _onClose(NULL)
 {}
