@@ -63,7 +63,7 @@ class PsychicClient;
 
 //callback definitions
 typedef std::function<void(PsychicClient *client)> PsychicClientCallback;
-typedef std::function<esp_err_t(PsychicRequest *request)> PsychicHttpRequestHandler;
+typedef std::function<esp_err_t(PsychicRequest *request)> PsychicHttpRequestCallback;
 
 //filter function definition
 typedef std::function<bool(PsychicRequest *request)> PsychicRequestFilterFunction;

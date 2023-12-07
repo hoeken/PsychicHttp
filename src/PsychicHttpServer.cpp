@@ -139,12 +139,12 @@ PsychicEndpoint *PsychicHttpServer::on(const char* uri) {
   return on(uri, HTTP_GET);
 }
 
-PsychicEndpoint *PsychicHttpServer::on(const char* uri, PsychicHttpRequestHandler fn)
+PsychicEndpoint *PsychicHttpServer::on(const char* uri, PsychicHttpRequestCallback fn)
 {
   return on(uri, HTTP_GET, fn);
 }
 
-PsychicEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestHandler fn)
+PsychicEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestCallback fn)
 {
   //these basic requests need a basic web handler
   PsychicWebHandler *handler = new PsychicWebHandler();
@@ -193,7 +193,7 @@ PsychicEndpoint *PsychicHttpServer::on(const char* uri, http_method method, Psyc
   return endpoint;
 }
 
-void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
+void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
 {
   PsychicWebHandler *handler = new PsychicWebHandler();
   handler->onRequest(fn);

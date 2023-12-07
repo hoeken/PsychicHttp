@@ -40,7 +40,7 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
   return err;
 }
 
-PsychicWebHandler * PsychicWebHandler::onRequest(PsychicHttpRequestHandler fn) {
+PsychicWebHandler * PsychicWebHandler::onRequest(PsychicHttpRequestCallback fn) {
   _requestCallback = fn;
   return this;
 }

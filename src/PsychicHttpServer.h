@@ -54,14 +54,14 @@ class PsychicHttpServer
 
     PsychicEndpoint* on(const char* uri);
     PsychicEndpoint* on(const char* uri, http_method method);
-    PsychicEndpoint* on(const char* uri, PsychicHttpRequestHandler onRequest);
-    PsychicEndpoint* on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest);
+    PsychicEndpoint* on(const char* uri, PsychicHttpRequestCallback onRequest);
+    PsychicEndpoint* on(const char* uri, http_method method, PsychicHttpRequestCallback onRequest);
     PsychicEndpoint* on(const char* uri, PsychicHandler *handler);
     PsychicEndpoint* on(const char* uri, http_method method, PsychicHandler *handler);
 
     static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
     static esp_err_t defaultNotFoundHandler(PsychicRequest *request);
-    void onNotFound(PsychicHttpRequestHandler fn);
+    void onNotFound(PsychicHttpRequestCallback fn);
 
     void onOpen(PsychicClientCallback handler);
     void onClose(PsychicClientCallback handler);

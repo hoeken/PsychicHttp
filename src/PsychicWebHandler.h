@@ -12,7 +12,7 @@
 
 class PsychicWebHandler : public PsychicHandler {
   protected:
-    PsychicHttpRequestHandler _requestCallback;
+    PsychicHttpRequestCallback _requestCallback;
 
   public:
     PsychicWebHandler();
@@ -20,7 +20,7 @@ class PsychicWebHandler : public PsychicHandler {
 
     bool canHandle(PsychicRequest *request) override;
     esp_err_t handleRequest(PsychicRequest *request) override;
-    PsychicWebHandler * onRequest(PsychicHttpRequestHandler fn);
+    PsychicWebHandler * onRequest(PsychicHttpRequestCallback fn);
 };
 
 #endif
