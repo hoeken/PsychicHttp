@@ -1,21 +1,20 @@
-#ifndef PsychicHttpWebsocket_h
-#define PsychicHttpWebsocket_h
+#ifndef PsychicWebSocket_h
+#define PsychicWebSocket_h
 
 #include "PsychicCore.h"
-#include "PsychicHttpServerEndpoint.h"
-#include "PsychicHttpServerRequest.h"
+#include "PsychicRequest.h"
 
 class PsychicWebSocketRequest;
 class PsychicWebSocketClient;
 
 //callback function definitions
-typedef std::function<esp_err_t(PsychicWebSocketClient *client)> PsychicWebsocketClientCallback;
+typedef std::function<esp_err_t(PsychicWebSocketClient *client)> PsychicWebSocketClientCallback;
 typedef std::function<esp_err_t(PsychicWebSocketRequest *request, httpd_ws_frame *frame)> PsychicWebSocketFrameCallback;
 
-class PsychicWebSocketRequest : public PsychicHttpServerRequest
+class PsychicWebSocketRequest : public PsychicRequest
 {
   public:
-    PsychicWebSocketRequest(PsychicHttpServerRequest *req, PsychicWebSocketClient *client);
+    PsychicWebSocketRequest(PsychicRequest *req, PsychicWebSocketClient *client);
     virtual ~PsychicWebSocketRequest();
 
     PsychicWebSocketClient *wsclient;
@@ -35,21 +34,21 @@ class PsychicWebSocketClient : public PsychicClient
     esp_err_t sendMessage(const char *buf);
 };
 
-class PsychicWebsocketHandler : public PsychicHandler {
+class PsychicWebSocketHandler : public PsychicHandler {
   protected:
     std::list<PsychicWebSocketClient*> _clients;
 
-    PsychicWebsocketClientCallback _onOpen;
+    PsychicWebSocketClientCallback _onOpen;
     PsychicWebSocketFrameCallback _onFrame;
-    PsychicWebsocketClientCallback _onClose;
+    PsychicWebSocketClientCallback _onClose;
 
   public:
-    PsychicWebsocketHandler();
-    ~PsychicWebsocketHandler();
+    PsychicWebSocketHandler();
+    ~PsychicWebSocketHandler();
 
-    bool isWebsocket() override;
-    bool canHandle(PsychicHttpServerRequest *request) override final;
-    esp_err_t handleRequest(PsychicHttpServerRequest *request) override final;
+    bool isWebSocket() override;
+    bool canHandle(PsychicRequest *request) override final;
+    esp_err_t handleRequest(PsychicRequest *request) override final;
 
     void closeCallback(PsychicClient *client) override;
     void addClient(PsychicWebSocketClient *client);
@@ -57,13 +56,13 @@ class PsychicWebsocketHandler : public PsychicHandler {
     PsychicWebSocketClient * getClient(PsychicClient *client);
     bool hasClient(PsychicClient *client);
 
-    PsychicWebsocketHandler *onOpen(PsychicWebsocketClientCallback fn);
-    PsychicWebsocketHandler *onFrame(PsychicWebSocketFrameCallback fn);
-    PsychicWebsocketHandler *onClose(PsychicWebsocketClientCallback fn);
+    PsychicWebSocketHandler *onOpen(PsychicWebSocketClientCallback fn);
+    PsychicWebSocketHandler *onFrame(PsychicWebSocketFrameCallback fn);
+    PsychicWebSocketHandler *onClose(PsychicWebSocketClientCallback fn);
 
     void sendAll(httpd_ws_frame_t * ws_pkt);
     void sendAll(httpd_ws_type_t op, const void *data, size_t len);
     void sendAll(const char *buf);
 };
 
-#endif // PsychicHttpWebsocket_h
+#endif // PsychicWebSocket_h

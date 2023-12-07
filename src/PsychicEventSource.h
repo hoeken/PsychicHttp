@@ -23,12 +23,12 @@
 #include "PsychicCore.h"
 #include "PsychicClient.h"
 #include "PsychicHandler.h"
-#include "PsychicHttpServerResponse.h"
+#include "PsychicResponse.h"
 
 class PsychicEventSource;
 class PsychicEventSourceResponse;
 class PsychicEventSourceClient;
-class PsychicHttpServerResponse;
+class PsychicResponse;
 
 typedef std::function<esp_err_t(PsychicEventSourceClient *client)> PsychicEventSourceClientCallback;
 
@@ -43,7 +43,7 @@ class PsychicEventSource : public PsychicHandler {
     PsychicEventSource();
     ~PsychicEventSource();
 
-    esp_err_t handleRequest(PsychicHttpServerRequest *request) override final;
+    esp_err_t handleRequest(PsychicRequest *request) override final;
 
     void closeCallback(PsychicClient *client) override;
     void addClient(PsychicEventSourceClient *client);
@@ -73,9 +73,9 @@ class PsychicEventSourceClient : public PsychicClient {
     void sendEvent(const char *event);
 };
 
-class PsychicEventSourceResponse: public PsychicHttpServerResponse {
+class PsychicEventSourceResponse: public PsychicResponse {
   public:
-    PsychicEventSourceResponse(PsychicHttpServerRequest *request);
+    PsychicEventSourceResponse(PsychicRequest *request);
     virtual esp_err_t send() override;
 };
 

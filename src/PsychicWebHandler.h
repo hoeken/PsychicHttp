@@ -3,7 +3,7 @@
 
 #include "PsychicCore.h"
 #include "PsychicHttpServer.h"
-#include "PsychicHttpServerRequest.h"
+#include "PsychicRequest.h"
 #include "PsychicHandler.h"
 
 /*
@@ -18,8 +18,8 @@ class PsychicWebHandler : public PsychicHandler {
     PsychicWebHandler();
     ~PsychicWebHandler();
 
-    bool canHandle(PsychicHttpServerRequest *request) override;
-    esp_err_t handleRequest(PsychicHttpServerRequest *request) override;
+    bool canHandle(PsychicRequest *request) override;
+    esp_err_t handleRequest(PsychicRequest *request) override;
     PsychicWebHandler * onRequest(PsychicHttpRequestHandler fn);
 };
 

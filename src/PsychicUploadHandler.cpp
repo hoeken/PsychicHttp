@@ -18,11 +18,11 @@ PsychicUploadHandler::PsychicUploadHandler() :
   {}
 PsychicUploadHandler::~PsychicUploadHandler() {}
 
-bool PsychicUploadHandler::canHandle(PsychicHttpServerRequest *request) {
+bool PsychicUploadHandler::canHandle(PsychicRequest *request) {
   return true;
 }
 
-esp_err_t PsychicUploadHandler::handleRequest(PsychicHttpServerRequest *request)
+esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest *request)
 {
   esp_err_t err = ESP_OK;
 
@@ -70,7 +70,7 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicHttpServerRequest *request)
   return err;
 }
 
-esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicHttpServerRequest *request)
+esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest *request)
 {
   esp_err_t err = ESP_OK;
 
@@ -128,7 +128,7 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicHttpServerRequest *re
   return err;
 }
 
-esp_err_t PsychicUploadHandler::_multipartUploadHandler(PsychicHttpServerRequest *request)
+esp_err_t PsychicUploadHandler::_multipartUploadHandler(PsychicRequest *request)
 {
   esp_err_t err = ESP_OK;
 

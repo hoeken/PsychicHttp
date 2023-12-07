@@ -48,7 +48,7 @@ String server_key;
 
 //our main server object
 PsychicHttpServer server;
-PsychicWebsocketHandler websocketHandler;
+PsychicWebSocketHandler websocketHandler;
 PsychicEventSource eventSource;
 
 bool connectToWifi()
@@ -220,7 +220,7 @@ void setup()
     });
 
     //api - json message passed in as post body
-    server.on("/api", HTTP_POST, [](PsychicHttpServerRequest *request)
+    server.on("/api", HTTP_POST, [](PsychicRequest *request)
     {
       //load our JSON request
       StaticJsonDocument<1024> json;
@@ -247,14 +247,14 @@ void setup()
     });
 
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/ip", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/ip", HTTP_GET, [](PsychicRequest *request)
     {
       String output = "Your IP is: " + request->client()->remoteIP().toString();
       return request->reply(output.c_str());
     });
 
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/api", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/api", HTTP_GET, [](PsychicRequest *request)
     {
       //create a response object
       StaticJsonDocument<128> output;
@@ -276,13 +276,13 @@ void setup()
     });
 
     //how to redirect a request
-    server.on("/redirect", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/redirect", HTTP_GET, [](PsychicRequest *request)
     {
       return request->redirect("/alien.png");
     });
 
     //how to do basic auth
-    server.on("/auth-basic", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/auth-basic", HTTP_GET, [](PsychicRequest *request)
     {
       if (!request->authenticate(app_user, app_pass))
         return request->requestAuthentication(BASIC_AUTH, app_name, "You must log in.");
@@ -290,7 +290,7 @@ void setup()
     });
 
     //how to do digest auth
-    server.on("/auth-digest", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/auth-digest", HTTP_GET, [](PsychicRequest *request)
     {
       if (!request->authenticate(app_user, app_pass))
         return request->requestAuthentication(DIGEST_AUTH, app_name, "You must log in.");
@@ -298,9 +298,9 @@ void setup()
     });
 
     //example of getting / setting cookies
-    server.on("/cookies", HTTP_GET, [](PsychicHttpServerRequest *request)
+    server.on("/cookies", HTTP_GET, [](PsychicRequest *request)
     {
-      PsychicHttpServerResponse response(request);
+      PsychicResponse response(request);
 
       int counter = 0;
       if (request->hasCookie("counter"))
@@ -318,7 +318,7 @@ void setup()
     });
 
     //example of getting POST variables
-    server.on("/post", HTTP_POST, [](PsychicHttpServerRequest *request)
+    server.on("/post", HTTP_POST, [](PsychicRequest *request)
     {
       String output;
       output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
@@ -328,14 +328,14 @@ void setup()
     });
 
     //you can set up a custom 404 handler.
-    server.onNotFound([](PsychicHttpServerRequest *request)
+    server.onNotFound([](PsychicRequest *request)
     {
       return request->reply(404, "text/html", "Custom 404 Handler");
     });
 
     //handle a very basic upload as post body
     PsychicUploadHandler *uploadHandler = new PsychicUploadHandler();
-    uploadHandler->onUpload([](PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
+    uploadHandler->onUpload([](PsychicRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
       File file;
       String path = "/www/" + filename;
 
@@ -364,7 +364,7 @@ void setup()
     });
 
     //gets called after upload has been handled
-    uploadHandler->onRequest([](PsychicHttpServerRequest *request)
+    uploadHandler->onRequest([](PsychicRequest *request)
     {
       String url = "/" + request->getFilename();
       String output = "<a href=\"" + url + "\">" + url + "</a>";
@@ -377,7 +377,7 @@ void setup()
 
     //a little bit more complicated multipart form
     PsychicUploadHandler *multipartHandler = new PsychicUploadHandler();
-    multipartHandler->onUpload([](PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
+    multipartHandler->onUpload([](PsychicRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
       File file;
       String path = "/www/" + filename;
 
@@ -406,7 +406,7 @@ void setup()
     });
 
     //gets called after upload has been handled
-    multipartHandler->onRequest([](PsychicHttpServerRequest *request)
+    multipartHandler->onRequest([](PsychicRequest *request)
     {
       PsychicWebParameter *file = request->getParam("file_upload");
 

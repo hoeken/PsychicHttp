@@ -1,14 +1,14 @@
-#ifndef PsychicHttpServerResponse_h
-#define PsychicHttpServerResponse_h
+#ifndef PsychicResponse_h
+#define PsychicResponse_h
 
 #include "PsychicCore.h"
 
-class PsychicHttpServerRequest;
+class PsychicRequest;
 
-class PsychicHttpServerResponse
+class PsychicResponse
 {
   protected:
-    PsychicHttpServerRequest *_request;
+    PsychicRequest *_request;
 
     int _code;
     char _status[60];
@@ -17,8 +17,8 @@ class PsychicHttpServerResponse
     const char * _body;
 
   public:
-    PsychicHttpServerResponse(PsychicHttpServerRequest *request);
-    virtual ~PsychicHttpServerResponse();
+    PsychicResponse(PsychicRequest *request);
+    virtual ~PsychicResponse();
 
     void setCode(int code);
 
@@ -38,4 +38,4 @@ class PsychicHttpServerResponse
     virtual esp_err_t send();
 };
 
-#endif // PsychicHttpServerResponse_h
+#endif // PsychicResponse_h

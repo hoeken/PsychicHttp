@@ -3,11 +3,11 @@
 PsychicWebHandler::PsychicWebHandler() : PsychicHandler() {}
 PsychicWebHandler::~PsychicWebHandler() {}
 
-bool PsychicWebHandler::canHandle(PsychicHttpServerRequest *request) {
+bool PsychicWebHandler::canHandle(PsychicRequest *request) {
   return true;
 }
 
-esp_err_t PsychicWebHandler::handleRequest(PsychicHttpServerRequest *request)
+esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
 {
   /* Request body cannot be larger than a limit */
   if (request->contentLength() > request->server()->maxRequestBodySize)

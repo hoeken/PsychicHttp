@@ -2,7 +2,7 @@
 #define PsychicHandler_h
 
 #include "PsychicCore.h"
-#include "PsychicHttpServerRequest.h"
+#include "PsychicRequest.h"
 
 /*
 * HANDLER :: Can be attached to any endpoint or as a generic request handler.
@@ -28,18 +28,18 @@ class PsychicHandler {
     PsychicHandler* onClose(PsychicClientCallback fn);
 
     PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
-    bool filter(PsychicHttpServerRequest *request);
+    bool filter(PsychicRequest *request);
 
     PsychicHandler* setAuthentication(const char *username, const char *password, HTTPAuthMethod method = BASIC_AUTH, const char *realm = "", const char *authFailMsg = "");
-    bool needsAuthentication(PsychicHttpServerRequest *request);
-    esp_err_t authenticate(PsychicHttpServerRequest *request);
+    bool needsAuthentication(PsychicRequest *request);
+    esp_err_t authenticate(PsychicRequest *request);
 
     virtual void closeCallback(PsychicClient *client);
-    virtual bool isWebsocket();
+    virtual bool isWebSocket();
 
     //derived classes must implement these functions
-    virtual bool canHandle(PsychicHttpServerRequest *request) { return true; };
-    virtual esp_err_t handleRequest(PsychicHttpServerRequest *request) = 0;
+    virtual bool canHandle(PsychicRequest *request) { return true; };
+    virtual esp_err_t handleRequest(PsychicRequest *request) = 0;
 };
 
 #endif

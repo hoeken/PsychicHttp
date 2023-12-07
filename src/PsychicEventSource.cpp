@@ -36,7 +36,7 @@ PsychicEventSource::~PsychicEventSource() {
   _clients.clear();
 }
 
-esp_err_t PsychicEventSource::handleRequest(PsychicHttpServerRequest *request) {
+esp_err_t PsychicEventSource::handleRequest(PsychicRequest *request) {
   //lookup our client
   PsychicEventSourceClient *client = getClient(request->client());
   if (client == NULL)
@@ -137,8 +137,8 @@ void PsychicEventSourceClient::sendEvent(const char *event) {
 // PsychicEventSourceResponse
 /*****************************************/
 
-PsychicEventSourceResponse::PsychicEventSourceResponse(PsychicHttpServerRequest *request) 
-  : PsychicHttpServerResponse(request)
+PsychicEventSourceResponse::PsychicEventSourceResponse(PsychicRequest *request) 
+  : PsychicResponse(request)
 {
 }
 

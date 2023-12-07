@@ -1,11 +1,11 @@
-#include "PsychicHttpWebsocket.h"
+#include "PsychicWebSocket.h"
 
 /*************************************/
 /*  PsychicWebSocketRequest      */
 /*************************************/
 
-PsychicWebSocketRequest::PsychicWebSocketRequest(PsychicHttpServerRequest *req, PsychicWebSocketClient *client) :
-  PsychicHttpServerRequest(req->server(), req->request()),
+PsychicWebSocketRequest::PsychicWebSocketRequest(PsychicRequest *req, PsychicWebSocketClient *client) :
+  PsychicRequest(req->server(), req->request()),
   wsclient(client)
 {
 }
@@ -67,7 +67,7 @@ esp_err_t PsychicWebSocketClient::sendMessage(const char *buf)
   return this->sendMessage(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }
 
-PsychicWebsocketHandler::PsychicWebsocketHandler() :
+PsychicWebSocketHandler::PsychicWebSocketHandler() :
   PsychicHandler(),
   _onOpen(NULL),
   _onFrame(NULL),
@@ -75,22 +75,22 @@ PsychicWebsocketHandler::PsychicWebsocketHandler() :
   {
   }
 
-PsychicWebsocketHandler::~PsychicWebsocketHandler() {
+PsychicWebSocketHandler::~PsychicWebSocketHandler() {
   for (auto *client : _clients)
     delete(client);
   _clients.clear();
 }
 
-void PsychicWebsocketHandler::addClient(PsychicWebSocketClient *client) {
+void PsychicWebSocketHandler::addClient(PsychicWebSocketClient *client) {
   _clients.push_back(client);
 }
 
-void PsychicWebsocketHandler::removeClient(PsychicWebSocketClient *client) {
+void PsychicWebSocketHandler::removeClient(PsychicWebSocketClient *client) {
   _clients.remove(client);
   delete client;
 }
 
-PsychicWebSocketClient * PsychicWebsocketHandler::getClient(PsychicClient *socket) {
+PsychicWebSocketClient * PsychicWebSocketHandler::getClient(PsychicClient *socket) {
   for (PsychicWebSocketClient * client : _clients)
     if (client->socket() == socket->socket())
       return client;
@@ -98,19 +98,19 @@ PsychicWebSocketClient * PsychicWebsocketHandler::getClient(PsychicClient *socke
   return NULL;
 }
 
-bool PsychicWebsocketHandler::hasClient(PsychicClient *socket) {
+bool PsychicWebSocketHandler::hasClient(PsychicClient *socket) {
   return getClient(socket) != NULL;
 }
 
-bool PsychicWebsocketHandler::isWebsocket() {
+bool PsychicWebSocketHandler::isWebSocket() {
   return true;
 }
 
-bool PsychicWebsocketHandler::canHandle(PsychicHttpServerRequest *request) {
+bool PsychicWebSocketHandler::canHandle(PsychicRequest *request) {
   return true;
 }
 
-esp_err_t PsychicWebsocketHandler::handleRequest(PsychicHttpServerRequest *request)
+esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest *request)
 {
   //lookup our client
   PsychicWebSocketClient *client = getClient(request->client());
@@ -183,22 +183,22 @@ esp_err_t PsychicWebsocketHandler::handleRequest(PsychicHttpServerRequest *reque
   return ret;
 }
 
-PsychicWebsocketHandler * PsychicWebsocketHandler::onOpen(PsychicWebsocketClientCallback fn) {
+PsychicWebSocketHandler * PsychicWebSocketHandler::onOpen(PsychicWebSocketClientCallback fn) {
   _onOpen = fn;
   return this;
 }
 
-PsychicWebsocketHandler * PsychicWebsocketHandler::onFrame(PsychicWebSocketFrameCallback fn) {
+PsychicWebSocketHandler * PsychicWebSocketHandler::onFrame(PsychicWebSocketFrameCallback fn) {
   _onFrame = fn;
   return this;
 }
 
-PsychicWebsocketHandler * PsychicWebsocketHandler::onClose(PsychicWebsocketClientCallback fn) {
+PsychicWebSocketHandler * PsychicWebSocketHandler::onClose(PsychicWebSocketClientCallback fn) {
   _onClose = fn;
   return this;
 }
 
-void PsychicWebsocketHandler::closeCallback(PsychicClient *client) {
+void PsychicWebSocketHandler::closeCallback(PsychicClient *client) {
   PsychicWebSocketClient *wsclient = getClient(client);
   if (wsclient != NULL)
   {
@@ -209,7 +209,7 @@ void PsychicWebsocketHandler::closeCallback(PsychicClient *client) {
   }
 }
 
-void PsychicWebsocketHandler::sendAll(httpd_ws_frame_t * ws_pkt)
+void PsychicWebSocketHandler::sendAll(httpd_ws_frame_t * ws_pkt)
 {
   for (PsychicWebSocketClient * client : _clients)
   {
@@ -220,7 +220,7 @@ void PsychicWebsocketHandler::sendAll(httpd_ws_frame_t * ws_pkt)
   }
 }
 
-void PsychicWebsocketHandler::sendAll(httpd_ws_type_t op, const void *data, size_t len)
+void PsychicWebSocketHandler::sendAll(httpd_ws_type_t op, const void *data, size_t len)
 {
   httpd_ws_frame_t ws_pkt;
   memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
@@ -232,7 +232,7 @@ void PsychicWebsocketHandler::sendAll(httpd_ws_type_t op, const void *data, size
   this->sendAll(&ws_pkt);
 }
 
-void PsychicWebsocketHandler::sendAll(const char *buf)
+void PsychicWebSocketHandler::sendAll(const char *buf)
 {
   this->sendAll(HTTPD_WS_TYPE_TEXT, buf, strlen(buf));
 }

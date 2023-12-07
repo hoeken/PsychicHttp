@@ -1,9 +1,9 @@
 #include "PsychicHttpServer.h"
-#include "PsychicHttpServerEndpoint.h"
+#include "PsychicEndpoint.h"
 #include "PsychicHandler.h"
 #include "PsychicWebHandler.h"
 #include "PsychicStaticFileHandler.h"
-#include "PsychicHttpWebsocket.h"
+#include "PsychicWebSocket.h"
 #include "WiFi.h"
 
 PsychicHttpServer::PsychicHttpServer()
@@ -14,7 +14,7 @@ PsychicHttpServer::PsychicHttpServer()
   _onOpen = NULL;
   _onClose = NULL;
 
-  defaultEndpoint = new PsychicHttpServerEndpoint(this, HTTP_GET, "");
+  defaultEndpoint = new PsychicEndpoint(this, HTTP_GET, "");
   onNotFound(PsychicHttpServer::defaultNotFoundHandler);
   
   //for a regular server
@@ -135,16 +135,16 @@ void PsychicHttpServer::removeHandler(PsychicHandler *handler){
   _handlers.remove(handler);
 }
 
-PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri) {
+PsychicEndpoint *PsychicHttpServer::on(const char* uri) {
   return on(uri, HTTP_GET);
 }
 
-PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, PsychicHttpRequestHandler fn)
+PsychicEndpoint *PsychicHttpServer::on(const char* uri, PsychicHttpRequestHandler fn)
 {
   return on(uri, HTTP_GET, fn);
 }
 
-PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestHandler fn)
+PsychicEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestHandler fn)
 {
   //these basic requests need a basic web handler
   PsychicWebHandler *handler = new PsychicWebHandler();
@@ -153,22 +153,22 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
   return on(uri, method, handler);
 }
 
-PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method)
+PsychicEndpoint *PsychicHttpServer::on(const char* uri, http_method method)
 {
   PsychicWebHandler *handler = new PsychicWebHandler();
 
   return on(uri, method, handler);
 }
 
-PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, PsychicHandler *handler)
+PsychicEndpoint *PsychicHttpServer::on(const char* uri, PsychicHandler *handler)
 {
   return on(uri, HTTP_GET, handler);
 }
 
-PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHandler *handler)
+PsychicEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHandler *handler)
 {
   //make our endpoint
-  PsychicHttpServerEndpoint *endpoint = new PsychicHttpServerEndpoint(this, method, uri);
+  PsychicEndpoint *endpoint = new PsychicEndpoint(this, method, uri);
 
   //set our handler
   endpoint->setHandler(handler);
@@ -177,9 +177,9 @@ PsychicHttpServerEndpoint *PsychicHttpServer::on(const char* uri, http_method me
   httpd_uri_t my_uri {
     .uri      = uri,
     .method   = method,
-    .handler  = PsychicHttpServerEndpoint::requestCallback,
+    .handler  = PsychicEndpoint::requestCallback,
     .user_ctx = endpoint,
-    .is_websocket = handler->isWebsocket()
+    .is_websocket = handler->isWebSocket()
   };
   
   // Register endpoint with ESP-IDF server
@@ -204,7 +204,7 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestHandler fn)
 esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
 {
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
-  PsychicHttpServerRequest request(server, req);
+  PsychicRequest request(server, req);
 
   //loop through our global handlers and see if anyone wants it
   for(auto *handler: server->_handlers)
@@ -229,7 +229,7 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
   return ESP_ERR_HTTPD_INVALID_REQ;
 }
 
-esp_err_t PsychicHttpServer::defaultNotFoundHandler(PsychicHttpServerRequest *request)
+esp_err_t PsychicHttpServer::defaultNotFoundHandler(PsychicRequest *request)
 {
   request->reply(404, "text/html", "That URI does not exist.");
 
@@ -277,7 +277,7 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   if (client != NULL)
   {
     //remove it from our connections list and do callback if needed
-    for (PsychicHttpServerEndpoint * endpoint : server->_endpoints)
+    for (PsychicEndpoint * endpoint : server->_endpoints)
     {
       PsychicHandler *handler = endpoint->handler();
       handler->closeCallback(client);
@@ -330,11 +330,11 @@ bool PsychicHttpServer::hasClient(int socket) {
   return getClient(socket) != NULL;
 }
 
-bool ON_STA_FILTER(PsychicHttpServerRequest *request) {
+bool ON_STA_FILTER(PsychicRequest *request) {
   return WiFi.localIP() == request->client()->localIP();
 }
 
-bool ON_AP_FILTER(PsychicHttpServerRequest *request) {
+bool ON_AP_FILTER(PsychicRequest *request) {
   return WiFi.softAPIP() == request->client()->localIP();
 }
 

@@ -6,14 +6,14 @@
 
 #include <http_status.h>
 #include "PsychicHttpServer.h"
-#include "PsychicHttpServerRequest.h"
-#include "PsychicHttpServerResponse.h"
-#include "PsychicHttpServerEndpoint.h"
+#include "PsychicRequest.h"
+#include "PsychicResponse.h"
+#include "PsychicEndpoint.h"
 #include "PsychicHandler.h"
 #include "PsychicStaticFileHandler.h"
-#include "PsychicHttpFileResponse.h"
+#include "PsychicFileResponse.h"
 #include "PsychicUploadHandler.h"
-#include "PsychicHttpWebsocket.h"
+#include "PsychicWebSocket.h"
 #include "PsychicEventSource.h"
 
 #ifdef ENABLE_ASYNC

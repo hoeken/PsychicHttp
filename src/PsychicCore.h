@@ -64,16 +64,16 @@ enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
 String urlDecode(const char* encoded);
 
 class PsychicHttpServer;
-class PsychicHttpServerRequest;
+class PsychicRequest;
 class PsychicWebSocketRequest;
 class PsychicClient;
 
 //callback definitions
 typedef std::function<esp_err_t(PsychicClient *client)> PsychicClientCallback;
-typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
+typedef std::function<esp_err_t(PsychicRequest *request)> PsychicHttpRequestHandler;
 
 //filter function definition
-typedef std::function<bool(PsychicHttpServerRequest *request)> PsychicRequestFilterFunction;
+typedef std::function<bool(PsychicRequest *request)> PsychicRequestFilterFunction;
 
 /*
  * PARAMETER :: Chainable object to hold GET/POST and FILE parameters

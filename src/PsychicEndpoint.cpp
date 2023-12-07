@@ -1,6 +1,6 @@
-#include "PsychicHttpServerEndpoint.h"
+#include "PsychicEndpoint.h"
 
-PsychicHttpServerEndpoint::PsychicHttpServerEndpoint() :
+PsychicEndpoint::PsychicEndpoint() :
   _server(NULL),
   _method(HTTP_GET),
   _uri(""),
@@ -8,7 +8,7 @@ PsychicHttpServerEndpoint::PsychicHttpServerEndpoint() :
 {
 }
 
-PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, http_method method, const char * uri) :
+PsychicEndpoint::PsychicEndpoint(PsychicHttpServer *server, http_method method, const char * uri) :
   _server(server),
   _method(method),
   _uri(uri),
@@ -16,7 +16,7 @@ PsychicHttpServerEndpoint::PsychicHttpServerEndpoint(PsychicHttpServer *server, 
 {
 }
 
-PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::setHandler(PsychicHandler *handler)
+PsychicEndpoint * PsychicEndpoint::setHandler(PsychicHandler *handler)
 {
   //clean up old / default handler
   if (_handler != NULL)
@@ -26,23 +26,23 @@ PsychicHttpServerEndpoint * PsychicHttpServerEndpoint::setHandler(PsychicHandler
   return this;
 }
 
-PsychicHandler * PsychicHttpServerEndpoint::handler()
+PsychicHandler * PsychicEndpoint::handler()
 {
   return _handler;
 }
 
-String PsychicHttpServerEndpoint::uri() {
+String PsychicEndpoint::uri() {
   return _uri;
 }
 
-esp_err_t PsychicHttpServerEndpoint::requestCallback(httpd_req_t *req)
+esp_err_t PsychicEndpoint::requestCallback(httpd_req_t *req)
 {
   esp_err_t err = ESP_OK;
 
   #ifdef ENABLE_ASYNC
     if (is_on_async_worker_thread() == false) {
       // submit
-      if (submit_async_req(req, PsychicHttpServerEndpoint::requestCallback) == ESP_OK) {
+      if (submit_async_req(req, PsychicEndpoint::requestCallback) == ESP_OK) {
         return ESP_OK;
       } else {
         httpd_resp_set_status(req, "503 Busy");
@@ -52,9 +52,9 @@ esp_err_t PsychicHttpServerEndpoint::requestCallback(httpd_req_t *req)
     }
   #endif
 
-  PsychicHttpServerEndpoint *self = (PsychicHttpServerEndpoint *)req->user_ctx;
+  PsychicEndpoint *self = (PsychicEndpoint *)req->user_ctx;
   PsychicHandler *handler = self->handler();
-  PsychicHttpServerRequest request(self->_server, req);
+  PsychicRequest request(self->_server, req);
 
   //make sure we have a handler
   if (handler != NULL)
@@ -86,12 +86,12 @@ esp_err_t PsychicHttpServerEndpoint::requestCallback(httpd_req_t *req)
   return err;
 }
 
-PsychicHttpServerEndpoint* PsychicHttpServerEndpoint::setFilter(PsychicRequestFilterFunction fn) {
+PsychicEndpoint* PsychicEndpoint::setFilter(PsychicRequestFilterFunction fn) {
   _handler->setFilter(fn);
   return this;
 }
 
-PsychicHttpServerEndpoint* PsychicHttpServerEndpoint::setAuthentication(const char *username, const char *password, HTTPAuthMethod method, const char *realm, const char *authFailMsg) {
+PsychicEndpoint* PsychicEndpoint::setAuthentication(const char *username, const char *password, HTTPAuthMethod method, const char *realm, const char *authFailMsg) {
   _handler->setAuthentication(username, password, method, realm, authFailMsg);
   return this;
 };

@@ -3,11 +3,11 @@
 
 #include "PsychicCore.h"
 #include "PsychicHttpServer.h"
-#include "PsychicHttpServerRequest.h"
+#include "PsychicRequest.h"
 #include "PsychicWebHandler.h"
 
 //callback definitions
-typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool final)> PsychicUploadCallback;
+typedef std::function<esp_err_t(PsychicRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool final)> PsychicUploadCallback;
 
 /*
 * HANDLER :: Can be attached to any endpoint or as a generic request handler.
@@ -17,7 +17,7 @@ class PsychicUploadHandler : public PsychicWebHandler {
   protected:
     PsychicUploadCallback _uploadCallback;
 
-    PsychicHttpServerRequest *_request;
+    PsychicRequest *_request;
 
     String _temp;
     size_t _parsedLength;
@@ -34,8 +34,8 @@ class PsychicUploadHandler : public PsychicWebHandler {
     size_t _itemBufferIndex;
     bool _itemIsFile;
 
-    esp_err_t _basicUploadHandler(PsychicHttpServerRequest *request);
-    esp_err_t _multipartUploadHandler(PsychicHttpServerRequest *request);
+    esp_err_t _basicUploadHandler(PsychicRequest *request);
+    esp_err_t _multipartUploadHandler(PsychicRequest *request);
 
     void _handleUploadByte(uint8_t data, bool last);
     void _parseMultipartPostByte(uint8_t data, bool last);
@@ -44,8 +44,8 @@ class PsychicUploadHandler : public PsychicWebHandler {
     PsychicUploadHandler();
     ~PsychicUploadHandler();
 
-    bool canHandle(PsychicHttpServerRequest *request) override;
-    esp_err_t handleRequest(PsychicHttpServerRequest *request) override;
+    bool canHandle(PsychicRequest *request) override;
+    esp_err_t handleRequest(PsychicRequest *request) override;
 
     PsychicUploadHandler * onUpload(PsychicUploadCallback fn);
 };

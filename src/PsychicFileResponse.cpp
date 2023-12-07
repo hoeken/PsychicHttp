@@ -1,10 +1,10 @@
-#include "PsychicHttpFileResponse.h"
-#include "PsychicHttpServerResponse.h"
-#include "PsychicHttpServerRequest.h"
+#include "PsychicFileResponse.h"
+#include "PsychicResponse.h"
+#include "PsychicRequest.h"
 
 
-PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *request, FS &fs, const String& path, const String& contentType, bool download)
- : PsychicHttpServerResponse(request) {
+PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FS &fs, const String& path, const String& contentType, bool download)
+ : PsychicResponse(request) {
   //_code = 200;
   _path = path;
 
@@ -38,8 +38,8 @@ PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *reque
   addHeader("Content-Disposition", buf);
 }
 
-PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *request, File content, const String& path, const String& contentType, bool download)
- : PsychicHttpServerResponse(request) {
+PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, File content, const String& path, const String& contentType, bool download)
+ : PsychicResponse(request) {
   _path = path;
 
   if(!download && String(content.name()).endsWith(".gz") && !path.endsWith(".gz")){
@@ -70,13 +70,13 @@ PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *reque
   addHeader("Content-Disposition", buf);
 }
 
-PsychicHttpFileResponse::~PsychicHttpFileResponse()
+PsychicFileResponse::~PsychicFileResponse()
 {
   if(_content)
     _content.close();
 }
 
-void PsychicHttpFileResponse::_setContentType(const String& path){
+void PsychicFileResponse::_setContentType(const String& path){
   if (path.endsWith(".html")) _contentType = "text/html";
   else if (path.endsWith(".htm")) _contentType = "text/html";
   else if (path.endsWith(".css")) _contentType = "text/css";
@@ -98,7 +98,7 @@ void PsychicHttpFileResponse::_setContentType(const String& path){
   else _contentType = "text/plain";
 }
 
-esp_err_t PsychicHttpFileResponse::send()
+esp_err_t PsychicFileResponse::send()
 {
   esp_err_t err = ESP_OK;
 
@@ -110,7 +110,7 @@ esp_err_t PsychicHttpFileResponse::send()
     int readSize = _content.readBytes((char *)buffer, size);
 
     this->setContent(buffer, size);
-    err = PsychicHttpServerResponse::send();
+    err = PsychicResponse::send();
     
     free(buffer);
   }

@@ -25,7 +25,7 @@ PsychicHandler* PsychicHandler::setFilter(PsychicRequestFilterFunction fn) {
   return this;
 }
 
-bool PsychicHandler::filter(PsychicHttpServerRequest *request){
+bool PsychicHandler::filter(PsychicRequest *request){
   return _filter == NULL || _filter(request);
 }
 
@@ -38,16 +38,16 @@ PsychicHandler* PsychicHandler::setAuthentication(const char *username, const ch
   return this;
 };
 
-bool PsychicHandler::needsAuthentication(PsychicHttpServerRequest *request) {
+bool PsychicHandler::needsAuthentication(PsychicRequest *request) {
   return (_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str());
 }
 
-esp_err_t PsychicHandler::authenticate(PsychicHttpServerRequest *request) {
+esp_err_t PsychicHandler::authenticate(PsychicRequest *request) {
   return request->requestAuthentication(_method, _realm.c_str(), _authFailMsg.c_str());
 }
 
 void PsychicHandler::closeCallback(PsychicClient *client) {}
 
-bool PsychicHandler::isWebsocket() {
+bool PsychicHandler::isWebSocket() {
   return false;
 }

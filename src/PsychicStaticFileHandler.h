@@ -3,15 +3,15 @@
 
 #include "PsychicCore.h"
 #include "PsychicWebHandler.h"
-#include "PsychicHttpServerRequest.h"
-#include "PsychicHttpServerResponse.h"
-#include "PsychicHttpFileResponse.h"
+#include "PsychicRequest.h"
+#include "PsychicResponse.h"
+#include "PsychicFileResponse.h"
 
 class PsychicStaticFileHandler : public PsychicWebHandler {
   using File = fs::File;
   using FS = fs::FS;
   private:
-    bool _getFile(PsychicHttpServerRequest *request);
+    bool _getFile(PsychicRequest *request);
     bool _fileExists(const String& path);
     uint8_t _countBits(const uint8_t value) const;
   protected:
@@ -28,8 +28,8 @@ class PsychicStaticFileHandler : public PsychicWebHandler {
     uint8_t _gzipStats;
   public:
     PsychicStaticFileHandler(const char* uri, FS& fs, const char* path, const char* cache_control);
-    bool canHandle(PsychicHttpServerRequest *request) override;
-    esp_err_t handleRequest(PsychicHttpServerRequest *request) override;
+    bool canHandle(PsychicRequest *request) override;
+    esp_err_t handleRequest(PsychicRequest *request) override;
     PsychicStaticFileHandler& setIsDir(bool isDir);
     PsychicStaticFileHandler& setDefaultFile(const char* filename);
     PsychicStaticFileHandler& setCacheControl(const char* cache_control);

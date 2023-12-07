@@ -1,5 +1,5 @@
-#ifndef PsychicHttpServerRequest_h
-#define PsychicHttpServerRequest_h
+#ifndef PsychicRequest_h
+#define PsychicRequest_h
 
 #include "PsychicCore.h"
 #include "PsychicHttpServer.h"
@@ -7,7 +7,7 @@
 
 class PsychicHttpServer;
 
-class PsychicHttpServerRequest {
+class PsychicRequest {
   friend PsychicHttpServer;
 
   protected:
@@ -30,8 +30,8 @@ class PsychicHttpServerRequest {
     const String _getRandomHexString();
 
   public:
-    PsychicHttpServerRequest(PsychicHttpServer *server, httpd_req_t *req);
-    virtual ~PsychicHttpServerRequest();
+    PsychicRequest(PsychicHttpServer *server, httpd_req_t *req);
+    virtual ~PsychicRequest();
 
     void *_tempObject;
 
@@ -81,4 +81,4 @@ class PsychicHttpServerRequest {
     esp_err_t reply(int code, const char *contentType, const char *content);
 };
 
-#endif // PsychicHttpServerRequest_h
+#endif // PsychicRequest_h

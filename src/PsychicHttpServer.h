@@ -5,7 +5,7 @@
 #include "PsychicClient.h"
 #include "PsychicHandler.h"
 
-class PsychicHttpServerEndpoint;
+class PsychicEndpoint;
 class PsychicHandler;
 class PsychicStaticFileHandler;
 
@@ -13,7 +13,7 @@ class PsychicHttpServer
 {
   protected:
     bool _use_ssl = false;
-    std::list<PsychicHttpServerEndpoint*> _endpoints;
+    std::list<PsychicEndpoint*> _endpoints;
     std::list<PsychicHandler*> _handlers;
     std::list<PsychicClient*> _clients;
 
@@ -35,7 +35,7 @@ class PsychicHttpServer
     unsigned long maxUploadSize;
     unsigned long maxRequestBodySize;
 
-    PsychicHttpServerEndpoint *defaultEndpoint;
+    PsychicEndpoint *defaultEndpoint;
 
     static void destroy(void *ctx);
 
@@ -52,15 +52,15 @@ class PsychicHttpServer
     PsychicClient* getClient(httpd_req_t *req);
     bool hasClient(int socket);
 
-    PsychicHttpServerEndpoint* on(const char* uri);
-    PsychicHttpServerEndpoint* on(const char* uri, http_method method);
-    PsychicHttpServerEndpoint* on(const char* uri, PsychicHttpRequestHandler onRequest);
-    PsychicHttpServerEndpoint* on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest);
-    PsychicHttpServerEndpoint* on(const char* uri, PsychicHandler *handler);
-    PsychicHttpServerEndpoint* on(const char* uri, http_method method, PsychicHandler *handler);
+    PsychicEndpoint* on(const char* uri);
+    PsychicEndpoint* on(const char* uri, http_method method);
+    PsychicEndpoint* on(const char* uri, PsychicHttpRequestHandler onRequest);
+    PsychicEndpoint* on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest);
+    PsychicEndpoint* on(const char* uri, PsychicHandler *handler);
+    PsychicEndpoint* on(const char* uri, http_method method, PsychicHandler *handler);
 
     static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
-    static esp_err_t defaultNotFoundHandler(PsychicHttpServerRequest *request);
+    static esp_err_t defaultNotFoundHandler(PsychicRequest *request);
     void onNotFound(PsychicHttpRequestHandler fn);
 
     void onOpen(PsychicClientCallback handler);
@@ -71,7 +71,7 @@ class PsychicHttpServer
     PsychicStaticFileHandler* serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
 };
 
-bool ON_STA_FILTER(PsychicHttpServerRequest *request);
-bool ON_AP_FILTER(PsychicHttpServerRequest *request);
+bool ON_STA_FILTER(PsychicRequest *request);
+bool ON_AP_FILTER(PsychicRequest *request);
 
 #endif // PsychicHttpServer_h
