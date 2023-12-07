@@ -42,7 +42,7 @@ const char *app_name = "Your App";
 const char *local_hostname = "psychic";
 
 //change this to true to enable SSL
-bool app_enable_ssl = false;
+bool app_enable_ssl = true;
 String server_cert;
 String server_key;
 
@@ -188,7 +188,18 @@ void setup()
 
     //do we want secure or not?
     if (app_enable_ssl)
+    {
       server.listen(443, server_cert.c_str(), server_key.c_str());
+      
+      //this creates a 2nd server listening on port 80 and redirects all requests HTTPS
+      PsychicHttpServer *redirectServer = new PsychicHttpServer();
+      redirectServer->config.ctrl_port = 20424;
+      redirectServer->listen(80);
+      redirectServer->onNotFound([](PsychicRequest *request) {
+        String url = "https://" + request->host() + request->url();
+        return request->redirect(url.c_str());
+      });
+    }
     else
       server.listen(80);
 
