@@ -42,7 +42,7 @@ const char *app_name = "Your App";
 const char *local_hostname = "psychic";
 
 //change this to true to enable SSL
-bool app_enable_ssl = true;
+bool app_enable_ssl = false;
 String server_cert;
 String server_key;
 
