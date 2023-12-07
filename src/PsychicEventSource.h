@@ -32,21 +32,6 @@ class PsychicHttpServerResponse;
 
 typedef std::function<esp_err_t(PsychicEventSourceClient *client)> PsychicEventSourceClientCallback;
 
-class PsychicEventSourceClient : public PsychicClient {
-  friend PsychicEventSource;
-
-  protected:
-    uint32_t _lastId;
-
-  public:
-    PsychicEventSourceClient(PsychicClient *client);
-    ~PsychicEventSourceClient();
-
-    uint32_t lastId() const { return _lastId; }
-    void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);
-    void sendEvent(const char *event);
-};
-
 class PsychicEventSource : public PsychicHandler {
   private:
     std::list<PsychicEventSourceClient*> _clients;
@@ -73,10 +58,27 @@ class PsychicEventSource : public PsychicHandler {
     void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);
 };
 
+class PsychicEventSourceClient : public PsychicClient {
+  friend PsychicEventSource;
+
+  protected:
+    uint32_t _lastId;
+
+  public:
+    PsychicEventSourceClient(PsychicClient *client);
+    ~PsychicEventSourceClient();
+
+    uint32_t lastId() const { return _lastId; }
+    void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);
+    void sendEvent(const char *event);
+};
+
 class PsychicEventSourceResponse: public PsychicHttpServerResponse {
   public:
     PsychicEventSourceResponse(PsychicHttpServerRequest *request);
     virtual esp_err_t send() override;
 };
+
+String generateEventMessage(const char *message, const char *event, uint32_t id, uint32_t reconnect);
 
 #endif /* PsychicEventSource_H_ */

@@ -20,66 +20,8 @@
 
 #include "PsychicEventSource.h"
 
-static String generateEventMessage(const char *message, const char *event, uint32_t id, uint32_t reconnect){
-  String ev = "";
-
-  if(reconnect){
-    ev += "retry: ";
-    ev += String(reconnect);
-    ev += "\r\n";
-  }
-
-  if(id){
-    ev += "id: ";
-    ev += String(id);
-    ev += "\r\n";
-  }
-
-  if(event != NULL){
-    ev += "event: ";
-    ev += String(event);
-    ev += "\r\n";
-  }
-
-  if(message != NULL){
-    ev += "data: ";
-    ev += String(message);
-    ev += "\r\n";
-  }
-  ev += "\r\n";
-
-  return ev;
-}
-
 /*****************************************/
-// PsychicEventSourceClient
-/*****************************************/
-
-PsychicEventSourceClient::PsychicEventSourceClient(PsychicClient *client) : PsychicClient(client->server(), client->socket())
-{
-  _lastId = 0;
-}
-
-PsychicEventSourceClient::~PsychicEventSourceClient(){
-}
-
-void PsychicEventSourceClient::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
-  String ev = generateEventMessage(message, event, id, reconnect);
-  sendEvent(ev.c_str());
-}
-
-void PsychicEventSourceClient::sendEvent(const char *event) {
-  int result;
-  do {
-    result = httpd_socket_send(this->server(), this->socket(), event, strlen(event), 0);
-  } while (result == HTTPD_SOCK_ERR_TIMEOUT);
-
-  //if (result < 0)
-  //error log here
-}
-
-/*****************************************/
-// PsychicEventSource
+// PsychicEventSource - Handler
 /*****************************************/
 
 PsychicEventSource::PsychicEventSource() :
@@ -164,6 +106,33 @@ void PsychicEventSource::send(const char *message, const char *event, uint32_t i
 }
 
 /*****************************************/
+// PsychicEventSourceClient
+/*****************************************/
+
+PsychicEventSourceClient::PsychicEventSourceClient(PsychicClient *client) : PsychicClient(client->server(), client->socket())
+{
+  _lastId = 0;
+}
+
+PsychicEventSourceClient::~PsychicEventSourceClient(){
+}
+
+void PsychicEventSourceClient::send(const char *message, const char *event, uint32_t id, uint32_t reconnect){
+  String ev = generateEventMessage(message, event, id, reconnect);
+  sendEvent(ev.c_str());
+}
+
+void PsychicEventSourceClient::sendEvent(const char *event) {
+  int result;
+  do {
+    result = httpd_socket_send(this->server(), this->socket(), event, strlen(event), 0);
+  } while (result == HTTPD_SOCK_ERR_TIMEOUT);
+
+  //if (result < 0)
+  //error log here
+}
+
+/*****************************************/
 // PsychicEventSourceResponse
 /*****************************************/
 
@@ -193,4 +162,39 @@ esp_err_t PsychicEventSourceResponse::send() {
     return ESP_OK;
   else
     return ESP_ERR_HTTPD_RESP_SEND;
+}
+
+/*****************************************/
+// Event Message Generator
+/*****************************************/
+
+String generateEventMessage(const char *message, const char *event, uint32_t id, uint32_t reconnect) {
+  String ev = "";
+
+  if(reconnect){
+    ev += "retry: ";
+    ev += String(reconnect);
+    ev += "\r\n";
+  }
+
+  if(id){
+    ev += "id: ";
+    ev += String(id);
+    ev += "\r\n";
+  }
+
+  if(event != NULL){
+    ev += "event: ";
+    ev += String(event);
+    ev += "\r\n";
+  }
+
+  if(message != NULL){
+    ev += "data: ";
+    ev += String(message);
+    ev += "\r\n";
+  }
+  ev += "\r\n";
+
+  return ev;
 }
