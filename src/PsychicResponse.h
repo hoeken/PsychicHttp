@@ -1,23 +1,24 @@
-#ifndef PsychicHttpServerResponse_h
-#define PsychicHttpServerResponse_h
+#ifndef PsychicResponse_h
+#define PsychicResponse_h
 
 #include "PsychicCore.h"
 
-class PsychicHttpServerRequest;
+class PsychicRequest;
 
-class PsychicHttpServerResponse
+class PsychicResponse
 {
   protected:
-    PsychicHttpServerRequest *_request;
-    int64_t _contentLength;
-    char _status[60];
-    const char * body;
+    PsychicRequest *_request;
 
-    std::list<HTTPHeader> headers;
+    int _code;
+    char _status[60];
+    std::list<HTTPHeader> _headers;
+    int64_t _contentLength;
+    const char * _body;
 
   public:
-    PsychicHttpServerResponse(PsychicHttpServerRequest *request);
-    virtual ~PsychicHttpServerResponse();
+    PsychicResponse(PsychicRequest *request);
+    virtual ~PsychicResponse();
 
     void setCode(int code);
 
@@ -34,7 +35,7 @@ class PsychicHttpServerResponse
     const char * getContent();
     size_t getContentLength();
 
-    esp_err_t send();
+    virtual esp_err_t send();
 };
 
-#endif // PsychicHttpServerResponse_h
+#endif // PsychicResponse_h

@@ -51,20 +51,7 @@ PsychicStaticFileHandler& PsychicStaticFileHandler::setLastModified(struct tm* l
   return setLastModified((const char *)result);
 }
 
-#ifdef ESP8266
-PsychicStaticFileHandler& PsychicStaticFileHandler::setLastModified(time_t last_modified){
-  return setLastModified((struct tm *)gmtime(&last_modified));
-}
-
-PsychicStaticFileHandler& PsychicStaticFileHandler::setLastModified(){
-  time_t last_modified;
-  if(time(&last_modified) == 0) //time is not yet set
-    return *this;
-  return setLastModified(last_modified);
-}
-#endif
-
-bool PsychicStaticFileHandler::canHandle(PsychicHttpServerRequest *request)
+bool PsychicStaticFileHandler::canHandle(PsychicRequest *request)
 {
   if(request->method() != HTTP_GET || !request->uri().startsWith(_uri) )
     return false;
@@ -75,7 +62,7 @@ bool PsychicStaticFileHandler::canHandle(PsychicHttpServerRequest *request)
   return false;
 }
 
-bool PsychicStaticFileHandler::_getFile(PsychicHttpServerRequest *request)
+bool PsychicStaticFileHandler::_getFile(PsychicRequest *request)
 {
   // Remove the found uri
   String path = request->uri().substring(_uri.length());
@@ -101,11 +88,7 @@ bool PsychicStaticFileHandler::_getFile(PsychicHttpServerRequest *request)
   return _fileExists(path);
 }
 
-#ifdef ESP32
-  #define FILE_IS_REAL(f) (f == true && !f.isDirectory())
-#else
-  #define FILE_IS_REAL(f) (f == true)
-#endif
+#define FILE_IS_REAL(f) (f == true && !f.isDirectory())
 
 bool PsychicStaticFileHandler::_fileExists(const String& path)
 {
@@ -154,7 +137,7 @@ uint8_t PsychicStaticFileHandler::_countBits(const uint8_t value) const
   return n;
 }
 
-esp_err_t PsychicStaticFileHandler::handleRequest(PsychicHttpServerRequest *request)
+esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest *request)
 {
   //TODO: re-enable authentication for static files
   // if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
@@ -173,14 +156,14 @@ esp_err_t PsychicStaticFileHandler::handleRequest(PsychicHttpServerRequest *requ
     {
       _file.close();
 
-      PsychicHttpServerResponse response(request);
+      PsychicResponse response(request);
       response.addHeader("Cache-Control", _cache_control.c_str());
       response.addHeader("ETag", etag.c_str());
       response.send();
     }
     else
     {
-      PsychicHttpFileResponse response(request, _fs, _filename);
+      PsychicFileResponse response(request, _fs, _filename);
 
       if (_last_modified.length())
         response.addHeader("Last-Modified", _last_modified.c_str());

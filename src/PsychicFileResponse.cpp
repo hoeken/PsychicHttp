@@ -1,10 +1,10 @@
-#include "PsychicHttpFileResponse.h"
-#include "PsychicHttpServerResponse.h"
-#include "PsychicHttpServerRequest.h"
+#include "PsychicFileResponse.h"
+#include "PsychicResponse.h"
+#include "PsychicRequest.h"
 
 
-PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *request, FS &fs, const String& path, const String& contentType, bool download)
- : PsychicHttpServerResponse(request) {
+PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FS &fs, const String& path, const String& contentType, bool download)
+ : PsychicResponse(request) {
   //_code = 200;
   _path = path;
 
@@ -38,8 +38,8 @@ PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *reque
   addHeader("Content-Disposition", buf);
 }
 
-PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *request, File content, const String& path, const String& contentType, bool download)
- : PsychicHttpServerResponse(request) {
+PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, File content, const String& path, const String& contentType, bool download)
+ : PsychicResponse(request) {
   _path = path;
 
   if(!download && String(content.name()).endsWith(".gz") && !path.endsWith(".gz")){
@@ -70,13 +70,13 @@ PsychicHttpFileResponse::PsychicHttpFileResponse(PsychicHttpServerRequest *reque
   addHeader("Content-Disposition", buf);
 }
 
-PsychicHttpFileResponse::~PsychicHttpFileResponse()
+PsychicFileResponse::~PsychicFileResponse()
 {
   if(_content)
     _content.close();
 }
 
-void PsychicHttpFileResponse::_setContentType(const String& path){
+void PsychicFileResponse::_setContentType(const String& path){
   if (path.endsWith(".html")) _contentType = "text/html";
   else if (path.endsWith(".htm")) _contentType = "text/html";
   else if (path.endsWith(".css")) _contentType = "text/css";
@@ -98,7 +98,7 @@ void PsychicHttpFileResponse::_setContentType(const String& path){
   else _contentType = "text/plain";
 }
 
-esp_err_t PsychicHttpFileResponse::send()
+esp_err_t PsychicFileResponse::send()
 {
   esp_err_t err = ESP_OK;
 
@@ -110,15 +110,15 @@ esp_err_t PsychicHttpFileResponse::send()
     int readSize = _content.readBytes((char *)buffer, size);
 
     this->setContent(buffer, size);
-    err = PsychicHttpServerResponse::send();
+    err = PsychicResponse::send();
     
     free(buffer);
   }
   else
   {
     //get our headers out of the way first
-    for (HTTPHeader header : this->headers)
-      httpd_resp_set_hdr(this->_request->_req, header.field, header.value);
+    for (HTTPHeader header : _headers)
+      httpd_resp_set_hdr(this->_request->request(), header.field, header.value);
 
     /* Retrieve the pointer to scratch buffer for temporary storage */
     char *chunk = (char *)malloc(FILE_CHUNK_SIZE);
@@ -129,16 +129,16 @@ esp_err_t PsychicHttpFileResponse::send()
         if (chunksize > 0)
         {
           /* Send the buffer contents as HTTP response chunk */
-          err = httpd_resp_send_chunk(this->_request->_req, chunk, chunksize);
+          err = httpd_resp_send_chunk(this->_request->request(), chunk, chunksize);
           if (err != ESP_OK)
           {
             ESP_LOGE(PH_TAG, "File sending failed (%s)", esp_err_to_name(err));
 
             /* Abort sending file */
-            httpd_resp_sendstr_chunk(this->_request->_req, NULL);
+            httpd_resp_sendstr_chunk(this->_request->request(), NULL);
 
             /* Respond with 500 Internal Server Error */
-            httpd_resp_send_err(this->_request->_req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+            httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
 
             //bail
             break;
@@ -156,19 +156,19 @@ esp_err_t PsychicHttpFileResponse::send()
       ESP_LOGI(PH_TAG, "File sending complete");
 
       /* Respond with an empty chunk to signal HTTP response completion */
-      httpd_resp_send_chunk(this->_request->_req, NULL, 0);
+      httpd_resp_send_chunk(this->_request->request(), NULL, 0);
     }
 
     /* Close file after sending complete */
     _content.close();
 
     //clean up our header variables.  we have to do this since httpd_resp_send doesn't store copies
-    for (HTTPHeader header : this->headers)
+    for (HTTPHeader header : _headers)
     {
       free(header.field);
       free(header.value);
     }
-    this->headers.clear();
+    _headers.clear();
   }
 
   return err;

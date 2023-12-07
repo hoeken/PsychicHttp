@@ -4,69 +4,45 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 
 # Features
 
-* Asynchronous approach (server running in its own FreeRTOS thread)
-* Handles all HTTP methods with lots of helper functions:
+* Asynchronous approach (server runs in its own FreeRTOS thread)
+* Handles all HTTP methods with lots of convenience functions:
     * GET/POST parameters
     * get/set headers
     * get/set cookies
     * basic key/value session data storage
     * authentication (basic and digest mode)
-* Websocket support with onConnect, onFrame, and onClose callbacks
 * HTTPS / SSL support
 * Static fileserving (SPIFFS, LittleFS, etc.)
-* Chunked response
-* File uploads (Basic, no multipart... yet)
+* Chunked response serving for large files
+* File uploads (Basic + Multipart)
+* Websocket support with onOpen, onFrame, and onClose callbacks
+* EventSource / SSE support with onOpen, onFrame, and onClose callbacks
+* Request filters, including Client vs AP mode (ON_STA_FILTER / ON_AP_FILTER)
 
 # Differences from ESPAsyncWebserver
 
-* No templating system
-* No url rewriting
-* No Async Event Source
-* No AP/STA filter
+* No templating system (anyone actually use this?)
+* No url rewriting (but you can use request->redirect)
 
 # v1.1: Event Source Plan
-    * update Endpoint to have a Handler that gets called
-        * default to PsychicWebHandler
-            server.on creates and sets the webhandler, passes on the callback
-        * make PsychicWebsocketHandler
-            * user creates a PsychicWebsocketHandler with callbacks
-            * then sets setHandler() on endpoint returned from server.websocket()         
-        * make PsychicBasicUploadHandler
-            * user creates a PsychicBasicUploadHandler with callback
-            * then sets setHandler() on endpoint returned from server.on()
-        * make PsychicMultipartUploadHandler
-            * user creates a PsychicMultipartUploadHandler with callback
-            * then sets setHandler() on endpoint returned from server.on()
-        * remove all the hardcoded _callbacks from Endpoint
-    * re-implement the generic Handler functionality
-        * generic handlers run in the PsychicHttpServer::notFoundHandler function
-            * loop through handlers and call canHandle()
-            * also call filter()
-            * if match, call the handler with the request
-            * if no handlers match, then run the defaultEndpoint handler
-        * convert PsychicStaticFileHandler and serveStatic
-            * we can have multiple calls to serveStatic
-            * serveStatic instanciates the PsychicStaticFileHandler and adds it
-    * EventSourceHandler
-        * Convert all calls to AsyncClient to new PsychicConnection or PsychicClient class
-        * determine which callbacks we can support
-            * definitely onConnect / onOpen
-            * definitely onDisconnect / onClose
-                * update the PsychicHttpServer::closeCallback to loop thru endpoint handlers + generic handlers
-                * if handler has onClose, call it.
-            * add the addClient/hasClient/removeClient functionality to base handler class
-                * maybe we can simplify that onClose callback by checking to see if the endpoint hasClient()
-                * handlers like Websocket and EventSource can handle those lists internally then call the user callback
+    * Changes
+        * update the arduino example and test it
+        * update the benchmark to be v1.1 compatible
+    * Testing
+        * inspect the code for memory leaks and other issues
+        * make a curl script that loads a page over and over to test the clients stuff for memory leaks
+        * make a javascript page that open and closes websocket connections over and over to test that.
+        * make a javascript page that open and closes eventsource connections over and over to test that.
+        * run loadtest benchmarks
 
 # Roadmap / Longterm TODO
 
 * investigate websocket performance gap
-* multipart file uploads
 * support for esp-idf framework
 * support for arduino 3.0 framework
 * Enable worker based multithreading with esp-idf v5.x
 * 100-continue support
-* 'borrow' other nice features from ESPAsyncServer
+* some kind of templating system
      
 If anyone wants to take a crack at implementing any of the above features I am more than happy to accept pull requests.
 
