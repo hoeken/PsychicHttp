@@ -59,11 +59,13 @@ esp_err_t PsychicHttpServerEndpoint::requestCallback(httpd_req_t *req)
   //make sure we have a handler
   if (handler != NULL)
   {
-    // if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
-    //   return request->requestAuthentication();
-
     if (handler->filter(&request) && handler->canHandle(&request))
     {
+      //check our credentials
+       if (handler->needsAuthentication(&request))
+        return handler->authenticate(&request);
+
+      //pass it to our handler
       err = handler->handleRequest(&request);
       if (err != ESP_OK)
         return err;
@@ -74,11 +76,22 @@ esp_err_t PsychicHttpServerEndpoint::requestCallback(httpd_req_t *req)
       //   return err;
       //err = request->sendResponse();
     }
+    //pass it to our generic handlers
     else
-      return request.reply(500, "text/html", "Handler cannot handle.");
+      PsychicHttpServer::notFoundHandler(req, HTTPD_500_INTERNAL_SERVER_ERROR);
   }
   else
     return request.reply(500, "text/html", "No handler registered.");
 
   return err;
 }
+
+PsychicHttpServerEndpoint* PsychicHttpServerEndpoint::setFilter(PsychicRequestFilterFunction fn) {
+  _handler->setFilter(fn);
+  return this;
+}
+
+PsychicHttpServerEndpoint* PsychicHttpServerEndpoint::setAuthentication(const char *username, const char *password, HTTPAuthMethod method, const char *realm, const char *authFailMsg) {
+  _handler->setAuthentication(username, password, method, realm, authFailMsg);
+  return this;
+};

@@ -385,7 +385,7 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
       String _realm    = _extractParam(authReq, F("realm=\""),'\"');
       String _nonce    = _extractParam(authReq, F("nonce=\""),'\"');
       String _uri      = _extractParam(authReq, F("uri=\""),'\"');
-      String _resp = _extractParam(authReq, F("response=\""),'\"');
+      String _resp     = _extractParam(authReq, F("response=\""),'\"');
       String _opaque   = _extractParam(authReq, F("opaque=\""),'\"');
 
       if((!_realm.length()) || (!_nonce.length()) || (!_uri.length()) || (!_resp.length()) || (!_opaque.length())) {
@@ -394,6 +394,12 @@ bool PsychicHttpServerRequest::authenticate(const char * username, const char * 
       }
       if((_opaque != this->getSessionKey("opaque")) || (_nonce != this->getSessionKey("nonce")) || (_realm != this->getSessionKey("realm")))
       {
+        // DUMP(_opaque);
+        // DUMP(this->getSessionKey("opaque"));
+        // DUMP(_nonce);
+        // DUMP(this->getSessionKey("nonce"));
+        // DUMP(_realm);
+        // DUMP(this->getSessionKey("realm"));
         authReq = "";
         return false;
       }
@@ -453,10 +459,10 @@ const String PsychicHttpServerRequest::_getRandomHexString()
   return String(buffer);
 }
 
-esp_err_t PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg)
+esp_err_t PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, const char* realm, const char* authFailMsg)
 {
   //what is thy realm, sire?
-  if(realm == NULL)
+  if(!strcmp(realm, ""))
     this->setSessionKey("realm", "Login Required");
   else
     this->setSessionKey("realm", realm);
@@ -472,17 +478,21 @@ esp_err_t PsychicHttpServerRequest::requestAuthentication(HTTPAuthMethod mode, c
   }
   else
   {
-    this->setSessionKey("nonce", _getRandomHexString());
-    this->setSessionKey("opaque", _getRandomHexString());
+    //only make new ones if we havent sent them yet
+    if (this->getSessionKey("nonce").isEmpty())
+      this->setSessionKey("nonce", _getRandomHexString());    
+    if (this->getSessionKey("opaque").isEmpty())
+      this->setSessionKey("opaque", _getRandomHexString());
 
     authStr = "Digest realm=\"" + this->getSessionKey("realm") + "\", qop=\"auth\", nonce=\"" + this->getSessionKey("nonce") + "\", opaque=\"" + this->getSessionKey("opaque") + "\"";
-
     response.addHeader("WWW-Authenticate", authStr.c_str());
   }
 
+  //DUMP(authStr);
+
   response.setCode(401);
   response.setContentType("text/html");
-  response.setContent(authFailMsg.c_str());
+  response.setContent(authStr.c_str());
   return response.send();
 }
 

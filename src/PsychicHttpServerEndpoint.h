@@ -21,6 +21,9 @@ class PsychicHttpServerEndpoint
     PsychicHttpServerEndpoint *setHandler(PsychicHandler *handler);
     PsychicHandler *handler();
 
+    PsychicHttpServerEndpoint* setFilter(PsychicRequestFilterFunction fn);
+    PsychicHttpServerEndpoint* setAuthentication(const char *username, const char *password, HTTPAuthMethod method = BASIC_AUTH, const char *realm = "", const char *authFailMsg = "");
+
     String uri();
 
     static esp_err_t requestCallback(httpd_req_t *req);

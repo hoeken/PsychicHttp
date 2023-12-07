@@ -48,18 +48,16 @@ class PsychicHttpServer
 
     void addClient(PsychicClient *client);
     void removeClient(PsychicClient *client);
-    PsychicClient * getClient(int socket);
-    PsychicClient * getClient(httpd_req_t *req);
+    PsychicClient* getClient(int socket);
+    PsychicClient* getClient(httpd_req_t *req);
     bool hasClient(int socket);
 
-    PsychicHttpServerEndpoint *on(const char* uri);
-    PsychicHttpServerEndpoint *on(const char* uri, http_method method);
-    PsychicHttpServerEndpoint *on(const char* uri, PsychicHttpRequestHandler onRequest);
-    PsychicHttpServerEndpoint *on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest);
-    PsychicHttpServerEndpoint *on(const char* uri, PsychicHandler *handler);
-    PsychicHttpServerEndpoint *on(const char* uri, http_method method, PsychicHandler *handler);
-
-    PsychicHttpServerEndpoint *websocket(const char* uri);
+    PsychicHttpServerEndpoint* on(const char* uri);
+    PsychicHttpServerEndpoint* on(const char* uri, http_method method);
+    PsychicHttpServerEndpoint* on(const char* uri, PsychicHttpRequestHandler onRequest);
+    PsychicHttpServerEndpoint* on(const char* uri, http_method method, PsychicHttpRequestHandler onRequest);
+    PsychicHttpServerEndpoint* on(const char* uri, PsychicHandler *handler);
+    PsychicHttpServerEndpoint* on(const char* uri, http_method method, PsychicHandler *handler);
 
     static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
     static esp_err_t defaultNotFoundHandler(PsychicHttpServerRequest *request);
@@ -70,8 +68,7 @@ class PsychicHttpServer
     static esp_err_t openCallback(httpd_handle_t hd, int sockfd);
     static void closeCallback(httpd_handle_t hd, int sockfd);
 
-    PsychicStaticFileHandler& serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
-
+    PsychicStaticFileHandler* serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
 };
 
 bool ON_STA_FILTER(PsychicHttpServerRequest *request);

@@ -206,9 +206,16 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
   PsychicHttpServerRequest request(server, req);
 
   //loop through our global handlers and see if anyone wants it
-  for(auto *h: server->_handlers) {
-    if (h->filter(&request) && h->canHandle(&request)) {
-      return h->handleRequest(&request);
+  for(auto *handler: server->_handlers)
+  {
+    //are we capable of handling this?
+    if (handler->filter(&request) && handler->canHandle(&request))
+    {
+      //check our credentials
+       if (handler->needsAuthentication(&request))
+        return handler->authenticate(&request);
+      else
+        return handler->handleRequest(&request);
     }
   }
 
@@ -289,12 +296,12 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   close(sockfd);
 }
 
-PsychicStaticFileHandler& PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control)
+PsychicStaticFileHandler* PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control)
 {
   PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, fs, path, cache_control);
   this->addHandler(handler);
 
-  return *handler;
+  return handler;
 }
 
 void PsychicHttpServer::addClient(PsychicClient *client) {

@@ -13,19 +13,26 @@ class PsychicHandler {
     PsychicRequestFilterFunction _filter;
     PsychicClientCallback _onopen;
     PsychicClientCallback _onclose;
+
     String _username;
     String _password;
+    HTTPAuthMethod _method;
+    String _realm;
+    String _authFailMsg;
 
   public:
     PsychicHandler();
     ~PsychicHandler();
 
-    PsychicHandler& onOpen(PsychicClientCallback fn);
-    PsychicHandler& onClose(PsychicClientCallback fn);
+    PsychicHandler* onOpen(PsychicClientCallback fn);
+    PsychicHandler* onClose(PsychicClientCallback fn);
 
-    PsychicHandler& setFilter(PsychicRequestFilterFunction fn);
+    PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicHttpServerRequest *request);
-    //PsychicHandler& setAuthentication(const char *username, const char *password);
+
+    PsychicHandler* setAuthentication(const char *username, const char *password, HTTPAuthMethod method = BASIC_AUTH, const char *realm = "", const char *authFailMsg = "");
+    bool needsAuthentication(PsychicHttpServerRequest *request);
+    esp_err_t authenticate(PsychicHttpServerRequest *request);
 
     virtual void closeCallback(PsychicClient *client);
     virtual bool isWebsocket();

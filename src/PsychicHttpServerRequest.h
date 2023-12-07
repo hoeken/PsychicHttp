@@ -64,7 +64,7 @@ class PsychicHttpServerRequest {
     const String _extractParam(const String& authReq, const String& param, const char delimit);
     const String _getRandomHexString();
     bool authenticate(const char * username, const char * password);
-    esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const String& authFailMsg);
+    esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const char* authFailMsg);
 
     esp_err_t redirect(const char *url);
     esp_err_t reply(int code);
