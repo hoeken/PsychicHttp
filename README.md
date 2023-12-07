@@ -25,14 +25,9 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 * No url rewriting (but you can use request->redirect)
 
 # v1.1: Event Source Plan
-    * Changes
-        * update the arduino example and test it
-        * update the benchmark to be v1.1 compatible
     * Testing
         * inspect the code for memory leaks and other issues
-        * make a curl script that loads a page over and over to test the clients stuff for memory leaks
-        * make a javascript page that open and closes websocket connections over and over to test that.
-        * make a javascript page that open and closes eventsource connections over and over to test that.
+        * run the client test scripts to completion
         * run loadtest benchmarks
 
 # Roadmap / Longterm TODO

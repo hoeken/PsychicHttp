@@ -24,6 +24,7 @@ const char *password = WIFI_PASS;
 
 PsychicHttpServer server;
 PsychicWebSocketHandler websocketHandler;
+PsychicEventSource eventSource;
 
 const char *htmlContent = R"(
 <!DOCTYPE html>
@@ -185,6 +186,12 @@ void setup()
       return ESP_OK;
     });
     server.on("/ws", &websocketHandler);
+
+    //EventSource server
+    eventSource.onOpen([](PsychicEventSourceClient *client) {
+      client->send("Hello", NULL, millis(), 1000);
+    });
+    server.on("/events", &eventSource);
 
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
     server.on("/api", HTTP_GET, [](PsychicRequest *request)
