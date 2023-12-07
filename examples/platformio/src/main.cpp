@@ -25,7 +25,7 @@
   #error "You need to enter your wifi credentials.  Copy _secret.h to secret.h and enter your credentials there."
 #endif
 
-//Enter your WIFI credentials here.
+//Enter your WIFI credentials in secret.h
 const char *ssid = WIFI_SSID;
 const char *password = WIFI_PASS;
 

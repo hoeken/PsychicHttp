@@ -12,9 +12,15 @@
 #include <PsychicHttp.h>
 #include <LittleFS.h>
 #include <ArduinoJSON.h>
+#include "secret.h"
 
-const char *ssid = "";
-const char *password = "";
+#ifndef WIFI_SSID
+  #error "You need to enter your wifi credentials.  Copy _secret.h to secret.h and enter your credentials there."
+#endif
+
+//Enter your WIFI credentials in secret.h
+const char *ssid = WIFI_SSID;
+const char *password = WIFI_PASS;
 
 PsychicHttpServer server;
 PsychicWebSocketHandler websocketHandler;
@@ -171,6 +177,9 @@ void setup()
     server.serveStatic("/", LittleFS, "/www/");
 
     //a websocket echo server
+    websocketHandler.onOpen([](PsychicWebSocketClient *client) {
+      client->sendMessage("Hello!");
+    });
     websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
       request->reply(frame);
       return ESP_OK;

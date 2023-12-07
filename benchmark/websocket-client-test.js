@@ -5,18 +5,19 @@ const WebSocket = require('ws');
 const uri = 'ws://192.168.2.131/ws';
 
 async function websocketClient() {
+  console.log(`Starting test`);
   for (let i = 0; i < 100000; i++) {
     const ws = new WebSocket(uri);
 
-    if (i % 1000)
-        console.log(`Count: ${i}`);
+    if (i % 100 == 0)
+      console.log(`Count: ${i}`);
 
     ws.on('open', () => {
-      console.log(`Connected to ${uri}`);
+      //console.log(`Connected`);
     });
 
     ws.on('message', (message) => {
-      console.log(`Received message: ${message}`);
+      //console.log(`Message: ${message}`);
       ws.close();
     });
 
