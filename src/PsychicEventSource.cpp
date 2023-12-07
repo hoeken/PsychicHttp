@@ -36,7 +36,11 @@ PsychicEventSource::~PsychicEventSource() {
   _clients.clear();
 }
 
-esp_err_t PsychicEventSource::handleRequest(PsychicRequest *request) {
+esp_err_t PsychicEventSource::handleRequest(PsychicRequest *request)
+{
+  PsychicEventSourceResponse response(request);
+  esp_err_t err = response.send();
+
   //lookup our client
   PsychicEventSourceClient *client = getClient(request->client());
   if (client == NULL)
@@ -53,8 +57,7 @@ esp_err_t PsychicEventSource::handleRequest(PsychicRequest *request) {
   if(request->hasHeader("Last-Event-ID"))
     client->_lastId = atoi(request->header("Last-Event-ID").c_str());
 
-  PsychicEventSourceResponse response(request);
-  return response.send();
+  return err;
 }
 
 void PsychicEventSource::closeCallback(PsychicClient *client) {

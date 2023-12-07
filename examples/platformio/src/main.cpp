@@ -450,6 +450,7 @@ void setup()
     //EventSource server
     eventSource.onOpen([](PsychicEventSourceClient *client) {
       Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
+      client->send("Hello user!", NULL, millis(), 1000);
     });
     eventSource.onClose([](PsychicEventSourceClient *client) {
       Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
