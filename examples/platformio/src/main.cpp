@@ -22,7 +22,7 @@
 #include "secret.h"
 
 #ifndef WIFI_SSID
-  #error "You need to enter your wifi credentials.  Rename _secret.h to secret.h and enter your credentials there."
+  #error "You need to enter your wifi credentials.  Copy _secret.h to secret.h and enter your credentials there."
 #endif
 
 //Enter your WIFI credentials here.
