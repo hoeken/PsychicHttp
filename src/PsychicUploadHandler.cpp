@@ -11,6 +11,9 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicHttpServerRequest *request)
 {
   esp_err_t err = ESP_OK;
 
+  //save it for later (multipart)
+  _request = request;
+
   /* File cannot be larger than a limit */
   if (request->contentLength() > request->server()->maxUploadSize)
   {
@@ -88,7 +91,7 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicHttpServerRequest *re
     //call our upload callback here.
     if (_uploadCallback != NULL)
     {
-      err = _uploadCallback(request, filename, index, (uint8_t *)buf, received);
+      err = _uploadCallback(request, filename, index, (uint8_t *)buf, received, (remaining - received == 0));
       if (err != ESP_OK)
         break;
     }
@@ -122,12 +125,197 @@ esp_err_t PsychicUploadHandler::_multipartUploadHandler(PsychicHttpServerRequest
   return ESP_FAIL;
 }
 
-PsychicUploadHandler * PsychicUploadHandler::onUpload(PsychicHttpBasicUploadHandler fn) {
+PsychicUploadHandler * PsychicUploadHandler::onUpload(PsychicUploadCallback fn) {
   _uploadCallback = fn;
   return this;
 }
 
-PsychicUploadHandler * PsychicUploadHandler::onMultipart(PsychicHttpMultipartUploadHandler fn) {
-  _multipartCallback = fn;
-  return this;
+void PsychicUploadHandler::_handleUploadByte(uint8_t data, bool last)
+{
+  _itemBuffer[_itemBufferIndex++] = data;
+
+  if(last || _itemBufferIndex == FILE_CHUNK_SIZE)
+  {
+    if(_uploadCallback)
+      _uploadCallback(_request, _itemFilename, _itemSize - _itemBufferIndex, _itemBuffer, _itemBufferIndex, last);
+    _itemBufferIndex = 0;
+  }
+}
+
+enum {
+  EXPECT_BOUNDARY,
+  PARSE_HEADERS,
+  WAIT_FOR_RETURN1,
+  EXPECT_FEED1,
+  EXPECT_DASH1,
+  EXPECT_DASH2,
+  BOUNDARY_OR_DATA,
+  DASH3_OR_RETURN2,
+  EXPECT_FEED2,
+  PARSING_FINISHED,
+  PARSE_ERROR
+};
+
+#define itemWriteByte(b) do { _itemSize++; if(_itemIsFile) _handleUploadByte(b, last); else _itemValue+=(char)(b); } while(0)
+
+void PsychicUploadHandler::_parseMultipartPostByte(uint8_t data, bool last) {
+
+  if(!_parsedLength){
+    _multiParseState = EXPECT_BOUNDARY;
+    _temp = String();
+    _itemName = String();
+    _itemFilename = String();
+    _itemType = String();
+  }
+
+  if(_multiParseState == WAIT_FOR_RETURN1){
+    if(data != '\r'){
+      itemWriteByte(data);
+    } else {
+      _multiParseState = EXPECT_FEED1;
+    }
+  } else if(_multiParseState == EXPECT_BOUNDARY){
+    if(_parsedLength < 2 && data != '-'){
+      _multiParseState = PARSE_ERROR;
+      return;
+    } else if(_parsedLength - 2 < _boundary.length() && _boundary.c_str()[_parsedLength - 2] != data){
+      _multiParseState = PARSE_ERROR;
+      return;
+    } else if(_parsedLength - 2 == _boundary.length() && data != '\r'){
+      _multiParseState = PARSE_ERROR;
+      return;
+    } else if(_parsedLength - 3 == _boundary.length()){
+      if(data != '\n'){
+        _multiParseState = PARSE_ERROR;
+        return;
+      }
+      _multiParseState = PARSE_HEADERS;
+      _itemIsFile = false;
+    }
+  } else if(_multiParseState == PARSE_HEADERS){
+    if((char)data != '\r' && (char)data != '\n')
+       _temp += (char)data;
+    if((char)data == '\n'){
+      if(_temp.length()){
+        if(_temp.length() > 12 && _temp.substring(0, 12).equalsIgnoreCase("Content-Type")){
+          _itemType = _temp.substring(14);
+          _itemIsFile = true;
+        } else if(_temp.length() > 19 && _temp.substring(0, 19).equalsIgnoreCase("Content-Disposition")){
+          _temp = _temp.substring(_temp.indexOf(';') + 2);
+          while(_temp.indexOf(';') > 0){
+            String name = _temp.substring(0, _temp.indexOf('='));
+            String nameVal = _temp.substring(_temp.indexOf('=') + 2, _temp.indexOf(';') - 1);
+            if(name == "name"){
+              _itemName = nameVal;
+            } else if(name == "filename"){
+              _itemFilename = nameVal;
+              _itemIsFile = true;
+            }
+            _temp = _temp.substring(_temp.indexOf(';') + 2);
+          }
+          String name = _temp.substring(0, _temp.indexOf('='));
+          String nameVal = _temp.substring(_temp.indexOf('=') + 2, _temp.length() - 1);
+          if(name == "name"){
+            _itemName = nameVal;
+          } else if(name == "filename"){
+            _itemFilename = nameVal;
+            _itemIsFile = true;
+          }
+        }
+        _temp = String();
+      } else {
+        _multiParseState = WAIT_FOR_RETURN1;
+        //value starts from here
+        _itemSize = 0;
+        _itemStartIndex = _parsedLength;
+        _itemValue = String();
+        if(_itemIsFile){
+          if(_itemBuffer)
+            free(_itemBuffer);
+          _itemBuffer = (uint8_t*)malloc(FILE_CHUNK_SIZE);
+          if(_itemBuffer == NULL){
+            _multiParseState = PARSE_ERROR;
+            return;
+          }
+          _itemBufferIndex = 0;
+        }
+      }
+    }
+  } else if(_multiParseState == EXPECT_FEED1){
+    if(data != '\n'){
+      _multiParseState = WAIT_FOR_RETURN1;
+      itemWriteByte('\r'); _parseMultipartPostByte(data, last);
+    } else {
+      _multiParseState = EXPECT_DASH1;
+    }
+  } else if(_multiParseState == EXPECT_DASH1){
+    if(data != '-'){
+      _multiParseState = WAIT_FOR_RETURN1;
+      itemWriteByte('\r'); itemWriteByte('\n');  _parseMultipartPostByte(data, last);
+    } else {
+      _multiParseState = EXPECT_DASH2;
+    }
+  } else if(_multiParseState == EXPECT_DASH2){
+    if(data != '-'){
+      _multiParseState = WAIT_FOR_RETURN1;
+      itemWriteByte('\r'); itemWriteByte('\n'); itemWriteByte('-');  _parseMultipartPostByte(data, last);
+    } else {
+      _multiParseState = BOUNDARY_OR_DATA;
+      _boundaryPosition = 0;
+    }
+  } else if(_multiParseState == BOUNDARY_OR_DATA){
+    if(_boundaryPosition < _boundary.length() && _boundary.c_str()[_boundaryPosition] != data){
+      _multiParseState = WAIT_FOR_RETURN1;
+      itemWriteByte('\r'); itemWriteByte('\n'); itemWriteByte('-');  itemWriteByte('-');
+      uint8_t i;
+      for(i=0; i<_boundaryPosition; i++)
+        itemWriteByte(_boundary.c_str()[i]);
+      _parseMultipartPostByte(data, last);
+    } else if(_boundaryPosition == _boundary.length() - 1){
+      _multiParseState = DASH3_OR_RETURN2;
+      if(!_itemIsFile){
+        //TODO: fix this (get/set/has Param overhaul)
+        //_addParam(new AsyncWebParameter(_itemName, _itemValue, true));
+      } else {
+        if(_itemSize){
+          //TODO: fix this
+          // if(_uploadCallback)
+          //   _uploadCallback(_request, _itemFilename, _itemSize - _itemBufferIndex, _itemBuffer, _itemBufferIndex, true);
+          // _itemBufferIndex = 0;
+          // _addParam(new AsyncWebParameter(_itemName, _itemFilename, true, true, _itemSize));
+        }
+        free(_itemBuffer);
+        _itemBuffer = NULL;
+      }
+
+    } else {
+      _boundaryPosition++;
+    }
+  } else if(_multiParseState == DASH3_OR_RETURN2){
+    if(data == '-' && (_request->contentLength() - _parsedLength - 4) != 0){
+      ESP_LOGE(PH_TAG, "ERROR: The parser got to the end of the POST but is expecting more bytes!");
+      _multiParseState = PARSE_ERROR;
+      return;
+    }
+    if(data == '\r'){
+      _multiParseState = EXPECT_FEED2;
+    } else if(data == '-' && _request->contentLength() == (_parsedLength + 4)){
+      _multiParseState = PARSING_FINISHED;
+    } else {
+      _multiParseState = WAIT_FOR_RETURN1;
+      itemWriteByte('\r'); itemWriteByte('\n'); itemWriteByte('-');  itemWriteByte('-');
+      uint8_t i; for(i=0; i<_boundary.length(); i++) itemWriteByte(_boundary.c_str()[i]);
+      _parseMultipartPostByte(data, last);
+    }
+  } else if(_multiParseState == EXPECT_FEED2){
+    if(data == '\n'){
+      _multiParseState = PARSE_HEADERS;
+      _itemIsFile = false;
+    } else {
+      _multiParseState = WAIT_FOR_RETURN1;
+      itemWriteByte('\r'); itemWriteByte('\n'); itemWriteByte('-');  itemWriteByte('-');
+      uint8_t i; for(i=0; i<_boundary.length(); i++) itemWriteByte(_boundary.c_str()[i]);
+      itemWriteByte('\r'); _parseMultipartPostByte(data, last);
+    }
+  }
 }

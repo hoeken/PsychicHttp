@@ -108,6 +108,20 @@
             }
             </script>
 
+            <h1>Multipart POST Form</h1>
+            <form action="/multipart" method="post" enctype="multipart/form-data">
+                <label for="text-field">Text Field:</label>
+                <input type="text" id="text-field" name="text_field" required>
+                <br>
+            
+                <label for="file-upload">File Upload:</label>
+                <input type="file" id="file-upload" name="file_upload" accept=".txt, .html, .pdf, .png, .jpg, .gif" required>
+                <!-- The 'accept' attribute restricts the file types that can be selected -->
+                <br>
+            
+                <input type="submit" value="Upload File">
+            </form>
+
             <h1>Websocket Demo</h1>
             <input type="text" id="message_input" placeholder="Type your message">
             <button onclick="sendMessage()">Send Message</button>

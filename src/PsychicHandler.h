@@ -9,7 +9,7 @@
 */
 
 class PsychicHandler {
-  protected:
+  protected:    
     PsychicRequestFilterFunction _filter;
     PsychicClientCallback _onopen;
     PsychicClientCallback _onclose;

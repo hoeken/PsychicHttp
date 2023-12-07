@@ -71,8 +71,6 @@ class PsychicClient;
 //callback definitions
 typedef std::function<esp_err_t(PsychicClient *client)> PsychicClientCallback;
 typedef std::function<esp_err_t(PsychicHttpServerRequest *request)> PsychicHttpRequestHandler;
-typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpBasicUploadHandler;
-typedef std::function<esp_err_t(PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len)> PsychicHttpMultipartUploadHandler;
 
 //filter function definition
 typedef std::function<bool(PsychicHttpServerRequest *request)> PsychicRequestFilterFunction;

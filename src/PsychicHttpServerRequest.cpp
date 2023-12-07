@@ -278,6 +278,7 @@ const String PsychicHttpServerRequest::getCookie(const char *key)
     return "";
 }
 
+//TODO: modify this to reference a _param list that is prepopulated
 bool PsychicHttpServerRequest::hasParam(const char *key)
 {
   String query = this->queryString();
@@ -291,6 +292,7 @@ bool PsychicHttpServerRequest::hasParam(const char *key)
     return false;
 }
 
+//TODO: modify this to reference a _param list that is prepopulated
 const String PsychicHttpServerRequest::getParam(const char *key)
 {
   esp_err_t err;

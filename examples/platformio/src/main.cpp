@@ -332,13 +332,16 @@ void setup()
 
     //create an upload handler for... handling our uploads :)
     PsychicUploadHandler *uploadHandler = new PsychicUploadHandler();
-    uploadHandler->onUpload([](PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len) {
+    uploadHandler->onUpload([](PsychicHttpServerRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
       File file;
       String path = "/www/" + filename;
 
       char output[512];
       sprintf(output, "Writing %d/%d bytes to: %s", (int)index+(int)len, request->contentLength(), path.c_str());
       Serial.println(output);
+
+      if (last)
+        Serial.println("File is finished.");
 
       //our first call?
       if (!index)
