@@ -4,6 +4,7 @@
 #include "PsychicWebHandler.h"
 #include "PsychicStaticFileHandler.h"
 #include "PsychicHttpWebsocket.h"
+#include "WiFi.h"
 
 PsychicHttpServer::PsychicHttpServer()
 {
@@ -330,13 +331,11 @@ bool PsychicHttpServer::hasClient(int socket) {
 }
 
 bool ON_STA_FILTER(PsychicHttpServerRequest *request) {
-  //return WiFi.localIP() == request->client()->localIP();
-  return true;
+  return WiFi.localIP() == request->client()->localIP();
 }
 
 bool ON_AP_FILTER(PsychicHttpServerRequest *request) {
-  //return WiFi.localIP() != request->client()->localIP();
-  return true;
+  return WiFi.softAPIP() == request->client()->localIP();
 }
 
 String urlDecode(const char* encoded)

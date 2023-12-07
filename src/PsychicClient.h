@@ -24,6 +24,7 @@ class PsychicClient {
     int socket();
 
     IPAddress localIP();
+    IPAddress remoteIP();
 };
 
 #endif

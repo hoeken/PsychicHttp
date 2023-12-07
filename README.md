@@ -21,14 +21,9 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 
 * No templating system
 * No url rewriting
-* No Async Event Source
-* No AP/STA filter
 
 # v1.1: Event Source Plan
     * make PsychicMultipartUploadHandler
-    * test the filters in wifi dual mode
-        * add in setFilter convenience function to endpoint
-    * figure out how to hook in authenticate() with handlers
     * inspect the code for memory leaks and other issues
     * update the benchmark to be v1.1 compatible
     * update the arduino example and test it

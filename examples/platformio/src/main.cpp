@@ -28,6 +28,11 @@
 const char *ssid = "Phoenix";
 const char *password = "FulleSende";
 
+// Set your SoftAP credentials
+const char *softap_ssid = "PsychicHttp";
+const char *softap_password = "";
+IPAddress softap_ip(10, 0, 0, 1);  
+
 //credentials for the /auth-basic and /auth-digest examples
 const char *app_user = "admin";
 const char *app_pass = "admin";
@@ -48,6 +53,16 @@ PsychicEventSource eventSource;
 
 bool connectToWifi()
 {
+  //dual client and AP mode
+  WiFi.mode(WIFI_AP_STA);
+
+  // Configure SoftAP
+  WiFi.softAPConfig(softap_ip, softap_ip, IPAddress(255, 255, 255, 0)); // subnet FF FF FF 00
+  WiFi.softAP(softap_ssid, softap_password);
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("SoftAP IP Address: ");
+  Serial.println(myIP);
+
   Serial.println();
   Serial.print("[WiFi] Connecting to ");
   Serial.println(ssid);
@@ -177,9 +192,13 @@ void setup()
     else
       server.listen(80);
 
-    //serve static files from LittleFS/www on /
+    //serve static files from LittleFS/www on / only to clients on same wifi network
     //this is where our /index.html file lives
-    server.serveStatic("/", LittleFS, "/www/");
+    server.serveStatic("/", LittleFS, "/www/")->setFilter(ON_STA_FILTER);
+
+    //serve static files from LittleFS/www-ap on / only to clients on SoftAP
+    //this is where our /index.html file lives
+    server.serveStatic("/", LittleFS, "/www-ap/")->setFilter(ON_AP_FILTER);
 
     //serve static files from LittleFS/img on /img
     //it's more efficient to serve everything from a single www directory, but this is also possible.
@@ -230,7 +249,7 @@ void setup()
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
     server.on("/ip", HTTP_GET, [](PsychicHttpServerRequest *request)
     {
-      String output = "Your IP is: " + request->client()->localIP().toString();
+      String output = "Your IP is: " + request->client()->remoteIP().toString();
       return request->reply(output.c_str());
     });
 
