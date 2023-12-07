@@ -4,32 +4,31 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 
 # Features
 
-* Asynchronous approach (server running in its own FreeRTOS thread)
-* Handles all HTTP methods with lots of helper functions:
+* Asynchronous approach (server runs in its own FreeRTOS thread)
+* Handles all HTTP methods with lots of convenience functions:
     * GET/POST parameters
     * get/set headers
     * get/set cookies
     * basic key/value session data storage
     * authentication (basic and digest mode)
-* Websocket support with onConnect, onFrame, and onClose callbacks
 * HTTPS / SSL support
 * Static fileserving (SPIFFS, LittleFS, etc.)
-* Chunked response
+* Chunked response serving for large files
 * File uploads (Basic + Multipart)
-* EventSource response serving
-* filters, including client vs AP mode
+* Websocket support with onOpen, onFrame, and onClose callbacks
+* EventSource / SSE support with onOpen, onFrame, and onClose callbacks
+* Request filters, including Client vs AP mode (ON_STA_FILTER / ON_AP_FILTER)
 
 # Differences from ESPAsyncWebserver
 
-* No templating system
+* No templating system (anyone actually use this?)
 * No url rewriting (but you can use request->redirect)
 
 # v1.1: Event Source Plan
     * Changes
-        * clean up class and callback names
-        * update the arduino example and test it
         * remove the esp_err_t call from onOpen and onClose callbacks
-        * figure out how to redirect http requests to https
+        * update the arduino example and test it
+        * test redirecting http requests to https
     * Testing
         * update the benchmark to be v1.1 compatible
         * inspect the code for memory leaks and other issues
