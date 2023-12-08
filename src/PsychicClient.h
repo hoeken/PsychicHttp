@@ -2,12 +2,11 @@
 #define PsychicClient_h
 
 #include "PsychicCore.h"
+#include <lwip/sockets.h>
 
 /*
 * PsychicClient :: Generic wrapper around the ESP-IDF socket
 */
-
-#include "PsychicCore.h"
 
 class PsychicClient {
   protected:
