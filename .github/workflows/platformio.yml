@@ -39,5 +39,5 @@ jobs:
         run:
           |
           cd examples/${{ matrix.example }}
-          cp src/_secret.h src/secret.h
+          cp src/secret.h src/_secret.h
           pio run -e ${{ matrix.board }}
