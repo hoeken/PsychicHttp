@@ -6,7 +6,7 @@ const uri = 'ws://192.168.2.131/ws';
 
 async function websocketClient() {
   console.log(`Starting test`);
-  for (let i = 0; i < 100000; i++) {
+  for (let i = 0; i < 1000000; i++) {
     const ws = new WebSocket(uri);
 
     if (i % 100 == 0)

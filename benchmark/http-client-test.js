@@ -13,7 +13,7 @@ const queryParams = {
   foo6: 'bar',
 };
 
-const totalRequests = 100000;
+const totalRequests = 1000000;
 const requestsPerCount = 100;
 
 let requestCount = 0;

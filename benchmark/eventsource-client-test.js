@@ -5,7 +5,7 @@ const url = 'http://192.168.2.131/events';
 
 async function eventSourceClient() {
   console.log(`Starting test`);
-  for (let i = 0; i < 100000; i++)
+  for (let i = 0; i < 1000000; i++)
   {
     if (i % 100 == 0)
       console.log(`Count: ${i}`);
