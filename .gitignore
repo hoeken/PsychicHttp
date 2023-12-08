@@ -50,7 +50,7 @@ benchmark/psychic-http-loadtest.log
 benchmark/package-lock.json
 benchmark/node_modules
 src/secret.h
-benchmark/psychichttp/src/secret.h
-benchmark/psychichttps/src/secret.h
-examples/platformio/src/secret.h
-examples/arduino/secret.h
+benchmark/psychichttp/src/_secret.h
+benchmark/psychichttps/src/_secret.h
+examples/platformio/src/_secret.h
+examples/arduino/src/_secret.h

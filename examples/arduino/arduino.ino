@@ -23,12 +23,12 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
-#include "secret.h"
+#include "_secret.h"
 #include <PsychicHttp.h>
 #include <PsychicHttpsServer.h> //uncomment this to enable HTTPS / SSL
 
 #ifndef WIFI_SSID
-  #error "You need to enter your wifi credentials.  Copy _secret.h to secret.h and enter your credentials there."
+  #error "You need to enter your wifi credentials. Rename secret.h to _secret.h and enter your credentials there."
 #endif
 
 //Enter your WIFI credentials in secret.h
