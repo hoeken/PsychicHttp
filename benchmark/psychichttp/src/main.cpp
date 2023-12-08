@@ -179,7 +179,7 @@ void setup()
 
     //a websocket echo server
     websocketHandler.onOpen([](PsychicWebSocketClient *client) {
-      client->sendMessage("Hello!");
+      //client->sendMessage("Hello!");
     });
     websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
       request->reply(frame);
