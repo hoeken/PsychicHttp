@@ -12,11 +12,19 @@
 #include <PsychicHttp.h>
 #include <LittleFS.h>
 #include <ArduinoJSON.h>
+#include "_secret.h"
+#include <PsychicHttp.h>
+#include <PsychicHttpsServer.h>
 
-const char *ssid = "";
-const char *password = "";
+#ifndef WIFI_SSID
+  #error "You need to enter your wifi credentials. Rename secret.h to _secret.h and enter your credentials there."
+#endif
 
-PsychicHttpServer server;
+//Enter your WIFI credentials in secret.h
+const char *ssid = WIFI_SSID;
+const char *password = WIFI_PASS;
+
+PsychicHttpsServer server;
 PsychicWebSocketHandler websocketHandler;
 
 String server_cert;

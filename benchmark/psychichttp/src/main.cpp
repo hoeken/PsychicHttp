@@ -12,10 +12,10 @@
 #include <PsychicHttp.h>
 #include <LittleFS.h>
 #include <ArduinoJSON.h>
-#include "secret.h"
+#include "_secret.h"
 
 #ifndef WIFI_SSID
-  #error "You need to enter your wifi credentials.  Copy _secret.h to secret.h and enter your credentials there."
+  #error "You need to enter your wifi credentials.  Copy secret.h to _secret.h and enter your credentials there."
 #endif
 
 //Enter your WIFI credentials in secret.h
