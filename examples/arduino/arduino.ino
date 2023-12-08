@@ -23,11 +23,17 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
+#include "secret.h"
 #include <PsychicHttp.h>
+#include <PsychicHttpsServer.h> //uncomment this to enable HTTPS / SSL
 
-//Enter your WIFI credentials here.
-const char *ssid = "";
-const char *password = "";
+#ifndef WIFI_SSID
+  #error "You need to enter your wifi credentials.  Copy _secret.h to secret.h and enter your credentials there."
+#endif
+
+//Enter your WIFI credentials in secret.h
+const char *ssid = WIFI_SSID;
+const char *password = WIFI_PASS;
 
 // Set your SoftAP credentials
 const char *softap_ssid = "PsychicHttp";
@@ -42,13 +48,19 @@ const char *app_name = "Your App";
 //hostname for mdns (psychic.local)
 const char *local_hostname = "psychic";
 
-//change this to true to enable SSL
-bool app_enable_ssl = false;
-String server_cert;
-String server_key;
+//#define PSY_ENABLE_SSL to enable ssl
+#ifdef PSY_ENABLE_SSL
+  bool app_enable_ssl = true;
+  String server_cert;
+  String server_key;
+#endif
 
 //our main server object
-PsychicHttpServer server;
+#ifdef PSY_ENABLE_SSL
+  PsychicHttpsServer server;
+#else
+  PsychicHttpServer server;
+#endif
 PsychicWebSocketHandler websocketHandler;
 PsychicEventSource eventSource;
 
@@ -150,59 +162,66 @@ void setup()
     }
 
     //look up our keys?
-    if (app_enable_ssl)
-    {
-      File fp = LittleFS.open("/server.crt");
-      if (fp)
+    #ifdef PSY_ENABLE_SSL
+      if (app_enable_ssl)
       {
-        server_cert = fp.readString();
+        File fp = LittleFS.open("/server.crt");
+        if (fp)
+        {
+          server_cert = fp.readString();
 
-        // Serial.println("Server Cert:");
-        // Serial.println(server_cert);
-      }
-      else
-      {
-        Serial.println("server.pem not found, SSL not available");
-        app_enable_ssl = false;
-      }
-      fp.close();
+          // Serial.println("Server Cert:");
+          // Serial.println(server_cert);
+        }
+        else
+        {
+          Serial.println("server.pem not found, SSL not available");
+          app_enable_ssl = false;
+        }
+        fp.close();
 
-      File fp2 = LittleFS.open("/server.key");
-      if (fp2)
-      {
-        server_key = fp2.readString();
+        File fp2 = LittleFS.open("/server.key");
+        if (fp2)
+        {
+          server_key = fp2.readString();
 
-        // Serial.println("Server Key:");
-        // Serial.println(server_key);
+          // Serial.println("Server Key:");
+          // Serial.println(server_key);
+        }
+        else
+        {
+          Serial.println("server.key not found, SSL not available");
+          app_enable_ssl = false;
+        }
+        fp2.close();
       }
-      else
-      {
-        Serial.println("server.key not found, SSL not available");
-        app_enable_ssl = false;
-      }
-      fp2.close();
-    }
+    #endif
 
     //setup server config stuff here
     server.config.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
-    server.ssl_config.httpd.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
 
-    //do we want secure or not?
-    if (app_enable_ssl)
-    {
-      server.listen(443, server_cert.c_str(), server_key.c_str());
-      
-      //this creates a 2nd server listening on port 80 and redirects all requests HTTPS
-      PsychicHttpServer *redirectServer = new PsychicHttpServer();
-      redirectServer->config.ctrl_port = 20424;
-      redirectServer->listen(80);
-      redirectServer->onNotFound([](PsychicRequest *request) {
-        String url = "https://" + request->host() + request->url();
-        return request->redirect(url.c_str());
-      });
-    }
-    else
+    #ifdef PSY_ENABLE_SSL
+      server.ssl_config.httpd.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
+
+      //do we want secure or not?
+      if (app_enable_ssl)
+      {
+        server.listen(443, server_cert.c_str(), server_key.c_str());
+        
+        //this creates a 2nd server listening on port 80 and redirects all requests HTTPS
+        PsychicHttpServer *redirectServer = new PsychicHttpServer();
+        redirectServer->config.ctrl_port = 20424; // just a random port different from the default one
+        redirectServer->listen(80);
+        redirectServer->onNotFound([](PsychicRequest *request) {
+          String url = "https://" + request->host() + request->url();
+          return request->redirect(url.c_str());
+        });
+      }
+      else
+        server.listen(80);
+    #else
       server.listen(80);
+    #endif
 
     //serve static files from LittleFS/www on / only to clients on same wifi network
     //this is where our /index.html file lives

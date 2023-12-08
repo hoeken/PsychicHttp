@@ -25,22 +25,6 @@ PsychicHttpServer::PsychicHttpServer()
   config.global_user_ctx = this;
   config.global_user_ctx_free_fn = destroy;
 
-  //for a SSL server
-  #ifdef PSY_ENABLE_SSL
-    ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
-    ssl_config.httpd.open_fn = PsychicHttpServer::openCallback;
-    ssl_config.httpd.close_fn = PsychicHttpServer::closeCallback;
-    ssl_config.httpd.uri_match_fn = httpd_uri_match_wildcard;
-    ssl_config.httpd.global_user_ctx = this;
-    ssl_config.httpd.global_user_ctx_free_fn = destroy;
-    
-    // each SSL connection takes about 45kb of heap
-    // a barebones sketch with PsychicHttp has ~150kb of heap available
-    // if we set it higher than 2 and use all the connections, we get lots of memory errors.
-    // not to mention there is no heap left over for the program itself.
-    ssl_config.httpd.max_open_sockets = 2;
-  #endif
-
   #ifdef ENABLE_ASYNC
     config.lru_purge_enable = true;
 
@@ -84,58 +68,38 @@ esp_err_t PsychicHttpServer::listen(uint16_t port)
   return this->_start();
 }
 
-#ifdef PSY_ENABLE_SSL
-  esp_err_t PsychicHttpServer::listen(uint16_t port, const char *cert, const char *private_key)
-  {
-    this->_use_ssl = true;
-
-    this->ssl_config.port_secure = port;
-    this->ssl_config.cacert_pem = (uint8_t *)cert;
-    this->ssl_config.cacert_len = strlen(cert)+1;
-    this->ssl_config.prvtkey_pem = (uint8_t *)private_key;
-    this->ssl_config.prvtkey_len = strlen(private_key)+1;
-
-    return this->_start();
-  }
-#endif
-
 esp_err_t PsychicHttpServer::_start()
 {
+  esp_err_t ret;
+
   #ifdef ENABLE_ASYNC
     // start workers
     start_async_req_workers();
   #endif
 
-  //what mode to start in?
-  esp_err_t err;
-  #ifdef PSY_ENABLE_SSL
-    if (this->_use_ssl)
-      err = httpd_ssl_start(&this->server, &this->ssl_config);
-    else
-      err = httpd_start(&this->server, &this->config);
-  #else
-    err = httpd_start(&this->server, &this->config);
-  #endif
+  //fire it up.
+  ret = _startServer();
+  if (ret != ESP_OK)
+  {
+    ESP_LOGE(PH_TAG, "Server start failed (%s)", esp_err_to_name(ret));
+    return ret;
+  }
 
   // Register handler
-  esp_err_t ret = httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, PsychicHttpServer::notFoundHandler);
+  ret = httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, PsychicHttpServer::notFoundHandler);
   if (ret != ESP_OK)
     ESP_LOGE(PH_TAG, "Add 404 handler failed (%s)", esp_err_to_name(ret)); 
 
   return ret;
 }
 
+esp_err_t PsychicHttpServer::_startServer() {
+  return httpd_start(&this->server, &this->config);
+}
+
 void PsychicHttpServer::stop()
 {
-  //Stop our http server
-  #ifdef PSY_ENABLE_SSL
-    if (this->_use_ssl)
-      httpd_ssl_stop(this->server);
-    else
-      httpd_stop(this->server);
-  #else
-    httpd_stop(this->server);  
-  #endif
+  httpd_stop(this->server);  
 }
 
 PsychicHandler& PsychicHttpServer::addHandler(PsychicHandler* handler){

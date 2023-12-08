@@ -24,12 +24,7 @@
   #include <ArduinoTrace.h>
 #endif
 
-#ifdef PSY_ENABLE_SSL
-  #include <esp_https_server.h>
-#else
-  #include <esp_http_server.h>
-#endif
-
+#include <esp_http_server.h>
 #include <map>
 #include <list>
 #include <libb64/cencode.h>

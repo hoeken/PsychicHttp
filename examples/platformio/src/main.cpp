@@ -18,8 +18,9 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
-#include <PsychicHttp.h>
 #include "secret.h"
+#include <PsychicHttp.h>
+//#include <PsychicHttpsServer.h> //uncomment this to enable HTTPS / SSL
 
 #ifndef WIFI_SSID
   #error "You need to enter your wifi credentials.  Copy _secret.h to secret.h and enter your credentials there."
@@ -42,15 +43,19 @@ const char *app_name = "Your App";
 //hostname for mdns (psychic.local)
 const char *local_hostname = "psychic";
 
-//change this to true to enable SSL
+//#define PSY_ENABLE_SSL to enable ssl
 #ifdef PSY_ENABLE_SSL
-  bool app_enable_ssl = false;
+  bool app_enable_ssl = true;
   String server_cert;
   String server_key;
 #endif
 
 //our main server object
-PsychicHttpServer server;
+#ifdef PSY_ENABLE_SSL
+  PsychicHttpsServer server;
+#else
+  PsychicHttpServer server;
+#endif
 PsychicWebSocketHandler websocketHandler;
 PsychicEventSource eventSource;
 

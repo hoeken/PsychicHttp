@@ -21,6 +21,7 @@ class PsychicHttpServer
     PsychicClientCallback _onClose;
 
     esp_err_t _start();
+    virtual esp_err_t _startServer();
 
   public:
     PsychicHttpServer();
@@ -29,10 +30,6 @@ class PsychicHttpServer
     //esp-idf specific stuff
     httpd_handle_t server;
     httpd_config_t config;
-
-    #ifdef PSY_ENABLE_SSL
-      httpd_ssl_config_t ssl_config;
-    #endif
 
     //some limits on what we will accept
     unsigned long maxUploadSize;
@@ -44,10 +41,7 @@ class PsychicHttpServer
 
     esp_err_t listen(uint16_t port);
 
-    #ifdef PSY_ENABLE_SSL
-      esp_err_t listen(uint16_t port, const char *cert, const char *private_key);
-    #endif
-    void stop();
+    virtual void stop();
 
     PsychicHandler& addHandler(PsychicHandler* handler);
     void removeHandler(PsychicHandler* handler);
