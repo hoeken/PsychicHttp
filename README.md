@@ -323,6 +323,46 @@ Very similar to the basic upload, with 2 key differences:
 
 ### Static File Serving
 
+The ```PsychicStaticFileHandler``` is a special handler that does not provide any callbacks.  It is used to serve a file or files from a specific directory in a filesystem to a directory on the webserver.  The syntax is exactly the same as ESPAsyncWebserver. Anything that is derived from the ```FS``` class should work (eg. SPIFFS, LittleFS, SD, etc)
+
+A couple important notes:
+
+* If it finds a file with an extra .gz extension, it will serve it as gzip encoded (eg: /targetfile.ext -> {targetfile.ext}.gz)
+* If the file is larger than FILE_CHUNK_SIZE (default 8kb) then it will send it as a chunked response.
+* It will detect most basic filetypes and automatically set the appropriate Content-Type
+
+The ```server.serveStatic()``` function handles creating the handler and assigning it to the server:
+
+```cpp
+//serve static files from LittleFS/www on / only to clients on same wifi network
+//this is where our /index.html file lives
+server.serveStatic("/", LittleFS, "/www/")->setFilter(ON_STA_FILTER);
+
+//serve static files from LittleFS/www-ap on / only to clients on SoftAP
+//this is where our /index.html file lives
+server.serveStatic("/", LittleFS, "/www-ap/")->setFilter(ON_AP_FILTER);
+
+//serve static files from LittleFS/img on /img
+//it's more efficient to serve everything from a single www directory, but this is also possible.
+server.serveStatic("/img", LittleFS, "/img/");
+
+//you can also serve single files
+server.serveStatic("/myfile.txt", LittleFS, "/custom.txt");
+```
+
+You could also theoretically use the file response directly:
+
+```cpp
+server.on("/ip", [](PsychicRequest *request)
+{
+   String filename = "/path/to/file";
+   PsychicFileResponse response(request, LittleFS, filename);
+
+   return response->send();
+});
+PsychicFileResponse(PsychicRequest *request, FS &fs, const String& path)
+```
+
 ### Websockets
 
 ### EventSource / SSE
