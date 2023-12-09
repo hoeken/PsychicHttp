@@ -486,10 +486,45 @@ if (client != NULL)
 
 ### HTTPS / SSL
 
-To generate your own self signed certificate, you can use the command below:
+PsychicHttp supports HTTPS / SSL out of the box, however there are some limitations (see performance below).  Enabling it also increases the code size by about 100kb.  To use HTTPS, you need to modify your setup like so:
+
+```cpp
+#include <PsychicHttp.h>
+#include <PsychicHttpsServer.h>
+PsychicHttpsServer server;
+server.listen(443, server_cert, server_key);
+```
+
+```server_cert``` and ```server_key``` are both ```const char *``` parameters which contain the server certificate and private key, respectively.
+
+To generate your own key and self signed certificate, you can use the command below:
 
 ```
 openssl req -x509 -newkey rsa:4096 -nodes -keyout server.key -out server.crt -sha256 -days 365
+```
+
+Including the ```PsychicHttpsServer.h``` also defines ```PSY_ENABLE_SSL``` which you can use in your code to allow enabling / disabling calls in your code based on if the HTTPS server is available:
+
+```cpp
+//our main server object
+#ifdef PSY_ENABLE_SSL
+  PsychicHttpsServer server;
+#else
+  PsychicHttpServer server;
+#endif
+```
+
+Last, but not least, you can create a separate HTTP server on port 80 that redirects all requests to the HTTPS server:
+
+```cpp
+//this creates a 2nd server listening on port 80 and redirects all requests HTTPS
+PsychicHttpServer *redirectServer = new PsychicHttpServer();
+redirectServer->config.ctrl_port = 20420; // just a random port different from the default one
+redirectServer->listen(80);
+redirectServer->onNotFound([](PsychicRequest *request) {
+   String url = "https://" + request->host() + request->url();
+   return request->redirect(url.c_str());
+});
 ```
 
 # Performance
