@@ -30,7 +30,7 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 
 ### Platformio
 
-[PlatformIO](http://platformio.org) is an open source ecosystem for IoT development with cross platform build system, library manager and full support for Espressif ESP8266/ESP32 development. It works on the popular host OS: Mac OS X, Windows, Linux 32/64, Linux ARM (like Raspberry Pi, BeagleBone, CubieBoard).
+[PlatformIO](http://platformio.org) is an open source ecosystem for IoT development.
 
  Add "PsychicHttp" to project using [Project Configuration File `platformio.ini`](http://docs.platformio.org/page/projectconf.html) and [lib_deps](http://docs.platformio.org/page/projectconf/section_env_library.html#lib-deps) option:
 
@@ -55,47 +55,47 @@ Open *Tools -> Manage Libraries...* and search for PsychicHttp.
 
 ## Things to Note
 
-* This is fully asynchronous server and as such does not run on the loop thread.
-* You should not use yield or delay or any function that uses them inside the callbacks
-* The server is smart enough to know when to close the connection and free resources
-* You can not send more than one response to a single request
+* PsychicHttp is a fully asynchronous server and as such does not run on the loop thread.
+* You should not use yield or delay or any function that uses them inside the callbacks.
+* The server is smart enough to know when to close the connection and free resources.
+* You can not send more than one response to a single request.
 
 ## PsychicHttp
 
-* Listens for connections
-* Wraps the incoming request into PsychicRequest
-* Keeps track of clients + calls optional callbacks on client open and close
-* Find the appropriate handler (if any) for a request and pass it on
+* Listens for connections.
+* Wraps the incoming request into PsychicRequest.
+* Keeps track of clients + calls optional callbacks on client open and close.
+* Find the appropriate handler (if any) for a request and pass it on.
 
 ## Request Life Cycle
 
-* TCP connection is received by the server
+* TCP connection is received by the server.
 * HTTP request is wrapped inside ```PsychicRequest``` object + TCP Connection wrapped inside PsychicConnection object.
 * When the request head is received, the server goes through all ```PsychicEndpoints``` and finds one that matches the url + method.
-    * ```handler->filter()``` and ```handler->canHandle()``` are called on the handler to verify the handler should process the request
-    * ```handler->needsAuthentication()``` is called and sends an authorization response if required
-    * ```handler->handleRequest()``` is called to actually process the HTTP request
-* If the handler cannot process the request, the server will loop through any global handlers and call that handler if it passes filter(), canHandle(), and needsAuthentication()
-* If no global handlers are called, the server.defaultEndpoint handler will be called
+    * ```handler->filter()``` and ```handler->canHandle()``` are called on the handler to verify the handler should process the request.
+    * ```handler->needsAuthentication()``` is called and sends an authorization response if required.
+    * ```handler->handleRequest()``` is called to actually process the HTTP request.
+* If the handler cannot process the request, the server will loop through any global handlers and call that handler if it passes filter(), canHandle(), and needsAuthentication().
+* If no global handlers are called, the server.defaultEndpoint handler will be called.
 * Each handler is responsible for processing the request and sending a response.
-* When the response is sent, the client is closed and freed from the memory
-    * Unless its a special handler like websockets or eventsource
+* When the response is sent, the client is closed and freed from the memory.
+    * Unless its a special handler like websockets or eventsource.
 
 ![Flowchart of Request Lifecycle](/assets/request-flow.svg)
 
 ### Handlers
 
-* ```PsychicHandler``` is used for executing specific actions to particular requests
+* ```PsychicHandler``` is used for processing and responding to specific HTTP requests.
 * ```PsychicHandler``` instances can be attached to any endpoint or as global handlers.
 * Setting a ```Filter``` to the ```PsychicHandler``` controls when to apply the handler, decision can be based on
-  request url, request host/port/target host, the request client's localIP or remoteIP.
+  request method, url, request host/port/target host, the request client's localIP or remoteIP.
 * Two filter callbacks are provided: ```ON_AP_FILTER``` to execute the rewrite when request is made to the AP interface,
   ```ON_STA_FILTER``` to execute the rewrite when request is made to the STA interface.
 * The ```canHandle``` method is used for handler specific control on whether the requests can be handled. Decision can be based on request method, request url, request host/port/target host.
 * Depending on how the handler is implemented, it may provide callbacks for adding your own custom processing code to the handler.
 * Global ```Handlers``` are evaluated in the order they are attached to the server. The ```canHandle``` is called only
   if the ```Filter``` that was set to the ```Handler``` return true.
-* The first global ```Handler``` that can handle the request is selected, no further ```Filter``` and ```canHandle``` are called.
+* The first global ```Handler``` that can handle the request is selected, no further processing of handlers is called.
 
 ![Flowchart of Request Lifecycle](/assets/handler-callbacks.svg)
 
@@ -104,32 +104,35 @@ Open *Tools -> Manage Libraries...* and search for PsychicHttp.
 * The ```PsychicResponse``` objects are used to send the response data back to the client.
 * Typically the response should be fully generated and sent from the callback.
 * It may be possible to generate the response outside the callback, but it will be difficult.
+   * The exceptions are websockets + eventsource where the response is sent, but the connection is maintained and new data can be sent/received outside the handler.
 
 # Usage
 
 ## Create the Server
 
-Here is an example of the typical parts of a server setup:
+Here is an example of the typical server setup:
 
-```
+```cpp
 #include <PsychicHttp.h>
 PsychicHttpServer server;
 
 void setup()
 {
-    //optionsl low level setup server config stuff here.  server.config is an ESP-IDF httpd_config struct
-    //see: https://docs.espressif.com/projects/esp-idf/en/v4.4.6/esp32/api-reference/protocols/esp_http_server.html#_CPPv412httpd_config
-    server.config.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
+   //optional low level setup server config stuff here.
+   //server.config is an ESP-IDF httpd_config struct
+   //see: https://docs.espressif.com/projects/esp-idf/en/v4.4.6/esp32/api-reference/protocols/esp_http_server.html#_CPPv412httpd_config
+   //increase maximum number of uri endpoint handlers (.on() calls)
+   server.config.max_uri_handlers = 20; 
 
-    //connect to wifi
+   //connect to wifi
 
-    //start the server listening on port 80 (standard HTTP port)
-    server.listen(80);
+   //start the server listening on port 80 (standard HTTP port)
+   server.listen(80);
 
-    //call server methods to attach endpoints and handlers
-    server.on(...);
-    server.serveStatic(...);
-    server.attachHandler(...);
+   //call server methods to attach endpoints and handlers
+   server.on(...);
+   server.serveStatic(...);
+   server.attachHandler(...);
 }
 ```
 
