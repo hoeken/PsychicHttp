@@ -4,14 +4,18 @@
 /*  PsychicWebSocketRequest      */
 /*************************************/
 
-PsychicWebSocketRequest::PsychicWebSocketRequest(PsychicRequest *req, PsychicWebSocketClient *client) :
+PsychicWebSocketRequest::PsychicWebSocketRequest(PsychicRequest *req) :
   PsychicRequest(req->server(), req->request()),
-  wsclient(client)
+  _client(req->client())
 {
 }
 
 PsychicWebSocketRequest::~PsychicWebSocketRequest()
 {
+}
+
+PsychicWebSocketClient * PsychicWebSocketRequest::client() {
+  return &_client;
 }
 
 esp_err_t PsychicWebSocketRequest::reply(httpd_ws_frame_t * ws_pkt)
@@ -45,6 +49,9 @@ PsychicWebSocketClient::PsychicWebSocketClient(PsychicClient *client)
 {
 }
 
+PsychicWebSocketClient::~PsychicWebSocketClient() {
+}
+
 esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_frame_t * ws_pkt)
 {
   return httpd_ws_send_frame_async(this->server(), this->socket(), ws_pkt);
@@ -76,60 +83,29 @@ PsychicWebSocketHandler::PsychicWebSocketHandler() :
   }
 
 PsychicWebSocketHandler::~PsychicWebSocketHandler() {
-  for (auto *client : _clients)
-    delete(client);
-  _clients.clear();
 }
 
-void PsychicWebSocketHandler::addClient(PsychicWebSocketClient *client) {
-  _clients.push_back(client);
-}
-
-void PsychicWebSocketHandler::removeClient(PsychicWebSocketClient *client) {
-  _clients.remove(client);
-  delete client;
-}
-
-PsychicWebSocketClient * PsychicWebSocketHandler::getClient(PsychicClient *socket) {
-  for (PsychicWebSocketClient * client : _clients)
-    if (client->socket() == socket->socket())
-      return client;
-
-  return NULL;
-}
-
-bool PsychicWebSocketHandler::hasClient(PsychicClient *socket) {
-  return getClient(socket) != NULL;
-}
-
-bool PsychicWebSocketHandler::isWebSocket() {
-  return true;
-}
-
-bool PsychicWebSocketHandler::canHandle(PsychicRequest *request) {
-  return true;
-}
+bool PsychicWebSocketHandler::isWebSocket() { return true; }
 
 esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest *request)
 {
   //lookup our client
-  PsychicWebSocketClient *client = getClient(request->client());
-  if (client == NULL)
-  {
-    client = new PsychicWebSocketClient(request->client());
-    addClient(client);
-  }
-
-  PsychicWebSocketRequest wsRequest(request, client);
+  PsychicClient *client = checkForNewClient(request->client());
 
   // beginning of the ws URI handler and our onConnect hook
-  if (wsRequest.method() == HTTP_GET)
+  if (request->method() == HTTP_GET)
   {
-    if (this->_onOpen != NULL)  
-      this->_onOpen(wsRequest.wsclient);
+    if (client->isNew)
+    {
+      client->_friend = new PsychicWebSocketClient(client);
+      openCallback(client);
+    }
 
     return ESP_OK;
   }
+
+  //prep our request
+  PsychicWebSocketRequest wsRequest(request);
 
   //init our memory for storing the packet
   httpd_ws_frame_t ws_pkt;
@@ -198,24 +174,24 @@ PsychicWebSocketHandler * PsychicWebSocketHandler::onClose(PsychicWebSocketClien
   return this;
 }
 
-void PsychicWebSocketHandler::closeCallback(PsychicClient *client) {
-  PsychicWebSocketClient *wsclient = getClient(client);
-  if (wsclient != NULL)
-  {
-    if (_onClose != NULL)
-      _onClose(wsclient);
+void PsychicWebSocketHandler::openCallback(PsychicClient *client) {
+  if (_onOpen != NULL)
+    _onOpen((PsychicWebSocketClient*)client->_friend);
+}
 
-    removeClient(wsclient);
-  }
+void PsychicWebSocketHandler::closeCallback(PsychicClient *client) {
+  if (_onClose != NULL)
+    _onClose((PsychicWebSocketClient*)client->_friend);
+  delete (PsychicWebSocketClient*)client->_friend;
 }
 
 void PsychicWebSocketHandler::sendAll(httpd_ws_frame_t * ws_pkt)
 {
-  for (PsychicWebSocketClient * client : _clients)
+  for (PsychicClient *client : _clients)
   {
     ESP_LOGI(PH_TAG, "Active client (fd=%d) -> sending async message", client->socket());
 
-    if (client->sendMessage(ws_pkt) != ESP_OK)
+    if (((PsychicWebSocketClient*)client->_friend)->sendMessage(ws_pkt) != ESP_OK)
       break;
   }
 }

@@ -37,7 +37,7 @@ class PsychicRequest {
 
     PsychicHttpServer * server();
     httpd_req_t * request();
-    PsychicClient * client();
+    virtual PsychicClient * client();
 
     bool isMultipart();
     esp_err_t loadBody();

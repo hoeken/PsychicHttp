@@ -42,54 +42,21 @@ esp_err_t PsychicEventSource::handleRequest(PsychicRequest *request)
   esp_err_t err = response.send();
 
   //lookup our client
-  PsychicEventSourceClient *client = getClient(request->client());
-  if (client == NULL)
+  PsychicClient *client = checkForNewClient(request->client());
+  if (client->isNew)
   {
-    client = new PsychicEventSourceClient(request->client());
-    addClient(client);
+    //save our friend
+    PsychicEventSourceClient *buddy = new PsychicEventSourceClient(client);
+    client->_friend = buddy;
 
-    //call our handler
-    if (this->_onOpen != NULL)  
-      this->_onOpen(client);
+    //did we get our last id?
+    if(request->hasHeader("Last-Event-ID"))
+      buddy->_lastId = atoi(request->header("Last-Event-ID").c_str());
+
+    openCallback(client);
   }
-
-  //did we get a last id from teh client?
-  if(request->hasHeader("Last-Event-ID"))
-    client->_lastId = atoi(request->header("Last-Event-ID").c_str());
 
   return err;
-}
-
-void PsychicEventSource::closeCallback(PsychicClient *client) {
-  PsychicEventSourceClient *wsclient = getClient(client);
-  if (wsclient != NULL)
-  {
-    if (_onClose != NULL)
-      _onClose(wsclient);
-
-    removeClient(wsclient);
-  }
-}
-
-void PsychicEventSource::addClient(PsychicEventSourceClient *client) {
-  _clients.push_back(client);
-}
-
-void PsychicEventSource::removeClient(PsychicEventSourceClient *client) {
-  _clients.remove(client);
-  delete client;
-}
-
-PsychicEventSourceClient * PsychicEventSource::getClient(PsychicClient *socket) {
-  for (PsychicEventSourceClient *client : _clients)
-    if (client->socket() == socket->socket())
-      return client;
-
-  return NULL;
-}
-
-bool PsychicEventSource::hasClient(PsychicClient *socket) {
-  return getClient(socket) != NULL;
 }
 
 PsychicEventSource * PsychicEventSource::onOpen(PsychicEventSourceClientCallback fn) {
@@ -102,11 +69,23 @@ PsychicEventSource * PsychicEventSource::onClose(PsychicEventSourceClientCallbac
   return this;
 }
 
+void PsychicEventSource::openCallback(PsychicClient *client) {
+  if (_onOpen != NULL)
+    _onOpen((PsychicEventSourceClient*)client->_friend);
+}
+
+void PsychicEventSource::closeCallback(PsychicClient *client) {
+  if (_onClose != NULL)
+    _onClose((PsychicEventSourceClient*)client->_friend);
+  delete (PsychicEventSourceClient*)client->_friend;
+}
+
 void PsychicEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect)
 {
   String ev = generateEventMessage(message, event, id, reconnect);
-  for(auto *c : _clients)
-    c->sendEvent(ev.c_str());
+  for(PsychicClient *c : _clients) {
+    ((PsychicEventSourceClient*)c->_friend)->sendEvent(ev.c_str());
+  }
 }
 
 /*****************************************/

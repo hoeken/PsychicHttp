@@ -32,32 +32,6 @@ class PsychicResponse;
 
 typedef std::function<void(PsychicEventSourceClient *client)> PsychicEventSourceClientCallback;
 
-class PsychicEventSource : public PsychicHandler {
-  private:
-    std::list<PsychicEventSourceClient*> _clients;
-
-    PsychicEventSourceClientCallback _onOpen;
-    PsychicEventSourceClientCallback _onClose;
-
-  public:
-    PsychicEventSource();
-    ~PsychicEventSource();
-
-    esp_err_t handleRequest(PsychicRequest *request) override final;
-
-    void closeCallback(PsychicClient *client) override;
-    void addClient(PsychicEventSourceClient *client);
-    void removeClient(PsychicEventSourceClient *client);
-    PsychicEventSourceClient * getClient(PsychicClient *client);
-    bool hasClient(PsychicClient *client);
-    int count() { return _clients.size(); }; 
-
-    PsychicEventSource *onOpen(PsychicEventSourceClientCallback fn);
-    PsychicEventSource *onClose(PsychicEventSourceClientCallback fn);
-
-    void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);
-};
-
 class PsychicEventSourceClient : public PsychicClient {
   friend PsychicEventSource;
 
@@ -71,6 +45,26 @@ class PsychicEventSourceClient : public PsychicClient {
     uint32_t lastId() const { return _lastId; }
     void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);
     void sendEvent(const char *event);
+};
+
+class PsychicEventSource : public PsychicHandler {
+  private:
+    PsychicEventSourceClientCallback _onOpen;
+    PsychicEventSourceClientCallback _onClose;
+
+  public:
+    PsychicEventSource();
+    ~PsychicEventSource();
+
+    esp_err_t handleRequest(PsychicRequest *request) override final;
+
+    void openCallback(PsychicClient *client) override;
+    void closeCallback(PsychicClient *client) override;
+
+    PsychicEventSource *onOpen(PsychicEventSourceClientCallback fn);
+    PsychicEventSource *onClose(PsychicEventSourceClientCallback fn);
+
+    void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);
 };
 
 class PsychicEventSourceResponse: public PsychicResponse {

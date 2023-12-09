@@ -18,6 +18,10 @@ class PsychicHandler {
     String _realm;
     String _authFailMsg;
 
+    std::list<PsychicClient*> _clients;
+    PsychicClientCallback _onOpen;
+    PsychicClientCallback _onClose;
+
   public:
     PsychicHandler();
     ~PsychicHandler();
@@ -29,8 +33,22 @@ class PsychicHandler {
     bool needsAuthentication(PsychicRequest *request);
     esp_err_t authenticate(PsychicRequest *request);
 
+    void onOpen(PsychicClientCallback handler);
+    void onClose(PsychicClientCallback handler);
+
+    virtual bool isWebSocket() { return false; };
+
+    virtual void openCallback(PsychicClient *client);
     virtual void closeCallback(PsychicClient *client);
-    virtual bool isWebSocket();
+
+    PsychicClient * checkForNewClient(PsychicClient *client);
+    void checkForClosedClient(PsychicClient *client);
+
+    void addClient(PsychicClient *client);
+    void removeClient(PsychicClient *client);
+    PsychicClient * getClient(PsychicClient *client);
+    bool hasClient(PsychicClient *client);
+    int count() { return _clients.size(); };
 
     //derived classes must implement these functions
     virtual bool canHandle(PsychicRequest *request) { return true; };

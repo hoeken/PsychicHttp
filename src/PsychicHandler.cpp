@@ -5,10 +5,17 @@ PsychicHandler::PsychicHandler() :
   _password(""),
   _method(DIGEST_AUTH),
   _realm(""),
-  _authFailMsg("")
+  _authFailMsg(""),
+  _onOpen(NULL),
+  _onClose(NULL)
   {}
 
-PsychicHandler::~PsychicHandler() {}
+PsychicHandler::~PsychicHandler() {
+  // actual PsychicClient deletion handled by PsychicServer
+  // for (PsychicClient *client : _clients)
+  //   delete(client);
+  _clients.clear();
+}
 
 PsychicHandler* PsychicHandler::setFilter(PsychicRequestFilterFunction fn) {
   _filter = fn;
@@ -36,8 +43,64 @@ esp_err_t PsychicHandler::authenticate(PsychicRequest *request) {
   return request->requestAuthentication(_method, _realm.c_str(), _authFailMsg.c_str());
 }
 
-void PsychicHandler::closeCallback(PsychicClient *client) {}
+PsychicClient * PsychicHandler::checkForNewClient(PsychicClient *client)
+{
+  PsychicClient *c = getClient(client);
+  if (c == NULL)
+  {
+    c = client;
+    addClient(c);
+    c->isNew = true;
+  }
+  else
+    c->isNew = false;
 
-bool PsychicHandler::isWebSocket() {
-  return false;
+  return c;
+}
+
+void PsychicHandler::checkForClosedClient(PsychicClient *client)
+{
+  if (hasClient(client))
+  {
+    closeCallback(client);
+    removeClient(client);
+  }
+}
+
+void PsychicHandler::addClient(PsychicClient *client) {
+  _clients.push_back(client);
+}
+
+void PsychicHandler::removeClient(PsychicClient *client) {
+  _clients.remove(client);
+}
+
+PsychicClient * PsychicHandler::getClient(PsychicClient *socket) {
+  for (PsychicClient *client : _clients)
+    if (client->socket() == socket->socket())
+      return client;
+
+  return NULL;
+}
+
+bool PsychicHandler::hasClient(PsychicClient *socket) {
+  return getClient(socket) != NULL;
+}
+
+void PsychicHandler::openCallback(PsychicClient *client) {
+  if (_onOpen != NULL)
+    this->_onOpen(client);
+}
+
+void PsychicHandler::closeCallback(PsychicClient *client) {
+  if (_onClose != NULL)
+    this->_onClose(client);
+}
+
+void PsychicHandler::onOpen(PsychicClientCallback handler) {
+  this->_onOpen = handler;
+}
+
+void PsychicHandler::onClose(PsychicClientCallback handler) {
+  this->_onClose = handler;
 }
