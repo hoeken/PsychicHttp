@@ -4,21 +4,31 @@
 #include "PsychicCore.h"
 #include "PsychicHttpServer.h"
 #include "PsychicClient.h"
+#include "PsychicWebParameter.h"
 
-class PsychicHttpServer;
+typedef std::map<String, String> SessionData;
+
+enum Disposition { NONE, INLINE, ATTACHMENT, FORM_DATA};
+
+struct ContentDisposition {
+  Disposition disposition;
+  String filename;
+  String name;
+};
 
 class PsychicRequest {
   friend PsychicHttpServer;
 
   protected:
     PsychicHttpServer *_server;
+    httpd_req_t *_req;
+    SessionData *_session;
+    PsychicClient *_client;
+
     http_method _method;
     String _uri;
     String _query;
     String _body;
-    SessionData *_session;
-    httpd_req_t *_req;
-    PsychicClient *_client;
 
     std::list<PsychicWebParameter*> _params;
 

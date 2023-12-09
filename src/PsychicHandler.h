@@ -19,8 +19,6 @@ class PsychicHandler {
     String _authFailMsg;
 
     std::list<PsychicClient*> _clients;
-    PsychicClientCallback _onOpen;
-    PsychicClientCallback _onClose;
 
   public:
     PsychicHandler();
@@ -33,13 +31,10 @@ class PsychicHandler {
     bool needsAuthentication(PsychicRequest *request);
     esp_err_t authenticate(PsychicRequest *request);
 
-    void onOpen(PsychicClientCallback handler);
-    void onClose(PsychicClientCallback handler);
-
     virtual bool isWebSocket() { return false; };
 
-    virtual void openCallback(PsychicClient *client);
-    virtual void closeCallback(PsychicClient *client);
+    virtual void openCallback(PsychicClient *client) {};
+    virtual void closeCallback(PsychicClient *client) {};
 
     PsychicClient * checkForNewClient(PsychicClient *client);
     void checkForClosedClient(PsychicClient *client);

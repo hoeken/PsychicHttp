@@ -31,9 +31,6 @@ PsychicEventSource::PsychicEventSource() :
 {}
 
 PsychicEventSource::~PsychicEventSource() {
-  for (auto *client : _clients)
-    delete(client);
-  _clients.clear();
 }
 
 esp_err_t PsychicEventSource::handleRequest(PsychicRequest *request)
@@ -92,9 +89,10 @@ void PsychicEventSource::send(const char *message, const char *event, uint32_t i
 // PsychicEventSourceClient
 /*****************************************/
 
-PsychicEventSourceClient::PsychicEventSourceClient(PsychicClient *client) : PsychicClient(client->server(), client->socket())
+PsychicEventSourceClient::PsychicEventSourceClient(PsychicClient *client) :
+  PsychicClient(client->server(), client->socket()),
+  _lastId(0)
 {
-  _lastId = 0;
 }
 
 PsychicEventSourceClient::~PsychicEventSourceClient(){
@@ -138,8 +136,8 @@ esp_err_t PsychicEventSourceResponse::send() {
     result = httpd_send(_request->request(), out.c_str(), out.length());
   } while (result == HTTPD_SOCK_ERR_TIMEOUT);
 
-  //if (result < 0)
-  //error log here
+  if (result < 0)
+    ESP_LOGE(PH_TAG, "EventSource send failed with %s", esp_err_to_name(result));
 
   if (result > 0)
     return ESP_OK;

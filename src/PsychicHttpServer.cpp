@@ -6,13 +6,12 @@
 #include "PsychicWebSocket.h"
 #include "WiFi.h"
 
-PsychicHttpServer::PsychicHttpServer()
+PsychicHttpServer::PsychicHttpServer() :
+  _onOpen(NULL),
+  _onClose(NULL)
 {
   maxRequestBodySize = MAX_REQUEST_BODY_SIZE;
   maxUploadSize = MAX_UPLOAD_SIZE;
-
-  _onOpen = NULL;
-  _onClose = NULL;
 
   defaultEndpoint = new PsychicEndpoint(this, HTTP_GET, "");
   onNotFound(PsychicHttpServer::defaultNotFoundHandler);

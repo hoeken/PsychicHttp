@@ -5,6 +5,7 @@
 #include "PsychicHttpServer.h"
 #include "PsychicRequest.h"
 #include "PsychicWebHandler.h"
+#include "PsychicWebParameter.h"
 
 //callback definitions
 typedef std::function<esp_err_t(PsychicRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool final)> PsychicUploadCallback;

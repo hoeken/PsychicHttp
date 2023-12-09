@@ -2,16 +2,16 @@
 
 PsychicEndpoint::PsychicEndpoint() :
   _server(NULL),
-  _method(HTTP_GET),
   _uri(""),
+  _method(HTTP_GET),
   _handler(NULL)
 {
 }
 
 PsychicEndpoint::PsychicEndpoint(PsychicHttpServer *server, http_method method, const char * uri) :
   _server(server),
-  _method(method),
   _uri(uri),
+  _method(method),
   _handler(NULL)
 {
 }
@@ -37,8 +37,6 @@ String PsychicEndpoint::uri() {
 
 esp_err_t PsychicEndpoint::requestCallback(httpd_req_t *req)
 {
-  esp_err_t err = ESP_OK;
-
   #ifdef ENABLE_ASYNC
     if (is_on_async_worker_thread() == false) {
       // submit
@@ -66,24 +64,14 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t *req)
         return handler->authenticate(&request);
 
       //pass it to our handler
-      err = handler->handleRequest(&request);
-      if (err != ESP_OK)
-        return err;
-
-      //TODO: possibly add middleware parsing here?
-      //err = request->middleWare();
-      // if (err != ESP_OK)
-      //   return err;
-      //err = request->sendResponse();
+      return handler->handleRequest(&request);
     }
     //pass it to our generic handlers
     else
-      PsychicHttpServer::notFoundHandler(req, HTTPD_500_INTERNAL_SERVER_ERROR);
+      return PsychicHttpServer::notFoundHandler(req, HTTPD_500_INTERNAL_SERVER_ERROR);
   }
   else
     return request.reply(500, "text/html", "No handler registered.");
-
-  return err;
 }
 
 PsychicEndpoint* PsychicEndpoint::setFilter(PsychicRequestFilterFunction fn) {

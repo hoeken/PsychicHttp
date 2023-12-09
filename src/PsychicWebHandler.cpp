@@ -1,6 +1,9 @@
 #include "PsychicWebHandler.h"
 
-PsychicWebHandler::PsychicWebHandler() : PsychicHandler() {}
+PsychicWebHandler::PsychicWebHandler() : 
+  PsychicHandler(),
+  _requestCallback(NULL)
+  {}
 PsychicWebHandler::~PsychicWebHandler() {}
 
 bool PsychicWebHandler::canHandle(PsychicRequest *request) {

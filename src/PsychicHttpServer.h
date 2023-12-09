@@ -9,6 +9,10 @@ class PsychicEndpoint;
 class PsychicHandler;
 class PsychicStaticFileHandler;
 
+//callback definitions
+typedef std::function<void(PsychicClient *client)> PsychicClientCallback;
+typedef std::function<esp_err_t(PsychicRequest *request)> PsychicHttpRequestCallback;
+
 class PsychicHttpServer
 {
   protected:

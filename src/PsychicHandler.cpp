@@ -1,13 +1,12 @@
 #include "PsychicHandler.h"
 
 PsychicHandler::PsychicHandler() :
+  _filter(NULL),
   _username(""),
   _password(""),
   _method(DIGEST_AUTH),
   _realm(""),
-  _authFailMsg(""),
-  _onOpen(NULL),
-  _onClose(NULL)
+  _authFailMsg("")
   {}
 
 PsychicHandler::~PsychicHandler() {
@@ -89,22 +88,4 @@ bool PsychicHandler::hasClient(PsychicClient *socket) {
 
 const std::list<PsychicClient*>& PsychicHandler::getClientList() {
   return _clients;
-}
-
-void PsychicHandler::openCallback(PsychicClient *client) {
-  if (_onOpen != NULL)
-    this->_onOpen(client);
-}
-
-void PsychicHandler::closeCallback(PsychicClient *client) {
-  if (_onClose != NULL)
-    this->_onClose(client);
-}
-
-void PsychicHandler::onOpen(PsychicClientCallback handler) {
-  this->_onOpen = handler;
-}
-
-void PsychicHandler::onClose(PsychicClientCallback handler) {
-  this->_onClose = handler;
 }
