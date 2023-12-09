@@ -4,11 +4,11 @@
 #define PH_TAG "psychic"
 
 #ifndef MAX_COOKIE_SIZE
-  #define MAX_COOKIE_SIZE 256
+  #define MAX_COOKIE_SIZE 512
 #endif
 
 #ifndef FILE_CHUNK_SIZE
-  #define FILE_CHUNK_SIZE 4*1024
+  #define FILE_CHUNK_SIZE 8*1024
 #endif
 
 #ifndef MAX_UPLOAD_SIZE
