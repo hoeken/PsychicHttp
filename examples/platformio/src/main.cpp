@@ -450,7 +450,7 @@ void setup()
 
     //a websocket echo server
     websocketHandler.onOpen([](PsychicWebSocketClient *client) {
-      Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
+      Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
       client->sendMessage("Hello!");
     });
     websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
@@ -458,17 +458,17 @@ void setup()
         return request->reply(frame);
     });
     websocketHandler.onClose([](PsychicWebSocketClient *client) {
-      Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
+      Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
     });
     server.on("/ws", &websocketHandler);
 
     //EventSource server
     eventSource.onOpen([](PsychicEventSourceClient *client) {
-      Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
+      Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
       client->send("Hello user!", NULL, millis(), 1000);
     });
     eventSource.onClose([](PsychicEventSourceClient *client) {
-      Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
+      Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
     });
     server.on("/events", &eventSource);
   }
