@@ -139,10 +139,6 @@ uint8_t PsychicStaticFileHandler::_countBits(const uint8_t value) const
 
 esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest *request)
 {
-  //TODO: re-enable authentication for static files
-  // if((_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str()))
-  //     return request->requestAuthentication();
-
   if (_file == true)
   {
     String etag = String(_file.size());
