@@ -138,9 +138,188 @@ void setup()
 
 ## Add Handlers
 
+One major difference from ESPAsyncWebserver is that handlers can be attached to a specific url (endpoint) or as a global handler.  The reason for this, is that attaching to a specific URL is more efficient and makes for cleaner code.
+
+### Endpoint Handlers
+
+An endpoint is basically just the URL path (eg. /path/to/file) without any query string.  The ```server.on(...)``` function is a convenience function for creating endpoints and attaching a handler to them.  There are two main styles: attaching a basic ```WebRequest``` handler and attaching an external handler.
+
+```cpp
+//creates a basic PsychicWebHandler that calls the request_callback callback
+server.on("/url", HTTP_GET, request_callback);
+
+//same as above, but defaults to HTTP_GET
+server.on("/url", request_callback);
+
+//attaches a websocket handler to /ws
+PsychicWebSocketHandler websocketHandler;
+server.on("/ws", &websocketHandler);
+```
+
+The ```server.on(...)``` returns a pointer to the endpoint, which can be used to call various functions like ```setHandler()```, ```setFilter()```, and ```setAuthentication()```.
+
+```cpp
+//respond to /url only from requests to the AP
+server.on("/url", HTTP_GET, request_callback)->setFilter(ON_AP_FILTER);
+
+//require authentication on /url
+server.on("/url", HTTP_GET, request_callback)->setAuthentication("user", "pass");
+
+//attach websocket handler to /ws
+PsychicWebSocketHandler websocketHandler;
+server.on("/ws")->attachHandler(&websocketHandler);
+```
+
 ### Basic Requests
 
+The ```PsychicWebHandler``` class is for handling standard web requests.  It provides a single callback: ```onRequest()```.  This callback is called when the handler receives a valid HTTP request.
+
+One major difference from ESPAsyncWebserver is that this callback needs to return an esp_err_t variable to let the server know the result of processing the request.  The ```response->reply()``` and ```request->send()``` functions will return this.  It is a good habit to return the result of these functions as sending the response will close the connection.
+
+The function definition for the onRequest callback is:
+
+```cpp
+esp_err_t function_name(PsychicRequest *request);
+```
+
+Here is a simple example that sends back the client's IP on the URL /ip
+
+```cpp
+server.on("/ip", [](PsychicRequest *request)
+{
+   String output = "Your IP is: " + request->client()->remoteIP().toString();
+   return request->reply(output.c_str());
+});
+```
+
 ### Uploads
+
+The ```PsychicUploadHandler``` class is for handling uploads, both large POST bodies and multipart encoded forms.  It provides two callbacks: ```onUpload()``` and ```onRequest()```.
+
+```onUpload(...)``` is called when there is new data.  This function may be called multiple times so that you can process the data in chunks. The function definition for the onUpload callback is:
+
+```cpp
+esp_err_t function_name(PsychicRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool final);
+```
+
+* request is a pointer to the Request object
+* filename is the name of the uploaded file
+* index is the overall byte position of the current data
+* data is a pointer to the data buffer
+* len is the length of the data buffer
+* final is a flag to tell if its the last chunk of data
+
+```onRequest(...)``` is called after the successful handling of the upload.  Its definition and usage is the same as the basic request example as above.
+
+#### Basic Upload (file is the entire POST body)
+
+It's worth noting that there is no standard way of passing in a filename for this method, so the handler attempts to guess the filename with the following methods:
+
+* Checking the Content-Disposition header
+* Checking the _filename query parameter (eg. /upload?filename=filename.txt becomes filename.txt)
+* Checking the url and taking the last part as filename (eg. /upload/filename.txt becomes filename.txt).  You must set a wildcard url for this to work as in the example below.
+
+```cpp
+//handle a very basic upload as post body
+ PsychicUploadHandler *uploadHandler = new PsychicUploadHandler();
+ uploadHandler->onUpload([](PsychicRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
+   File file;
+   String path = "/www/" + filename;
+
+   Serial.printf("Writing %d/%d bytes to: %s\n", (int)index+(int)len, request->contentLength(), path.c_str());
+
+   if (last)
+     Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index+(int)len);
+
+   //our first call?
+   if (!index)
+     file = LittleFS.open(path, FILE_WRITE);
+   else
+     file = LittleFS.open(path, FILE_APPEND);
+   
+   if(!file) {
+     Serial.println("Failed to open file");
+     return ESP_FAIL;
+   }
+
+   if(!file.write(data, len)) {
+     Serial.println("Write failed");
+     return ESP_FAIL;
+   }
+
+   return ESP_OK;
+ });
+
+ //gets called after upload has been handled
+ uploadHandler->onRequest([](PsychicRequest *request)
+ {
+   String url = "/" + request->getFilename();
+   String output = "<a href=\"" + url + "\">" + url + "</a>";
+
+   return request->reply(output.c_str());
+ });
+
+ //wildcard basic file upload - POST to /upload/filename.ext
+ server.on("/upload/*", HTTP_POST, uploadHandler);
+```
+
+#### Multipart Upload
+
+Very similar to the basic upload, with 2 key differences:
+
+* multipart requests don't know the total size of the file until after it has been fully processed.  You can get a rough idea with request->contentLength(), but that is the length of the entire multipart encoded request.
+* you can access form variables, including multipart file infor (name + size) in the onRequest handler using request->getParam()
+
+```cpp
+ //a little bit more complicated multipart form
+ PsychicUploadHandler *multipartHandler = new PsychicUploadHandler();
+ multipartHandler->onUpload([](PsychicRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool last) {
+   File file;
+   String path = "/www/" + filename;
+
+   //some progress over serial.
+   Serial.printf("Writing %d bytes to: %s\n", (int)len, path.c_str());
+   if (last)
+     Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index+(int)len);
+
+   //our first call?
+   if (!index)
+     file = LittleFS.open(path, FILE_WRITE);
+   else
+     file = LittleFS.open(path, FILE_APPEND);
+   
+   if(!file) {
+     Serial.println("Failed to open file");
+     return ESP_FAIL;
+   }
+
+   if(!file.write(data, len)) {
+     Serial.println("Write failed");
+     return ESP_FAIL;
+   }
+
+   return ESP_OK;
+ });
+
+ //gets called after upload has been handled
+ multipartHandler->onRequest([](PsychicRequest *request)
+ {
+   PsychicWebParameter *file = request->getParam("file_upload");
+
+   String url = "/" + file->value();
+   String output;
+
+   output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
+   output += "Bytes: " + String(file->size()) + "<br/>\n";
+   output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+   output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+   
+   return request->reply(output.c_str());
+ });
+
+ //upload to /multipart url
+ server.on("/multipart", HTTP_POST, multipartHandler);
+```
 
 ### Static File Serving
 
