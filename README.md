@@ -81,6 +81,8 @@ Open *Tools -> Manage Libraries...* and search for PsychicHttp.
 * When the response is sent, the client is closed and freed from the memory
     * Unless its a special handler like websockets or eventsource
 
+![Flowchart of Request Lifecycle](/assets/request-flow.png)
+
 ### Handlers
 
 * ```PsychicHandler``` is used for executing specific actions to particular requests
@@ -94,6 +96,8 @@ Open *Tools -> Manage Libraries...* and search for PsychicHttp.
 * Global ```Handlers``` are evaluated in the order they are attached to the server. The ```canHandle``` is called only
   if the ```Filter``` that was set to the ```Handler``` return true.
 * The first global ```Handler``` that can handle the request is selected, no further ```Filter``` and ```canHandle``` are called.
+
+![Flowchart of Request Lifecycle](/assets/handler-callbacks.png)
 
 ### Responses and how do they work
 
