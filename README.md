@@ -120,6 +120,7 @@ If you have existing code using ESPAsyncWebserver, you will feel right at home w
 ## setup() Stuff
 
 * no more server.begin(), call server.listen(80), before you add your handlers
+* server has a configurable limit on .on() endpoints. change it with ```server.config.max_uri_handlers = 20;``` as needed.
 * check your callback function definitions:
    * AsyncWebServerRequest -> PsychicRequest
    * no more onBody() event
