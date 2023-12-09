@@ -18,6 +18,10 @@ int PsychicClient::socket() {
   return _socket;
 }
 
+esp_err_t PsychicClient::close() {
+  return httpd_sess_trigger_close(_server, _socket);
+}
+
 IPAddress PsychicClient::localIP()
 {
   IPAddress address(0,0,0,0);

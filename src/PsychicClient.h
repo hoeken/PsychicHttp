@@ -27,6 +27,7 @@ class PsychicClient {
 
     httpd_handle_t server();
     int socket();
+    esp_err_t close();
 
     IPAddress localIP();
     IPAddress remoteIP();

@@ -306,6 +306,10 @@ bool PsychicHttpServer::hasClient(int socket) {
   return getClient(socket) != NULL;
 }
 
+const std::list<PsychicClient*>& PsychicHttpServer::getClientList() {
+  return _clients;
+}
+
 bool ON_STA_FILTER(PsychicRequest *request) {
   return WiFi.localIP() == request->client()->localIP();
 }

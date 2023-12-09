@@ -51,6 +51,8 @@ class PsychicHttpServer
     PsychicClient* getClient(int socket);
     PsychicClient* getClient(httpd_req_t *req);
     bool hasClient(int socket);
+    int count() { return _clients.size(); };
+    const std::list<PsychicClient*>& getClientList();
 
     PsychicEndpoint* on(const char* uri);
     PsychicEndpoint* on(const char* uri, http_method method);

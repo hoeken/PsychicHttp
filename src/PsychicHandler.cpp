@@ -87,6 +87,10 @@ bool PsychicHandler::hasClient(PsychicClient *socket) {
   return getClient(socket) != NULL;
 }
 
+const std::list<PsychicClient*>& PsychicHandler::getClientList() {
+  return _clients;
+}
+
 void PsychicHandler::openCallback(PsychicClient *client) {
   if (_onOpen != NULL)
     this->_onOpen(client);

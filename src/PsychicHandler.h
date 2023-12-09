@@ -49,6 +49,7 @@ class PsychicHandler {
     PsychicClient * getClient(PsychicClient *client);
     bool hasClient(PsychicClient *client);
     int count() { return _clients.size(); };
+    const std::list<PsychicClient*>& getClientList();
 
     //derived classes must implement these functions
     virtual bool canHandle(PsychicRequest *request) { return true; };
