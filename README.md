@@ -106,6 +106,42 @@ Open *Tools -> Manage Libraries...* and search for PsychicHttp.
 * It may be possible to generate the response outside the callback, but it will be difficult.
    * The exceptions are websockets + eventsource where the response is sent, but the connection is maintained and new data can be sent/received outside the handler.
 
+# Porting From ESPAsyncWebserver
+
+If you have existing code using ESPAsyncWebserver, you will feel right at home with PsychicHttp.  Even if internally it is much different, the external interface is very similar.  Some things are mostly cosmetic, like different class names and callback definitions.  A few things might require a bit more in-depth approach.  If you're porting your code and run into issues that aren't covered here, please post and issue.
+
+## Globals Stuff
+
+* Change your #include to ```#include <PsychicHttp.h>```
+* Change your server instance: ```PsychicHttpServer server;```
+* Define websocket handler if you have one: ```PsychicWebSocketHandler websocketHandler;```
+* Define eventsource if you have one: ```PsychicEventSource eventSource;```
+
+## setup() Stuff
+
+* no more server.begin(), call server.listen(80), before you add your handlers
+* check your callback function definitions:
+   * AsyncWebServerRequest -> PsychicRequest
+   * no more onBody() event
+      * for small bodies (server.maxRequestBodySize, default 16k) it will be automatically loaded and accessed by request->body()
+      * for large bodies, use an upload handler and onUpload()   
+   * websocket callbacks are much different (and simpler!)
+   * websocket / eventsource handlers get attached to url in server.on("/url", &handler) instead of passing url to handler constructor.
+   * eventsource callbacks are onOpen and onClose now.
+* HTTP_ANY is not supported by ESP-IDF, so we can't use it either.
+* NO server.onFileUpload(onUpload); (you could attach an UploadHandler to the default endpoint i guess?)
+* NO server.onRequestBody(onBody); (same)
+
+## Requests / Responses
+
+* request->send is now request->reply()
+* if you create a response, call response->send() directly, not request->send(reply)
+* request->headers() is not supported by ESP-IDF, you have to just check for the header you need.
+* No AsyncCallbackJsonWebHandler (for now... can add if needed)
+* No request->beginResponse().  Instanciate a PsychicResponse instead: ```PsychicResponse response(request);```
+* No PROGMEM suppport (its not relevant to ESP32: https://esp32.com/viewtopic.php?t=20595)
+* No Stream response support just yet
+
 # Usage
 
 ## Create the Server
