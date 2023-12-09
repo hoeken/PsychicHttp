@@ -434,6 +434,56 @@ if (client != NULL)
 
 ### EventSource / SSE
 
+The ```PsychicEventSource``` class is for handling EventSource / SSE connections.  It provides 2 callbacks:
+
+```onOpen(...)``` is called when a new EventSource client connects.
+```onClose(...)``` is called when a new EventSource client disconnects.
+
+Here are the callback definitions:
+
+```cpp
+void open_function(PsychicEventSourceClient *client);
+void close_function(PsychicEventSourceClient *client);
+```
+
+Here is a basic example of using PsychicEventSource:
+
+```cpp
+ //create our handler... note this should be located as a global or somewhere it wont go out of scope and be destroyed.
+ PsychicEventSource eventSource;
+
+ eventSource.onOpen([](PsychicEventSourceClient *client) {
+   Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
+   client->send("Hello user!", NULL, millis(), 1000);
+ });
+
+ eventSource.onClose([](PsychicEventSourceClient *client) {
+   Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
+ });
+
+ //attach the handler to /events
+ server.on("/events", &eventSource);
+```
+
+For sending data on the EventSource connection, there are 2 methods:
+
+* ```eventSource.send()``` - can be used anywhere to send events to all connected clients.
+* ```client->send()``` - can be used anywhere* to send events to a specific client
+
+All of the above functions accept a simple ```char *``` message, and optionally: ```char *``` event name, id, and reconnect time.
+
+*Special Note:*  Do not hold on to the ```PsychicEventSourceClient``` for sending messages to clients outside the callbacks. That pointer is destroyed when a client disconnects.  Instead, store the ```int client->socket()```.  Then when you want to send a message, use this code:
+
+```cpp
+//make sure our client is still connected.
+PsychicClient *client = server.getClient(socket);
+if (client != NULL)
+{
+  PsychicEventSourceClient es(client);
+  es.send("Your Event")
+}
+```
+
 ### HTTPS / SSL
 
 To generate your own self signed certificate, you can use the command below:
