@@ -365,6 +365,73 @@ PsychicFileResponse(PsychicRequest *request, FS &fs, const String& path)
 
 ### Websockets
 
+The ```PsychicWebSocketHandler``` class is for handling WebSocket connections.  It provides 3 callbacks:
+
+```onOpen(...)``` is called when a new WebSocket client connects.
+```onFrame(...)``` is called when a new WebSocket frame has arrived.
+```onClose(...)``` is called when a new WebSocket client disconnects.
+
+Here are the callback definitions:
+
+```cpp
+void open_function(PsychicWebSocketClient *client);
+esp_err_t frame_function(PsychicWebSocketRequest *request, httpd_ws_frame *frame);
+void close_function(PsychicWebSocketClient *client);
+```
+
+WebSockets were the main reason for starting PsychicHttp, so they are well tested.  They are also much simplified from the ESPAsyncWebserver style.  You do not need to worry about error handling, partial frame assembly, PONG messages, etc.  The onFrame() function is called when a complete frame has been received, and can handle frames up to the entire available heap size.
+
+Here is a basic example of using WebSockets:
+
+```cpp
+ //create our handler... note this should be located as a global or somewhere it wont go out of scope and be destroyed.
+ PsychicWebSocketHandler websocketHandler();
+
+ websocketHandler.onOpen([](PsychicWebSocketClient *client) {
+   Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
+   client->sendMessage("Hello!");
+ });
+
+ websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
+     Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char *)frame->payload);
+     return request->reply(frame);
+ });
+
+ websocketHandler.onClose([](PsychicWebSocketClient *client) {
+   Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
+ });
+
+ //attach the handler to /ws.  You can then connect to ws://ip.address/ws
+ server.on("/ws", &websocketHandler);
+```
+
+The onFrame() callback has 2 parameters:
+
+* ```PsychicWebSocketRequest *request``` a special request with helper functions for replying in websocket format.
+* ```httpd_ws_frame *frame``` ESP-IDF websocket struct.  The important struct members we care about are:
+   * ```uint8_t *payload; /*!< Pre-allocated data buffer */```
+   * ```size_t len; /*!< Length of the WebSocket data */```
+ 
+For sending data on the websocket connection, there are 3 methods:
+
+* ```request->reply()``` - only available in the onFrame() callback context.
+* ```webSocketHandler.sendAll()``` - can be used anywhere to send websocket messages to all connected clients.
+* ```client->send()``` - can be used anywhere* to send a websocket message to a specific client
+
+All of the above functions either accept simple ```char *``` string of you can construct your own httpd_ws_frame.
+
+*Special Note:*  Do not hold on to the ```PsychicWebSocketClient``` for sending messages to clients outside the callbacks. That pointer is destroyed when a client disconnects.  Instead, store the ```int client->socket()```.  Then when you want to send a message, use this code:
+
+```cpp
+//make sure our client is still connected.
+PsychicClient *client = server.getClient(socket);
+if (client != NULL)
+{
+  PsychicWebSocketClient ws(client);
+  ws.send("Your Message")
+}
+```
+
 ### EventSource / SSE
 
 ### HTTPS / SSL
