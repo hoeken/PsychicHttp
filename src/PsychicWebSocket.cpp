@@ -89,10 +89,7 @@ PsychicWebSocketClient * PsychicWebSocketHandler::getClient(int socket)
 {
   PsychicClient *client = PsychicHandler::getClient(socket);
   if (client == NULL)
-  {
-    DUMP(socket);
     return NULL;
-  }
 
   if (client->_friend == NULL)
   {
