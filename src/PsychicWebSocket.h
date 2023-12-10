@@ -48,6 +48,9 @@ class PsychicWebSocketHandler : public PsychicHandler {
     PsychicWebSocketHandler();
     ~PsychicWebSocketHandler();
 
+    PsychicWebSocketClient * getClient(int socket) override;
+    PsychicWebSocketClient * getClient(PsychicClient *client) override;
+
     bool isWebSocket() override final;
     esp_err_t handleRequest(PsychicRequest *request) override;
 

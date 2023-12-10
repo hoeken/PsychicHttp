@@ -74,12 +74,16 @@ void PsychicHandler::removeClient(PsychicClient *client) {
   _clients.remove(client);
 }
 
-PsychicClient * PsychicHandler::getClient(PsychicClient *socket) {
+PsychicClient * PsychicHandler::getClient(int socket) {
   for (PsychicClient *client : _clients)
-    if (client->socket() == socket->socket())
+    if (client->socket() == socket)
       return client;
 
   return NULL;
+}
+
+PsychicClient * PsychicHandler::getClient(PsychicClient *client) {
+  return getClient(client->socket());
 }
 
 bool PsychicHandler::hasClient(PsychicClient *socket) {

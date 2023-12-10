@@ -56,6 +56,9 @@ class PsychicEventSource : public PsychicHandler {
     PsychicEventSource();
     ~PsychicEventSource();
 
+    PsychicEventSourceClient * getClient(int socket) override;
+    PsychicEventSourceClient * getClient(PsychicClient *client) override;
+
     esp_err_t handleRequest(PsychicRequest *request) override final;
 
     void openCallback(PsychicClient *client) override;

@@ -85,6 +85,20 @@ PsychicWebSocketHandler::PsychicWebSocketHandler() :
 PsychicWebSocketHandler::~PsychicWebSocketHandler() {
 }
 
+PsychicWebSocketClient * PsychicWebSocketHandler::getClient(int socket)
+{
+  PsychicClient *client = PsychicHandler::getClient(socket);
+
+  if (client == NULL)
+    return NULL;
+
+  return (PsychicWebSocketClient *)client->_friend;
+}
+
+PsychicWebSocketClient * PsychicWebSocketHandler::getClient(PsychicClient *client) {
+  return getClient(client->socket());
+}
+
 bool PsychicWebSocketHandler::isWebSocket() { return true; }
 
 esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest *request)

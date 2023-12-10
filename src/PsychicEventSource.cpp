@@ -33,6 +33,20 @@ PsychicEventSource::PsychicEventSource() :
 PsychicEventSource::~PsychicEventSource() {
 }
 
+PsychicEventSourceClient * PsychicEventSource::getClient(int socket)
+{
+  PsychicClient *client = PsychicHandler::getClient(socket);
+
+  if (client == NULL)
+    return NULL;
+
+  return (PsychicEventSourceClient *)client->_friend;
+}
+
+PsychicEventSourceClient * PsychicEventSource::getClient(PsychicClient *client) {
+  return getClient(client->socket());
+}
+
 esp_err_t PsychicEventSource::handleRequest(PsychicRequest *request)
 {
   PsychicEventSourceResponse response(request);

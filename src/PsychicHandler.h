@@ -41,7 +41,8 @@ class PsychicHandler {
 
     void addClient(PsychicClient *client);
     void removeClient(PsychicClient *client);
-    PsychicClient * getClient(PsychicClient *client);
+    virtual PsychicClient * getClient(int socket);
+    virtual PsychicClient * getClient(PsychicClient *client);
     bool hasClient(PsychicClient *client);
     int count() { return _clients.size(); };
     const std::list<PsychicClient*>& getClientList();
