@@ -119,13 +119,27 @@ void PsychicWebSocketHandler::removeClient(PsychicClient *client) {
 }
 
 void PsychicWebSocketHandler::openCallback(PsychicClient *client) {
+  PsychicWebSocketClient *buddy = getClient(client);
+  if (buddy == NULL)
+  {
+    TRACE();
+    return;
+  }
+
   if (_onOpen != NULL)
-    _onOpen(getClient(client));
+    _onOpen(getClient(buddy));
 }
 
 void PsychicWebSocketHandler::closeCallback(PsychicClient *client) {
+  PsychicWebSocketClient *buddy = getClient(client);
+  if (buddy == NULL)
+  {
+    TRACE();
+    return;
+  }
+
   if (_onClose != NULL)
-    _onClose(getClient(client));
+    _onClose(getClient(buddy));
 }
 
 bool PsychicWebSocketHandler::isWebSocket() { return true; }

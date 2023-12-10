@@ -93,13 +93,27 @@ void PsychicEventSource::removeClient(PsychicClient *client) {
 }
 
 void PsychicEventSource::openCallback(PsychicClient *client) {
+  PsychicEventSourceClient *buddy = getClient(client);
+  if (buddy == NULL)
+  {
+    TRACE();
+    return;
+  }
+
   if (_onOpen != NULL)
-    _onOpen(getClient(client));
+    _onOpen(buddy);
 }
 
 void PsychicEventSource::closeCallback(PsychicClient *client) {
+  PsychicEventSourceClient *buddy = getClient(client);
+  if (buddy == NULL)
+  {
+    TRACE();
+    return;
+  }
+
   if (_onClose != NULL)
-    _onClose(getClient(client));
+    _onClose(getClient(buddy));
 }
 
 void PsychicEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect)
