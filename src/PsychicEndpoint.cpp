@@ -22,7 +22,12 @@ PsychicEndpoint * PsychicEndpoint::setHandler(PsychicHandler *handler)
   if (_handler != NULL)
     delete _handler;
 
+  //get our new pointer
   _handler = handler;
+
+  //keep a pointer to the server
+  _handler->_server = _server;
+
   return this;
 }
 

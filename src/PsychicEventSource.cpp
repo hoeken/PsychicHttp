@@ -49,6 +49,7 @@ PsychicEventSourceClient * PsychicEventSource::getClient(PsychicClient *client) 
 
 esp_err_t PsychicEventSource::handleRequest(PsychicRequest *request)
 {
+  //start our open ended HTTP response
   PsychicEventSourceResponse response(request);
   esp_err_t err = response.send();
 
@@ -56,14 +57,14 @@ esp_err_t PsychicEventSource::handleRequest(PsychicRequest *request)
   PsychicClient *client = checkForNewClient(request->client());
   if (client->isNew)
   {
-    //save our friend
-    PsychicEventSourceClient *buddy = new PsychicEventSourceClient(client);
-    client->_friend = buddy;
-
     //did we get our last id?
     if(request->hasHeader("Last-Event-ID"))
+    {
+      PsychicEventSourceClient *buddy = getClient(client);
       buddy->_lastId = atoi(request->header("Last-Event-ID").c_str());
+    }
 
+    //let our handler know.
     openCallback(client);
   }
 
@@ -80,15 +81,25 @@ PsychicEventSource * PsychicEventSource::onClose(PsychicEventSourceClientCallbac
   return this;
 }
 
+void PsychicEventSource::addClient(PsychicClient *client) {
+  client->_friend = new PsychicEventSourceClient(client);
+  PsychicHandler::addClient(client);
+}
+
+void PsychicEventSource::removeClient(PsychicClient *client) {
+  PsychicHandler::removeClient(client);
+  delete (PsychicEventSourceClient*)client->_friend;
+  client->_friend = NULL;
+}
+
 void PsychicEventSource::openCallback(PsychicClient *client) {
   if (_onOpen != NULL)
-    _onOpen((PsychicEventSourceClient*)client->_friend);
+    _onOpen(getClient(client));
 }
 
 void PsychicEventSource::closeCallback(PsychicClient *client) {
   if (_onClose != NULL)
-    _onClose((PsychicEventSourceClient*)client->_friend);
-  delete (PsychicEventSourceClient*)client->_friend;
+    _onClose(getClient(client));
 }
 
 void PsychicEventSource::send(const char *message, const char *event, uint32_t id, uint32_t reconnect)

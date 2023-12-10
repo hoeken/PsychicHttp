@@ -4,13 +4,18 @@
 #include "PsychicCore.h"
 #include "PsychicRequest.h"
 
+class PsychicEndpoint;
+
 /*
 * HANDLER :: Can be attached to any endpoint or as a generic request handler.
 */
 
 class PsychicHandler {
-  protected:    
+  friend PsychicEndpoint;
+
+  protected:
     PsychicRequestFilterFunction _filter;
+    PsychicHttpServer *_server;
 
     String _username;
     String _password;
@@ -33,16 +38,16 @@ class PsychicHandler {
 
     virtual bool isWebSocket() { return false; };
 
-    virtual void openCallback(PsychicClient *client) {};
-    virtual void closeCallback(PsychicClient *client) {};
-
     PsychicClient * checkForNewClient(PsychicClient *client);
     void checkForClosedClient(PsychicClient *client);
 
-    void addClient(PsychicClient *client);
-    void removeClient(PsychicClient *client);
+    virtual void addClient(PsychicClient *client);
+    virtual void removeClient(PsychicClient *client);
     virtual PsychicClient * getClient(int socket);
     virtual PsychicClient * getClient(PsychicClient *client);
+    virtual void openCallback(PsychicClient *client) {};
+    virtual void closeCallback(PsychicClient *client) {};
+
     bool hasClient(PsychicClient *client);
     int count() { return _clients.size(); };
     const std::list<PsychicClient*>& getClientList();

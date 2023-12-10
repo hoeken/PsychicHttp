@@ -45,4 +45,7 @@ class PsychicClient;
 //filter function definition
 typedef std::function<bool(PsychicRequest *request)> PsychicRequestFilterFunction;
 
+//client connect callback
+typedef std::function<void(PsychicClient *client)> PsychicClientCallback;
+
 #endif //PsychicCore_h

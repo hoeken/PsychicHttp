@@ -2,6 +2,7 @@
 
 PsychicHandler::PsychicHandler() :
   _filter(NULL),
+  _server(NULL),
   _username(""),
   _password(""),
   _method(DIGEST_AUTH),
@@ -44,7 +45,7 @@ esp_err_t PsychicHandler::authenticate(PsychicRequest *request) {
 
 PsychicClient * PsychicHandler::checkForNewClient(PsychicClient *client)
 {
-  PsychicClient *c = getClient(client);
+  PsychicClient *c = PsychicHandler::getClient(client);
   if (c == NULL)
   {
     c = client;
@@ -74,20 +75,27 @@ void PsychicHandler::removeClient(PsychicClient *client) {
   _clients.remove(client);
 }
 
-PsychicClient * PsychicHandler::getClient(int socket) {
+PsychicClient * PsychicHandler::getClient(int socket)
+{
+  //make sure the server has it too.
+  if (!_server->hasClient(socket))
+    return NULL;
+
+  //what about us?
   for (PsychicClient *client : _clients)
     if (client->socket() == socket)
       return client;
 
+  //nothing found.
   return NULL;
 }
 
 PsychicClient * PsychicHandler::getClient(PsychicClient *client) {
-  return getClient(client->socket());
+  return PsychicHandler::getClient(client->socket());
 }
 
 bool PsychicHandler::hasClient(PsychicClient *socket) {
-  return getClient(socket) != NULL;
+  return PsychicHandler::getClient(socket) != NULL;
 }
 
 const std::list<PsychicClient*>& PsychicHandler::getClientList() {

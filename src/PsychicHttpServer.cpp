@@ -251,7 +251,7 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   PsychicClient *client = server->getClient(sockfd);
   if (client != NULL)
   {
-    //remove it from our connections list and do callback if needed
+    //give our handlers a chance to handle a disconnect first
     for (PsychicEndpoint * endpoint : server->_endpoints)
     {
       PsychicHandler *handler = endpoint->handler();

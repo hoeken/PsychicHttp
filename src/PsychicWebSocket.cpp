@@ -88,15 +88,44 @@ PsychicWebSocketHandler::~PsychicWebSocketHandler() {
 PsychicWebSocketClient * PsychicWebSocketHandler::getClient(int socket)
 {
   PsychicClient *client = PsychicHandler::getClient(socket);
-
   if (client == NULL)
+  {
+    DUMP(socket);
     return NULL;
+  }
+
+  if (client->_friend == NULL)
+  {
+    DUMP(socket);
+    return NULL;
+  }
 
   return (PsychicWebSocketClient *)client->_friend;
 }
 
 PsychicWebSocketClient * PsychicWebSocketHandler::getClient(PsychicClient *client) {
   return getClient(client->socket());
+}
+
+void PsychicWebSocketHandler::addClient(PsychicClient *client) {
+  client->_friend = new PsychicWebSocketClient(client);
+  PsychicHandler::addClient(client);
+}
+
+void PsychicWebSocketHandler::removeClient(PsychicClient *client) {
+  PsychicHandler::removeClient(client);
+  delete (PsychicWebSocketClient*)client->_friend;
+  client->_friend = NULL;
+}
+
+void PsychicWebSocketHandler::openCallback(PsychicClient *client) {
+  if (_onOpen != NULL)
+    _onOpen(getClient(client));
+}
+
+void PsychicWebSocketHandler::closeCallback(PsychicClient *client) {
+  if (_onClose != NULL)
+    _onClose(getClient(client));
 }
 
 bool PsychicWebSocketHandler::isWebSocket() { return true; }
@@ -110,10 +139,7 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest *request)
   if (request->method() == HTTP_GET)
   {
     if (client->isNew)
-    {
-      client->_friend = new PsychicWebSocketClient(client);
       openCallback(client);
-    }
 
     return ESP_OK;
   }
@@ -188,22 +214,17 @@ PsychicWebSocketHandler * PsychicWebSocketHandler::onClose(PsychicWebSocketClien
   return this;
 }
 
-void PsychicWebSocketHandler::openCallback(PsychicClient *client) {
-  if (_onOpen != NULL)
-    _onOpen((PsychicWebSocketClient*)client->_friend);
-}
-
-void PsychicWebSocketHandler::closeCallback(PsychicClient *client) {
-  if (_onClose != NULL)
-    _onClose((PsychicWebSocketClient*)client->_friend);
-  delete (PsychicWebSocketClient*)client->_friend;
-}
-
 void PsychicWebSocketHandler::sendAll(httpd_ws_frame_t * ws_pkt)
 {
   for (PsychicClient *client : _clients)
   {
     ESP_LOGI(PH_TAG, "Active client (fd=%d) -> sending async message", client->socket());
+
+    if (client->_friend == NULL)
+    {
+      TRACE();
+      return;
+    }
 
     if (((PsychicWebSocketClient*)client->_friend)->sendMessage(ws_pkt) != ESP_OK)
       break;

@@ -58,14 +58,15 @@ class PsychicEventSource : public PsychicHandler {
 
     PsychicEventSourceClient * getClient(int socket) override;
     PsychicEventSourceClient * getClient(PsychicClient *client) override;
-
-    esp_err_t handleRequest(PsychicRequest *request) override final;
-
+    void addClient(PsychicClient *client) override;
+    void removeClient(PsychicClient *client) override;
     void openCallback(PsychicClient *client) override;
     void closeCallback(PsychicClient *client) override;
 
     PsychicEventSource *onOpen(PsychicEventSourceClientCallback fn);
     PsychicEventSource *onClose(PsychicEventSourceClientCallback fn);
+
+    esp_err_t handleRequest(PsychicRequest *request) override final;
 
     void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);
 };
