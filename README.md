@@ -461,12 +461,9 @@ All of the above functions either accept simple ```char *``` string of you can c
 
 ```cpp
 //make sure our client is still connected.
-PsychicClient *client = server.getClient(socket);
+PsychicWebSocketClient *client = websocketHandler.getClient(socket);
 if (client != NULL)
-{
-  PsychicWebSocketClient ws(client);
-  ws.send("Your Message")
-}
+  client->send("Your Message")
 ```
 
 ### EventSource / SSE
@@ -513,12 +510,9 @@ All of the above functions accept a simple ```char *``` message, and optionally:
 
 ```cpp
 //make sure our client is still connected.
-PsychicClient *client = server.getClient(socket);
+PsychicEventSourceClient *client = eventSource.getClient(socket);
 if (client != NULL)
-{
-  PsychicEventSourceClient es(client);
-  es.send("Your Event")
-}
+  client->send("Your Event")
 ```
 
 ### HTTPS / SSL
