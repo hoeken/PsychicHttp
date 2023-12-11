@@ -460,8 +460,8 @@ void setup()
       client->sendMessage("Hello!");
     });
     websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
-        Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char *)frame->payload);
-        return request->reply(frame);
+      Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char *)frame->payload);
+      return request->reply(frame);
     });
     websocketHandler.onClose([](PsychicWebSocketClient *client) {
       Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
