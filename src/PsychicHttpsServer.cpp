@@ -9,6 +9,7 @@ PsychicHttpsServer::PsychicHttpsServer() : PsychicHttpServer()
   ssl_config.httpd.uri_match_fn = httpd_uri_match_wildcard;
   ssl_config.httpd.global_user_ctx = this;
   ssl_config.httpd.global_user_ctx_free_fn = destroy;
+  ssl_config.httpd.max_uri_handlers = 20;
 
   // each SSL connection takes about 45kb of heap
   // a barebones sketch with PsychicHttp has ~150kb of heap available

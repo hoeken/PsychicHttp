@@ -23,6 +23,7 @@ PsychicHttpServer::PsychicHttpServer() :
   config.uri_match_fn = httpd_uri_match_wildcard;
   config.global_user_ctx = this;
   config.global_user_ctx_free_fn = destroy;
+  config.max_uri_handlers = 20;
 
   #ifdef ENABLE_ASYNC
     config.lru_purge_enable = true;
@@ -219,7 +220,7 @@ esp_err_t PsychicHttpServer::openCallback(httpd_handle_t hd, int sockfd)
 {
   ESP_LOGI(PH_TAG, "New client connected %d", sockfd);
 
-  //do we have a callback attached?
+  //get our global server reference
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
 
   //lookup our client
