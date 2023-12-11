@@ -280,6 +280,12 @@ void setup()
     //api - parameters passed in via query eg. /api/endpoint?foo=bar
     server.on("/api", HTTP_GET, [](PsychicRequest *request)
     {
+      //showcase some of the variables
+      Serial.println(request->host());
+      Serial.println(request->uri());
+      Serial.println(request->path());
+      Serial.println(request->queryString());
+
       //create a response object
       StaticJsonDocument<128> output;
       output["msg"] = "status";

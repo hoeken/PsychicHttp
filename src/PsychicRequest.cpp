@@ -170,11 +170,19 @@ const String PsychicRequest::methodStr() {
   return String(http_method_str((http_method)this->_req->method));
 }
 
+const String PsychicRequest::path() {
+  int index = _uri.indexOf("?");
+  if(index == -1)
+    return _uri;
+  else
+    return _uri.substring(0, index);  
+}
+
 const String& PsychicRequest::uri() {
   return this->_uri;
 }
 
-const String PsychicRequest::queryString() {
+const String& PsychicRequest::query() {
   return this->_query;
 }
 

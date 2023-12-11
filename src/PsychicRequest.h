@@ -63,16 +63,19 @@ class PsychicRequest {
     bool hasCookie(const char * key);
     const String getCookie(const char * key);
 
-    http_method method();
-    const String methodStr();
-    const String& uri();
-    const String& url() { return uri(); }
-    const String host();
-    const String contentType();
-    size_t contentLength();
-    const String& body();
+    http_method method();       // returns the HTTP method used as enum value (eg. HTTP_GET)
+    const String methodStr();   // returns the HTTP method used as a string (eg. "GET")
+    const String path();        // returns the request path (eg /page?foo=bar returns "/page")
+    const String& uri();        // returns the full request uri (eg /page?foo=bar)
+    const String& query();      // returns the request query data (eg /page?foo=bar returns "foo=bar")
+    const String host();        // returns the requested host (request to http://psychic.local/foo will return "psychic.local")
+    const String contentType(); // returns the Content-Type header value
+    size_t contentLength();     // returns the Content-Length header value
+    const String& body();       // returns the body of the request
     const ContentDisposition getContentDisposition();
-    const String queryString();
+
+    const String& queryString() { return query(); }  //compatability function.  same as query()
+    const String& url() { return uri(); }            //compatability function.  same as uri()
 
     void loadParams();
     PsychicWebParameter * addParam(PsychicWebParameter *param);
