@@ -37,8 +37,6 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
   //okay, pass on to our callback.
   if (this->_requestCallback != NULL)
     err = this->_requestCallback(request);
-  else
-    err = request->reply(500, "text/html", "No onRequest callback specififed.");
 
   return err;
 }
