@@ -3,11 +3,6 @@
 
 #include "PsychicCore.h"
 
-struct HTTPHeader {
-  char * field;
-  char * value;
-};
-
 class PsychicRequest;
 
 class PsychicResponse

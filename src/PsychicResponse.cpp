@@ -84,7 +84,11 @@ esp_err_t PsychicResponse::send()
   sprintf(_status, "%u %s", _code, http_status_reason(_code));
   httpd_resp_set_status(_request->request(), _status);
 
-  //get our headers out of the way first
+  //get our global headers out of the way first
+  for (HTTPHeader header : DefaultHeaders::Instance().getHeaders())
+    httpd_resp_set_hdr(_request->request(), header.field, header.value);
+
+  //now do our individual headers
   for (HTTPHeader header : _headers)
     httpd_resp_set_hdr(_request->request(), header.field, header.value);
 

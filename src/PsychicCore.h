@@ -48,4 +48,48 @@ typedef std::function<bool(PsychicRequest *request)> PsychicRequestFilterFunctio
 //client connect callback
 typedef std::function<void(PsychicClient *client)> PsychicClientCallback;
 
+
+struct HTTPHeader {
+  char * field;
+  char * value;
+};
+
+class DefaultHeaders {
+  std::list<HTTPHeader> _headers;
+
+public:
+  DefaultHeaders() {}
+
+  void addHeader(const String& field, const String& value)
+  {
+    addHeader(field.c_str(), value.c_str());
+  }
+
+  void addHeader(const char * field, const char * value)
+  {
+    HTTPHeader header;
+
+    //these are just going to stick around forever.
+    header.field =(char *)malloc(strlen(field)+1);
+    header.value = (char *)malloc(strlen(value)+1);
+
+    strlcpy(header.field, field, strlen(field)+1);
+    strlcpy(header.value, value, strlen(value)+1);
+
+    _headers.push_back(header);
+  }
+
+  const std::list<HTTPHeader>& getHeaders() { return _headers; }
+
+  //delete the copy constructor, singleton class
+  DefaultHeaders(DefaultHeaders const &) = delete;
+  DefaultHeaders &operator=(DefaultHeaders const &) = delete;
+
+  //single static class interface
+  static DefaultHeaders &Instance() {
+    static DefaultHeaders instance;
+    return instance;
+  }
+};
+
 #endif //PsychicCore_h

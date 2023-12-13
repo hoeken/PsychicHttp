@@ -590,26 +590,23 @@ ArduinoMongoose is a good alternative, although the latency issues when it gets 
 # Roadmap
 
 ## v1.1: Event Source + Handlers
-    * Testing
-        * inspect the code for memory leaks and other issues
-        * run the client test scripts to completion
-        * run loadtest benchmarks
-    * Docs
-        * add the flowcharts
-        * write about server + options
-            * on
-            * serveStatic
-            * onOpen/onClose
-        * write about handlers
-            * write about handler specific callbacks
-        * write about enabling SSL
-        * write about websocket/eventsource clients
+
+* Fix all outstanding issues on Github
+* Another pass over the docs
+  * DefaultHeaders
+  
 
 ## v1.2: ESPAsyncWebserver Parity
-    * templating system
-    * rewrite
-    * regex url matching
-    * What else are we missing?
+
+* HTTP_ANY support (by abusing httpd_req_handle_err)
+  * Issue: it would log a warning on every request (httpd_uri.c:298)
+  * Issue: req->user_ctx is not passed in. (httpd_uri.c:309)
+  * Websocket support assumes an endpoint with matching url / method (httpd_uri.c:312)
+
+* templating system
+* rewrite
+* regex url matching
+* What else are we missing?
 
 ## Longterm Wants
 

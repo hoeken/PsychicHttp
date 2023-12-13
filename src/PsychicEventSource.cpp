@@ -163,11 +163,18 @@ PsychicEventSourceResponse::PsychicEventSourceResponse(PsychicRequest *request)
 
 esp_err_t PsychicEventSourceResponse::send() {
 
+  //build our main header
   String out = String();
   out.concat("HTTP/1.1 200 OK\r\n");
   out.concat("Content-Type: text/event-stream\r\n");
   out.concat("Cache-Control: no-cache\r\n");
   out.concat("Connection: keep-alive\r\n");
+
+  //get our global headers out of the way first
+  for (HTTPHeader header : DefaultHeaders::Instance().getHeaders())
+    out.concat(String(header.field) + ": " + String(header.value) + "\r\n");
+
+  //separator
   out.concat("\r\n");
 
   int result;

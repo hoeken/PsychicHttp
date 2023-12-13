@@ -218,6 +218,8 @@ void setup()
       server.listen(80);
     #endif
 
+    DefaultHeaders::Instance().addHeader("Server", "PsychicHttp");
+
     //serve static files from LittleFS/www on / only to clients on same wifi network
     //this is where our /index.html file lives
     server.serveStatic("/", LittleFS, "/www/")->setFilter(ON_STA_FILTER);
