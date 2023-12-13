@@ -2,6 +2,7 @@
 #define PsychicResponse_h
 
 #include "PsychicCore.h"
+#include "time.h"
 
 class PsychicRequest;
 
@@ -27,7 +28,8 @@ class PsychicResponse
     int64_t getContentLength(int64_t contentLength) { return _contentLength; }
 
     void addHeader(const char *field, const char *value);
-    void setCookie(const char *key, const char *value, unsigned long max_age = 60*60*24*30);
+
+    void setCookie(const char *key, const char *value, unsigned long max_age = 60*60*24*30, const char *extras = "");
 
     void setContent(const char *content);
     void setContent(const uint8_t *content, size_t len);

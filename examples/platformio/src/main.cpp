@@ -18,6 +18,7 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
+#include <esp_sntp.h>
 #include "_secret.h"
 #include <PsychicHttp.h>
 //#include <PsychicHttpsServer.h> //uncomment this to enable HTTPS / SSL
@@ -58,6 +59,27 @@ const char *local_hostname = "psychic";
 #endif
 PsychicWebSocketHandler websocketHandler;
 PsychicEventSource eventSource;
+
+//NTP server stuff
+const char *ntpServer1 = "pool.ntp.org";
+const char *ntpServer2 = "time.nist.gov";
+const long gmtOffset_sec = 0;
+const int daylightOffset_sec = 0;
+struct tm timeinfo;
+
+// Callback function (gets called when time adjusts via NTP)
+void timeAvailable(struct timeval *t)
+{
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Failed to obtain time");
+    return;
+  }
+
+  Serial.print("NTP update: ");
+  char buffer[40];
+  strftime(buffer, 40, "%FT%T%z", &timeinfo);
+  Serial.println(buffer);
+}
 
 bool connectToWifi()
 {
@@ -143,6 +165,11 @@ void setup()
   // To debug, please enable Core Debug Level to Verbose
   if (connectToWifi())
   {
+    //Setup our NTP to get the current time.
+    sntp_set_time_sync_notification_cb(timeAvailable);
+    sntp_servermode_dhcp(1);  // (optional)
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
+
     //set up our esp32 to listen on the local_hostname.local domain
     if (!MDNS.begin(local_hostname)) {
       Serial.println("Error starting mDNS");

@@ -35,16 +35,38 @@ void PsychicResponse::addHeader(const char *field, const char *value)
   _headers.push_back(header);
 }
 
-void PsychicResponse::setCookie(const char *name, const char *value, unsigned long max_age)
+void PsychicResponse::setCookie(const char *name, const char *value, unsigned long secondsFromNow, const char *extras)
 {
-  String output;
-  String v = urlEncode(value);
-  output = String(name) + "=" + v;
-  output += "; SameSite=Lax";
-  output += "; Max-Age=" + String(max_age);
+  time_t now = time(nullptr);
 
+  String output;
+  output = urlEncode(name) + "=" + urlEncode(value);
+
+  //if current time isn't modern, default to using max age
+  if (now < 1700000000)
+    output += "; Max-Age=" + String(secondsFromNow);    
+  //otherwise, set an expiration date
+  else
+  {
+    time_t expirationTimestamp = now + secondsFromNow;
+
+    // Convert the expiration timestamp to a formatted string for the "expires" attribute
+    struct tm* tmInfo = gmtime(&expirationTimestamp);
+    char expires[30];
+    strftime(expires, sizeof(expires), "%a, %d %b %Y %H:%M:%S GMT", tmInfo);
+    output += "; Expires=" + String(expires);
+  }
+
+  //did we get any extras?
+  if (strlen(extras))
+    output += "; " + String(extras);
+
+  //okay, add it in.
   addHeader("Set-Cookie", output.c_str());
 }
+
+  // time_t now = time(nullptr);
+  // // Set the cookie with the "expires" attribute
 
 void PsychicResponse::setCode(int code)
 {
