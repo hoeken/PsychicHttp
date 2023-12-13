@@ -3,6 +3,11 @@
 
 #define PH_TAG "psychic"
 
+//version numbers
+#define PSYCHIC_HTTP_VERSION_MAJOR 1
+#define PSYCHIC_HTTP_VERSION_MINOR 1
+#define PSYCHIC_HTTP_VERSION_PATCH 0
+
 #ifndef MAX_COOKIE_SIZE
   #define MAX_COOKIE_SIZE 512
 #endif
