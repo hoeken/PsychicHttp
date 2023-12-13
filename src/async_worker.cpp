@@ -1,14 +1,11 @@
-#ifdef ENABLE_ASYNC
 #include "async_worker.h"
 
 bool is_on_async_worker_thread(void)
 {
     // is our handle one of the known async handles?
     TaskHandle_t handle = xTaskGetCurrentTaskHandle();
-    for (int i = 0; i < ASYNC_WORKER_COUNT; i++)
-    {
-        if (worker_handles[i] == handle)
-        {
+    for (int i = 0; i < ASYNC_WORKER_COUNT; i++) {
+        if (worker_handles[i] == handle) {
             return true;
         }
     }
@@ -19,10 +16,9 @@ bool is_on_async_worker_thread(void)
 esp_err_t submit_async_req(httpd_req_t *req, httpd_req_handler_t handler)
 {
     // must create a copy of the request that we own
-    httpd_req_t *copy = NULL;
+    httpd_req_t* copy = NULL;
     esp_err_t err = httpd_req_async_handler_begin(req, &copy);
-    if (err != ESP_OK)
-    {
+    if (err != ESP_OK) {
         return err;
     }
 
@@ -38,8 +34,7 @@ esp_err_t submit_async_req(httpd_req_t *req, httpd_req_handler_t handler)
 
     // counting semaphore: if success, we know 1 or
     // more asyncReqTaskWorkers are available.
-    if (xSemaphoreTake(worker_ready_count, ticks) == false)
-    {
+    if (xSemaphoreTake(worker_ready_count, ticks) == false) {
         ESP_LOGE(PH_TAG, "No workers are available");
         httpd_req_async_handler_complete(copy); // cleanup
         return ESP_FAIL;
@@ -47,8 +42,7 @@ esp_err_t submit_async_req(httpd_req_t *req, httpd_req_handler_t handler)
 
     // Since worker_ready_count > 0 the queue should already have space.
     // But lets wait up to 100ms just to be safe.
-    if (xQueueSend(async_req_queue, &async_req, pdMS_TO_TICKS(100)) == false)
-    {
+    if (xQueueSend(async_req_queue, &async_req, pdMS_TO_TICKS(100)) == false) {
         ESP_LOGE(PH_TAG, "worker queue is full");
         httpd_req_async_handler_complete(copy); // cleanup
         return ESP_FAIL;
@@ -90,6 +84,7 @@ void async_req_worker_task(void *p)
 
 void start_async_req_workers(void)
 {
+
     // counting semaphore keeps track of available workers
     worker_ready_count = xSemaphoreCreateCounting(
         ASYNC_WORKER_COUNT,  // Max Count
@@ -122,7 +117,6 @@ void start_async_req_workers(void)
         }
     }
 }
-
 
 /****
  * 
@@ -207,5 +201,3 @@ esp_err_t httpd_req_async_handler_complete(httpd_req_t *r)
 
     return ESP_OK;
 }
-
-#endif

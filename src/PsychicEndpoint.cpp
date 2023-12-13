@@ -44,7 +44,6 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t *req)
 {
   #ifdef ENABLE_ASYNC
     if (is_on_async_worker_thread() == false) {
-      // submit
       if (submit_async_req(req, PsychicEndpoint::requestCallback) == ESP_OK) {
         return ESP_OK;
       } else {

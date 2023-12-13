@@ -86,6 +86,10 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest *request)
 
   while (remaining > 0)
   {
+    #ifdef ENABLE_ASYNC
+      httpd_sess_update_lru_counter(request->server()->server, request->client()->socket());
+    #endif
+
     ESP_LOGI(PH_TAG, "Remaining size : %d", remaining);
 
     /* Receive the file part by part into a buffer */
@@ -150,6 +154,10 @@ esp_err_t PsychicUploadHandler::_multipartUploadHandler(PsychicRequest *request)
 
   while (remaining > 0)
   {
+    #ifdef ENABLE_ASYNC
+      httpd_sess_update_lru_counter(request->server()->server, request->client()->socket());
+    #endif
+
     ESP_LOGI(PH_TAG, "Remaining size : %d", remaining);
 
     /* Receive the file part by part into a buffer */

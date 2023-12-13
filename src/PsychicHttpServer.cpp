@@ -26,14 +26,13 @@ PsychicHttpServer::PsychicHttpServer() :
   config.max_uri_handlers = 20;
 
   #ifdef ENABLE_ASYNC
-    config.lru_purge_enable = true;
-
     // It is advisable that httpd_config_t->max_open_sockets > MAX_ASYNC_REQUESTS
     // Why? This leaves at least one socket still available to handle
     // quick synchronous requests. Otherwise, all the sockets will
     // get taken by the long async handlers, and your server will no
     // longer be responsive.
-    //config.max_open_sockets = ASYNC_WORKER_COUNT + 1;
+    config.max_open_sockets = ASYNC_WORKER_COUNT + 1;
+    config.lru_purge_enable = true;
   #endif
 }
 
