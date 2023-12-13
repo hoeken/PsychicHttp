@@ -4,6 +4,10 @@
 #include "PsychicCore.h"
 #include "PsychicHttpServer.h"
 
+#ifdef ENABLE_ASYNC
+  #include "async_worker.h"
+#endif
+
 class PsychicEndpoint
 {
   friend PsychicHttpServer;

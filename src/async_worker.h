@@ -3,8 +3,10 @@
 
 #ifdef ENABLE_ASYNC
 
+  #include "PsychicCore.h"
   #include "freertos/FreeRTOS.h"
   #include "freertos/semphr.h"
+  //#include <esp_http_server.h>
 
   #define ASYNC_WORKER_TASK_PRIORITY      5
   #define ASYNC_WORKER_TASK_STACK_SIZE    2048
@@ -32,6 +34,9 @@
   esp_err_t submit_async_req(httpd_req_t *req, httpd_req_handler_t handler);
   void async_req_worker_task(void *p);
   void start_async_req_workers(void);
+
+  esp_err_t httpd_req_async_handler_begin(httpd_req_t *r, httpd_req_t **out);
+  esp_err_t httpd_req_async_handler_complete(httpd_req_t *r);
 
 #endif
 #endif //async_worker_h
