@@ -250,6 +250,7 @@ void setup()
     //serve static files from LittleFS/www on / only to clients on same wifi network
     //this is where our /index.html file lives
     server.serveStatic("/", LittleFS, "/www/")->setFilter(ON_STA_FILTER);
+    //server.serveStatic("/", LittleFS, "/www/")->setCacheControl("max-age=60");
 
     //serve static files from LittleFS/www-ap on / only to clients on SoftAP
     //this is where our /index.html file lives
