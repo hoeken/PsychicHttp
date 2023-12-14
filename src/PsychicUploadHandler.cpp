@@ -43,6 +43,9 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest *request)
     return ESP_FAIL;
   }
 
+  //we might want to access some of these params
+  request->loadParams();
+
   //TODO: support for the 100 header.  not sure if we can do it.
   // if (request->header("Expect").equals("100-continue"))
   // {
