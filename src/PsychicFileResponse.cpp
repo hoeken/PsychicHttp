@@ -125,13 +125,7 @@ esp_err_t PsychicFileResponse::send()
       return ESP_FAIL;
     }
 
-    //get our global headers out of the way first
-    for (HTTPHeader header : DefaultHeaders::Instance().getHeaders())
-      httpd_resp_set_hdr(_request->request(), header.field, header.value);
-
-    //now do our individual headers
-    for (HTTPHeader header : _headers)
-      httpd_resp_set_hdr(this->_request->request(), header.field, header.value);
+    this->sendHeaders();
 
     size_t chunksize;
     do {
@@ -139,21 +133,9 @@ esp_err_t PsychicFileResponse::send()
         chunksize = _content.readBytes(chunk, FILE_CHUNK_SIZE);
         if (chunksize > 0)
         {
-          /* Send the buffer contents as HTTP response chunk */
-          err = httpd_resp_send_chunk(this->_request->request(), chunk, chunksize);
+          err = this->sendChunk((uint8_t *)chunk, chunksize);
           if (err != ESP_OK)
-          {
-            ESP_LOGE(PH_TAG, "File sending failed (%s)", esp_err_to_name(err));
-
-            /* Abort sending file */
-            httpd_resp_sendstr_chunk(this->_request->request(), NULL);
-
-            /* Respond with 500 Internal Server Error */
-            httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
-
-            //bail
             break;
-          }
         }
 
         /* Keep looping till the whole file is sent */
@@ -165,21 +147,11 @@ esp_err_t PsychicFileResponse::send()
     if (err == ESP_OK)
     {
       ESP_LOGI(PH_TAG, "File sending complete");
-
-      /* Respond with an empty chunk to signal HTTP response completion */
-      httpd_resp_send_chunk(this->_request->request(), NULL, 0);
+      this->finishChunking();
     }
 
     /* Close file after sending complete */
     _content.close();
-
-    //clean up our header variables.  we have to do this since httpd_resp_send doesn't store copies
-    for (HTTPHeader header : _headers)
-    {
-      free(header.field);
-      free(header.value);
-    }
-    _headers.clear();
   }
 
   return err;

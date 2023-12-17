@@ -38,6 +38,9 @@ class PsychicResponse
     size_t getContentLength();
 
     virtual esp_err_t send();
+    void sendHeaders();
+    esp_err_t sendChunk(uint8_t *chunk, size_t chunksize);
+    esp_err_t finishChunking();
 };
 
 #endif // PsychicResponse_h

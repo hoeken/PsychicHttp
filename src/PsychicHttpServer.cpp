@@ -110,16 +110,16 @@ void PsychicHttpServer::removeHandler(PsychicHandler *handler){
   _handlers.remove(handler);
 }
 
-PsychicEndpoint *PsychicHttpServer::on(const char* uri) {
+PsychicEndpoint* PsychicHttpServer::on(const char* uri) {
   return on(uri, HTTP_GET);
 }
 
-PsychicEndpoint *PsychicHttpServer::on(const char* uri, PsychicHttpRequestCallback fn)
+PsychicEndpoint* PsychicHttpServer::on(const char* uri, PsychicHttpRequestCallback fn)
 {
   return on(uri, HTTP_GET, fn);
 }
 
-PsychicEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestCallback fn)
+PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestCallback fn)
 {
   //these basic requests need a basic web handler
   PsychicWebHandler *handler = new PsychicWebHandler();
@@ -128,19 +128,19 @@ PsychicEndpoint *PsychicHttpServer::on(const char* uri, http_method method, Psyc
   return on(uri, method, handler);
 }
 
-PsychicEndpoint *PsychicHttpServer::on(const char* uri, http_method method)
+PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method)
 {
   PsychicWebHandler *handler = new PsychicWebHandler();
 
   return on(uri, method, handler);
 }
 
-PsychicEndpoint *PsychicHttpServer::on(const char* uri, PsychicHandler *handler)
+PsychicEndpoint* PsychicHttpServer::on(const char* uri, PsychicHandler *handler)
 {
   return on(uri, HTTP_GET, handler);
 }
 
-PsychicEndpoint *PsychicHttpServer::on(const char* uri, http_method method, PsychicHandler *handler)
+PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method, PsychicHandler *handler)
 {
   //make our endpoint
   PsychicEndpoint *endpoint = new PsychicEndpoint(this, method, uri);

@@ -14,6 +14,7 @@
 #include "PsychicUploadHandler.h"
 #include "PsychicWebSocket.h"
 #include "PsychicEventSource.h"
+#include "PsychicJson.h"
 
 #ifdef ENABLE_ASYNC
   #include "async_worker.h"

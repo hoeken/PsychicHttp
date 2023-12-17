@@ -249,8 +249,9 @@ void setup()
 
     //serve static files from LittleFS/www on / only to clients on same wifi network
     //this is where our /index.html file lives
-    server.serveStatic("/", LittleFS, "/www/")->setFilter(ON_STA_FILTER);
-    //server.serveStatic("/", LittleFS, "/www/")->setCacheControl("max-age=60");
+    PsychicStaticFileHandler* handler = server.serveStatic("/", LittleFS, "/www/");
+    handler->setFilter(ON_STA_FILTER);
+    handler->setCacheControl("max-age=60");
 
     //serve static files from LittleFS/www-ap on / only to clients on SoftAP
     //this is where our /index.html file lives
@@ -468,17 +469,22 @@ void setup()
     //gets called after upload has been handled
     multipartHandler->onRequest([](PsychicRequest *request)
     {
-      PsychicWebParameter *file = request->getParam("file_upload");
+      if (request->hasParam("file_upload"))
+      {
+        PsychicWebParameter *file = request->getParam("file_upload");
 
-      String url = "/" + file->value();
-      String output;
+        String url = "/" + file->value();
+        String output;
 
-      output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
-      output += "Bytes: " + String(file->size()) + "<br/>\n";
-      output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
-      output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
-      
-      return request->reply(output.c_str());
+        output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
+        output += "Bytes: " + String(file->size()) + "<br/>\n";
+        output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+        output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+        
+        return request->reply(output.c_str());
+      }
+      else
+        request->reply("No upload.");
     });
 
     //wildcard basic file upload - POST to /upload/filename.ext
@@ -507,6 +513,44 @@ void setup()
       Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
     });
     server.on("/events", &eventSource);
+
+    //JsonResponse example
+    server.on("/json", HTTP_GET, [](PsychicRequest *request)
+    {
+      PsychicJsonResponse response = PsychicJsonResponse(request);
+
+      char key[16];
+      char value[32];
+      JsonObject root = response.getRoot();
+      for (int i=0; i<100; i++)
+      {
+        sprintf(key, "key%d", i);
+        sprintf(value, "value is %d", i);
+        root[key] = value;
+      }
+
+      return response.send();
+    });
+
+    //add in a json handler
+    PsychicJsonHandler* jsonHandler = new PsychicJsonHandler();
+    jsonHandler->onRequest([](PsychicRequest *request, JsonVariant &json)
+    {
+      JsonObject jsonObj = json.as<JsonObject>();
+
+      //what did we get?
+      String output;
+      serializeJson(jsonObj, output);
+      Serial.println(output);
+
+      PsychicJsonResponse response = PsychicJsonResponse(request);
+      JsonObject root = response.getRoot();
+      root["foo"] = "bar";
+
+      return response.send();
+    });
+
+    server.on("/rest/endpoint", HTTP_POST, jsonHandler);
   }
 }
 
