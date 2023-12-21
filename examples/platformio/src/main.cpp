@@ -21,7 +21,7 @@
 #include <esp_sntp.h>
 #include "_secret.h"
 #include <PsychicHttp.h>
-//#include <PsychicHttpsServer.h> //uncomment this to enable HTTPS / SSL
+#include <PsychicHttpsServer.h> //comment this out to disable HTTPS / SSL
 
 #ifndef WIFI_SSID
   #error "You need to enter your wifi credentials. Rename secret.h to _secret.h and enter your credentials there."
@@ -484,7 +484,7 @@ void setup()
         return request->reply(output.c_str());
       }
       else
-        request->reply("No upload.");
+        return request->reply("No upload.");
     });
 
     //wildcard basic file upload - POST to /upload/filename.ext
