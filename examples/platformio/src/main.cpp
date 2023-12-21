@@ -21,7 +21,7 @@
 #include <esp_sntp.h>
 #include "_secret.h"
 #include <PsychicHttp.h>
-#include <PsychicHttpsServer.h> //comment this out to disable HTTPS / SSL
+//#include <PsychicHttpsServer.h> //uncomment this to enable HTTPS / SSL
 
 #ifndef WIFI_SSID
   #error "You need to enter your wifi credentials. Rename secret.h to _secret.h and enter your credentials there."
