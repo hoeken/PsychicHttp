@@ -9,9 +9,6 @@ class PsychicEndpoint;
 class PsychicHandler;
 class PsychicStaticFileHandler;
 
-//callback definitions
-typedef std::function<esp_err_t(PsychicRequest *request)> PsychicHttpRequestCallback;
-
 class PsychicHttpServer
 {
   protected:
@@ -59,10 +56,12 @@ class PsychicHttpServer
 
     PsychicEndpoint* on(const char* uri);
     PsychicEndpoint* on(const char* uri, http_method method);
-    PsychicEndpoint* on(const char* uri, PsychicHttpRequestCallback onRequest);
-    PsychicEndpoint* on(const char* uri, http_method method, PsychicHttpRequestCallback onRequest);
     PsychicEndpoint* on(const char* uri, PsychicHandler *handler);
     PsychicEndpoint* on(const char* uri, http_method method, PsychicHandler *handler);
+    PsychicEndpoint* on(const char* uri, PsychicHttpRequestCallback onRequest);
+    PsychicEndpoint* on(const char* uri, http_method method, PsychicHttpRequestCallback onRequest);
+    PsychicEndpoint* on(const char* uri, PsychicJsonRequestCallback onRequest);
+    PsychicEndpoint* on(const char* uri, http_method method, PsychicJsonRequestCallback onRequest);
 
     static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
     static esp_err_t defaultNotFoundHandler(PsychicRequest *request);

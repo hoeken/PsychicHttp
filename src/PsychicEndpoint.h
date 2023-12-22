@@ -2,7 +2,8 @@
 #define PsychicEndpoint_h
 
 #include "PsychicCore.h"
-#include "PsychicHttpServer.h"
+
+class PsychicHandler;
 
 #ifdef ENABLE_ASYNC
   #include "async_worker.h"

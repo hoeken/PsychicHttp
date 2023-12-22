@@ -1,4 +1,5 @@
 #include "PsychicEndpoint.h"
+#include "PsychicHttpServer.h"
 
 PsychicEndpoint::PsychicEndpoint() :
   _server(NULL),

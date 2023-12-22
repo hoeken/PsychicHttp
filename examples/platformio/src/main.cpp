@@ -249,6 +249,7 @@ void setup()
 
     //serve static files from LittleFS/www on / only to clients on same wifi network
     //this is where our /index.html file lives
+    // curl -i http://psychic.local/
     PsychicStaticFileHandler* handler = server.serveStatic("/", LittleFS, "/www/");
     handler->setFilter(ON_STA_FILTER);
     handler->setCacheControl("max-age=60");
@@ -259,9 +260,11 @@ void setup()
 
     //serve static files from LittleFS/img on /img
     //it's more efficient to serve everything from a single www directory, but this is also possible.
+    // curl -i http://psychic.local/img/request_flow.png
     server.serveStatic("/img", LittleFS, "/img/");
 
     //you can also serve single files
+    // curl -i http://psychic.local/myfile.txt
     server.serveStatic("/myfile.txt", LittleFS, "/custom.txt");
 
     //example callback everytime a connection is opened
@@ -275,40 +278,39 @@ void setup()
     });
 
     //api - json message passed in as post body
-    server.on("/api", HTTP_POST, [](PsychicRequest *request)
+    // curl -i -X POST -H "Content-Type: application/json" -d '{"foo":"bar"}' http://psychic.local/api
+    server.on("/api", HTTP_POST, [](PsychicRequest *request, JsonVariant &json)
     {
-      //load our JSON request
-      StaticJsonDocument<1024> json;
-      String body = request->body();
-      DeserializationError err = deserializeJson(json, body);
+      JsonObject input = json.as<JsonObject>();
 
       //create our response json
-      StaticJsonDocument<128> output;
+      PsychicJsonResponse response = PsychicJsonResponse(request);
+      JsonObject output = response.getRoot();
+
       output["msg"] = "status";
       output["status"] = "success";
       output["millis"] = millis();
 
       //work with some params
-      if (json.containsKey("foo"))
+      if (input.containsKey("foo"))
       {
-        String foo = json["foo"];
+        String foo = input["foo"];
         output["foo"] = foo;
       }
-
-      //serialize and return
-      String jsonBuffer;
-      serializeJson(output, jsonBuffer);
-      return request->reply(200, "application/json", jsonBuffer.c_str());
+  
+      return response.send();
     });
 
-    //api - parameters passed in via query eg. /api/endpoint?foo=bar
+    //ip - get info about the client
+    // curl -i http://psychic.local/ip
     server.on("/ip", HTTP_GET, [](PsychicRequest *request)
     {
       String output = "Your IP is: " + request->client()->remoteIP().toString();
       return request->reply(output.c_str());
     });
 
-    //api - parameters passed in via query eg. /api/endpoint?foo=bar
+    //api - parameters passed in via query eg. /api?foo=bar
+    // curl -i 'http://psychic.local/api?foo=bar'
     server.on("/api", HTTP_GET, [](PsychicRequest *request)
     {
       //showcase some of the variables
@@ -318,7 +320,10 @@ void setup()
       Serial.println(request->queryString());
 
       //create a response object
-      StaticJsonDocument<128> output;
+      //create our response json
+      PsychicJsonResponse response = PsychicJsonResponse(request);
+      JsonObject output = response.getRoot();
+
       output["msg"] = "status";
       output["status"] = "success";
       output["millis"] = millis();
@@ -326,23 +331,41 @@ void setup()
       //work with some params
       if (request->hasParam("foo"))
       {
-        String foo = request->getParam("foo")->name();
+        String foo = request->getParam("foo")->value();
         output["foo"] = foo;
       }
 
-      //serialize and return
-      String jsonBuffer;
-      serializeJson(output, jsonBuffer);
-      return request->reply(200, "application/json", jsonBuffer.c_str());
+      return response.send();
     });
 
+    //JsonResponse example
+    // curl -i http://psychic.local/json
+    server.on("/json", HTTP_GET, [](PsychicRequest *request)
+    {
+      PsychicJsonResponse response = PsychicJsonResponse(request);
+
+      char key[16];
+      char value[32];
+      JsonObject root = response.getRoot();
+      for (int i=0; i<100; i++)
+      {
+        sprintf(key, "key%d", i);
+        sprintf(value, "value is %d", i);
+        root[key] = value;
+      }
+
+      return response.send();
+    });    
+
     //how to redirect a request
+    // curl -i  http://psychic.local/redirect
     server.on("/redirect", HTTP_GET, [](PsychicRequest *request)
     {
       return request->redirect("/alien.png");
     });
 
     //how to do basic auth
+    // curl -i --user admin:admin http://psychic.local/auth-basic
     server.on("/auth-basic", HTTP_GET, [](PsychicRequest *request)
     {
       if (!request->authenticate(app_user, app_pass))
@@ -351,6 +374,7 @@ void setup()
     });
 
     //how to do digest auth
+    // curl -i --user admin:admin http://psychic.local/auth-digest
     server.on("/auth-digest", HTTP_GET, [](PsychicRequest *request)
     {
       if (!request->authenticate(app_user, app_pass))
@@ -359,6 +383,7 @@ void setup()
     });
 
     //example of getting / setting cookies
+    // curl -i -b cookie.txt -c cookie.txt http://psychic.local/cookies
     server.on("/cookies", HTTP_GET, [](PsychicRequest *request)
     {
       PsychicResponse response(request);
@@ -379,6 +404,7 @@ void setup()
     });
 
     //example of getting POST variables
+    // curl -i -d "param1=value1&param2=value2" -X POST http://psychic.local/post
     server.on("/post", HTTP_POST, [](PsychicRequest *request)
     {
       String output;
@@ -389,6 +415,7 @@ void setup()
     });
 
     //you can set up a custom 404 handler.
+    // curl -i http://psychic.local/404
     server.onNotFound([](PsychicRequest *request)
     {
       return request->reply(404, "text/html", "Custom 404 Handler");
@@ -434,6 +461,7 @@ void setup()
     });
 
     //wildcard basic file upload - POST to /upload/filename.ext
+    // use http://psychic.local/ to test
     server.on("/upload/*", HTTP_POST, uploadHandler);
 
     //a little bit more complicated multipart form
@@ -488,9 +516,12 @@ void setup()
     });
 
     //wildcard basic file upload - POST to /upload/filename.ext
+    // use http://psychic.local/ to test
     server.on("/multipart", HTTP_POST, multipartHandler);
 
     //a websocket echo server
+    // npm install -g wscat
+    // wscat -c ws://psychic.local/ws
     websocketHandler.onOpen([](PsychicWebSocketClient *client) {
       Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
       client->sendMessage("Hello!");
@@ -505,6 +536,7 @@ void setup()
     server.on("/ws", &websocketHandler);
 
     //EventSource server
+    // curl -i -N http://psychic.local/events
     eventSource.onOpen([](PsychicEventSourceClient *client) {
       Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
       client->send("Hello user!", NULL, millis(), 1000);
@@ -513,44 +545,6 @@ void setup()
       Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
     });
     server.on("/events", &eventSource);
-
-    //JsonResponse example
-    server.on("/json", HTTP_GET, [](PsychicRequest *request)
-    {
-      PsychicJsonResponse response = PsychicJsonResponse(request);
-
-      char key[16];
-      char value[32];
-      JsonObject root = response.getRoot();
-      for (int i=0; i<100; i++)
-      {
-        sprintf(key, "key%d", i);
-        sprintf(value, "value is %d", i);
-        root[key] = value;
-      }
-
-      return response.send();
-    });
-
-    //add in a json handler
-    PsychicJsonHandler* jsonHandler = new PsychicJsonHandler();
-    jsonHandler->onRequest([](PsychicRequest *request, JsonVariant &json)
-    {
-      JsonObject jsonObj = json.as<JsonObject>();
-
-      //what did we get?
-      String output;
-      serializeJson(jsonObj, output);
-      Serial.println(output);
-
-      PsychicJsonResponse response = PsychicJsonResponse(request);
-      JsonObject root = response.getRoot();
-      root["foo"] = "bar";
-
-      return response.send();
-    });
-
-    server.on("/rest/endpoint", HTTP_POST, jsonHandler);
   }
 }
 

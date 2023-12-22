@@ -37,6 +37,7 @@
 #include "MD5Builder.h"
 #include <UrlEncode.h>
 #include "FS.h"
+#include <ArduinoJson.h>
 
 enum HTTPAuthMethod { BASIC_AUTH, DIGEST_AUTH };
 
@@ -53,6 +54,9 @@ typedef std::function<bool(PsychicRequest *request)> PsychicRequestFilterFunctio
 //client connect callback
 typedef std::function<void(PsychicClient *client)> PsychicClientCallback;
 
+//callback definitions
+typedef std::function<esp_err_t(PsychicRequest *request)> PsychicHttpRequestCallback;
+typedef std::function<esp_err_t(PsychicRequest *request, JsonVariant &json)> PsychicJsonRequestCallback;
 
 struct HTTPHeader {
   char * field;

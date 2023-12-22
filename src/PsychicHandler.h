@@ -5,6 +5,7 @@
 #include "PsychicRequest.h"
 
 class PsychicEndpoint;
+class PsychicHttpServer;
 
 /*
 * HANDLER :: Can be attached to any endpoint or as a generic request handler.

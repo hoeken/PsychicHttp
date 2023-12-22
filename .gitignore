@@ -54,3 +54,4 @@ benchmark/psychichttp/src/_secret.h
 benchmark/psychichttps/src/_secret.h
 examples/platformio/src/_secret.h
 examples/arduino/src/_secret.h
+src/cookie.txt

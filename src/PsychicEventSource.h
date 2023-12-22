@@ -21,8 +21,8 @@
 #define PsychicEventSource_H_
 
 #include "PsychicCore.h"
-#include "PsychicClient.h"
 #include "PsychicHandler.h"
+#include "PsychicClient.h"
 #include "PsychicResponse.h"
 
 class PsychicEventSource;

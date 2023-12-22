@@ -1,7 +1,7 @@
 #ifndef ChunkPrinter_h
 #define ChunkPrinter_h
 
-#include "PsychicCore.h"
+// #include "PsychicCore.h"
 #include "PsychicResponse.h"
 #include <Print.h>
 

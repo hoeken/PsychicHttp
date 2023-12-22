@@ -1,4 +1,6 @@
 #include "PsychicClient.h"
+#include "PsychicHttpServer.h"
+#include <lwip/sockets.h>
 
 PsychicClient::PsychicClient(httpd_handle_t server, int socket) :
   _server(server),
