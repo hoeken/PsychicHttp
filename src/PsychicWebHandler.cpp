@@ -2,7 +2,9 @@
 
 PsychicWebHandler::PsychicWebHandler() : 
   PsychicHandler(),
-  _requestCallback(NULL)
+  _requestCallback(NULL),
+  _onOpen(NULL),
+  _onClose(NULL)
   {}
 PsychicWebHandler::~PsychicWebHandler() {}
 
@@ -12,6 +14,11 @@ bool PsychicWebHandler::canHandle(PsychicRequest *request) {
 
 esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
 {
+  //lookup our client
+  PsychicClient *client = checkForNewClient(request->client());
+  if (client->isNew)
+    openCallback(client);
+
   /* Request body cannot be larger than a limit */
   if (request->contentLength() > request->server()->maxRequestBodySize)
   {
@@ -43,5 +50,25 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
 
 PsychicWebHandler * PsychicWebHandler::onRequest(PsychicHttpRequestCallback fn) {
   _requestCallback = fn;
+  return this;
+}
+
+void PsychicWebHandler::openCallback(PsychicClient *client) {
+  if (_onOpen != NULL)
+    _onOpen(client);
+}
+
+void PsychicWebHandler::closeCallback(PsychicClient *client) {
+  if (_onClose != NULL)
+    _onClose(getClient(client));
+}
+
+PsychicWebHandler * PsychicWebHandler::onOpen(PsychicClientCallback fn) {
+  _onOpen = fn;
+  return this;
+}
+
+PsychicWebHandler * PsychicWebHandler::onClose(PsychicClientCallback fn) {
+  _onClose = fn;
   return this;
 }

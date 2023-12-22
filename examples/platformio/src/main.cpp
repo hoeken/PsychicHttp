@@ -269,12 +269,12 @@ void setup()
 
     //example callback everytime a connection is opened
     server.onOpen([](PsychicClient *client) {
-      Serial.printf("[http] connection #%u connected from %s\n", client->socket(), client->localIP().toString());
+      Serial.printf("[http] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
     });
 
     //example callback everytime a connection is closed
     server.onClose([](PsychicClient *client) {
-      Serial.printf("[http] connection #%u closed from %s\n", client->socket(), client->localIP().toString());
+      Serial.printf("[http] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
     });
 
     //api - json message passed in as post body
@@ -308,6 +308,23 @@ void setup()
       String output = "Your IP is: " + request->client()->remoteIP().toString();
       return request->reply(output.c_str());
     });
+
+    //client connect/disconnect to a url
+    // curl -i http://psychic.local/handler
+    PsychicWebHandler *connectionHandler = new PsychicWebHandler();
+    connectionHandler->onRequest([](PsychicRequest *request)
+    {
+      return request->reply("OK");
+    });
+    connectionHandler->onOpen([](PsychicClient *client) {
+      Serial.printf("[handler] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
+    });
+    connectionHandler->onClose([](PsychicClient *client) {
+      Serial.printf("[handler] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
+    });
+
+    //add it to our server
+    server.on("/handler", connectionHandler);
 
     //api - parameters passed in via query eg. /api?foo=bar
     // curl -i 'http://psychic.local/api?foo=bar'
