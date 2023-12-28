@@ -55,3 +55,5 @@ benchmark/psychichttps/src/_secret.h
 examples/platformio/src/_secret.h
 examples/arduino/src/_secret.h
 src/cookie.txt
+examples/websockets/lib/PsychicHttp
+examples/websockets/src/_secret.h
