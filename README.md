@@ -395,7 +395,7 @@ server.on("/ip", [](PsychicRequest *request)
    String filename = "/path/to/file";
    PsychicFileResponse response(request, LittleFS, filename);
 
-   return response->send();
+   return response.send();
 });
 PsychicFileResponse(PsychicRequest *request, FS &fs, const String& path)
 ```
