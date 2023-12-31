@@ -21,8 +21,7 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FS &fs, const 
   if(contentType == "")
     _setContentType(path);
   else
-    _contentType = contentType;
-  setContentType(_contentType.c_str());
+    setContentType(contentType.c_str());
 
   int filenameStart = path.lastIndexOf('/') + 1;
   char buf[26+path.length()-filenameStart];
@@ -55,8 +54,7 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, File content, 
   if(contentType == "")
     _setContentType(path);
   else
-    _contentType = contentType;
-  setContentType(_contentType.c_str());
+    setContentType(contentType.c_str());
 
   int filenameStart = path.lastIndexOf('/') + 1;
   char buf[26+path.length()-filenameStart];
@@ -77,6 +75,8 @@ PsychicFileResponse::~PsychicFileResponse()
 }
 
 void PsychicFileResponse::_setContentType(const String& path){
+  const char *_contentType;
+	
   if (path.endsWith(".html")) _contentType = "text/html";
   else if (path.endsWith(".htm")) _contentType = "text/html";
   else if (path.endsWith(".css")) _contentType = "text/css";
@@ -96,6 +96,8 @@ void PsychicFileResponse::_setContentType(const String& path){
   else if (path.endsWith(".zip")) _contentType = "application/zip";
   else if(path.endsWith(".gz")) _contentType = "application/x-gzip";
   else _contentType = "text/plain";
+  
+  setContentType(_contentType);
 }
 
 esp_err_t PsychicFileResponse::send()
