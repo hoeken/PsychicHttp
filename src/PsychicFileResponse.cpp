@@ -6,13 +6,11 @@
 PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FS &fs, const String& path, const String& contentType, bool download)
  : PsychicResponse(request) {
   //_code = 200;
-  _path = path;
+  String _path(path);
 
   if(!download && !fs.exists(_path) && fs.exists(_path+".gz")){
     _path = _path+".gz";
     addHeader("Content-Encoding", "gzip");
-    _sendContentLength = true;
-    _chunked = false;
   }
 
   _content = fs.open(_path, "r");
@@ -39,12 +37,10 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FS &fs, const 
 
 PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, File content, const String& path, const String& contentType, bool download)
  : PsychicResponse(request) {
-  _path = path;
+  String _path(path);
 
   if(!download && String(content.name()).endsWith(".gz") && !path.endsWith(".gz")){
     addHeader("Content-Encoding", "gzip");
-    _sendContentLength = true;
-    _chunked = false;
   }
 
   _content = content;
