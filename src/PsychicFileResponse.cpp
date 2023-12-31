@@ -45,7 +45,6 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, File content, 
 
   _content = content;
   _contentLength = _content.size();
-  setContentLength(_contentLength);
 
   if(contentType == "")
     _setContentType(path);
