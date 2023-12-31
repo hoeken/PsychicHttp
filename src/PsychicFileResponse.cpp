@@ -149,9 +149,6 @@ esp_err_t PsychicFileResponse::send()
       ESP_LOGI(PH_TAG, "File sending complete");
       this->finishChunking();
     }
-
-    /* Close file after sending complete */
-    _content.close();
   }
 
   return err;
