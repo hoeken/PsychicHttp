@@ -8,6 +8,7 @@ PsychicStreamResponse::PsychicStreamResponse(PsychicRequest *request, const Stri
   setContentType(contentType.c_str());
   addHeader("Content-Disposition", "inline");
 }
+
  
 PsychicStreamResponse::PsychicStreamResponse(PsychicRequest *request, const String& contentType, const String& name)
   : PsychicResponse(request), _buffer(NULL) {
@@ -18,11 +19,13 @@ PsychicStreamResponse::PsychicStreamResponse(PsychicRequest *request, const Stri
   snprintf(buf, sizeof (buf), "attachment; filename=\"%s\"", name);
   addHeader("Content-Disposition", buf);
 }
+
  
 PsychicStreamResponse::~PsychicStreamResponse()
 {
   endSend();
 }
+
 
 esp_err_t PsychicStreamResponse::beginSend()
 {
@@ -45,6 +48,7 @@ esp_err_t PsychicStreamResponse::beginSend()
   return ESP_OK;
 }
 
+
 esp_err_t PsychicStreamResponse::endSend()
 {
   esp_err_t err = ESP_OK;
@@ -53,17 +57,14 @@ esp_err_t PsychicStreamResponse::endSend()
     err = ESP_FAIL;
   else
   {
-    //flush & send remaining data.
-    _printer->flush();
+    _printer->~ChunkPrinter(); //flushed on destruct
     err = finishChunking();
-    
-    //Free memory
-    _printer->~ChunkPrinter();
     free(_buffer);
     _buffer = NULL;
   }
   return err;
 }
+
 
 void PsychicStreamResponse::flush()
 {
@@ -71,19 +72,23 @@ void PsychicStreamResponse::flush()
     _printer->flush();
 }
 
+
 size_t PsychicStreamResponse::write(uint8_t data)
 {
   return _buffer ? _printer->write(data) : 0;
 }
 
+
+size_t PsychicStreamResponse::write(const uint8_t *buffer, size_t size)
+{
+  return _buffer ? _printer->write(buffer, size) : 0;
+}
+
+
 size_t PsychicStreamResponse::copyFrom(Stream &stream)
 {
-  size_t sentCount = 0;
-  
   if(_buffer)
-  {
-    while(stream.available())
-      sentCount += _printer->write(stream.read());
-  }
-  return sentCount;
+    return _printer->copyFrom(stream);
+
+  return 0;
 }

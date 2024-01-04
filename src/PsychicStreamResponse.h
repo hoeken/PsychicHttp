@@ -21,10 +21,12 @@ class PsychicStreamResponse : public PsychicResponse, public Print
   
     esp_err_t beginSend();
     esp_err_t endSend();
-  
-    virtual void flush() override;
 
-    size_t write(uint8_t data);
+    void flush() override;
+
+    size_t write(uint8_t data) override;
+    size_t write(const uint8_t *buffer, size_t size) override;
+  
     size_t copyFrom(Stream &stream);
   
     using Print::write;

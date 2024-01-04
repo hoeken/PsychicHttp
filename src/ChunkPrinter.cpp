@@ -20,11 +20,11 @@ size_t ChunkPrinter::write(uint8_t c)
   //if we're full, send a chunk
   if (_pos == _length)
   {
-  _pos = 0;
-
-  err = _response->sendChunk(_buffer, _length);
-  if (err != ESP_OK)
-    return 0;
+    _pos = 0;
+    err = _response->sendChunk(_buffer, _length);
+	
+    if (err != ESP_OK)
+      return 0;
   }    
 
   _buffer[_pos] = c;
@@ -47,10 +47,10 @@ size_t ChunkPrinter::write(const uint8_t *buffer, size_t size)
     
     if (_pos == _length)
     {
-    _pos = 0;
+      _pos = 0;
 
-    if (_response->sendChunk(_buffer, _length) != ESP_OK)
-      return written;
+      if (_response->sendChunk(_buffer, _length) != ESP_OK)
+        return written;
     }
     written += blockSize; //Update if sent correctly.
   }
