@@ -16,6 +16,10 @@
   #define FILE_CHUNK_SIZE 8*1024
 #endif
 
+#ifndef STREAM_CHUNK_SIZE
+  #define STREAM_CHUNK_SIZE 1024
+#endif
+
 #ifndef MAX_UPLOAD_SIZE
   #define MAX_UPLOAD_SIZE (2048*1024) // 2MB
 #endif

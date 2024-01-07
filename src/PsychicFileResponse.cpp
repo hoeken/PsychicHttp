@@ -6,13 +6,11 @@
 PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FS &fs, const String& path, const String& contentType, bool download)
  : PsychicResponse(request) {
   //_code = 200;
-  _path = path;
+  String _path(path);
 
   if(!download && !fs.exists(_path) && fs.exists(_path+".gz")){
     _path = _path+".gz";
     addHeader("Content-Encoding", "gzip");
-    _sendContentLength = true;
-    _chunked = false;
   }
 
   _content = fs.open(_path, "r");
@@ -21,8 +19,7 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FS &fs, const 
   if(contentType == "")
     _setContentType(path);
   else
-    _contentType = contentType;
-  setContentType(_contentType.c_str());
+    setContentType(contentType.c_str());
 
   int filenameStart = path.lastIndexOf('/') + 1;
   char buf[26+path.length()-filenameStart];
@@ -40,23 +37,19 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, FS &fs, const 
 
 PsychicFileResponse::PsychicFileResponse(PsychicRequest *request, File content, const String& path, const String& contentType, bool download)
  : PsychicResponse(request) {
-  _path = path;
+  String _path(path);
 
   if(!download && String(content.name()).endsWith(".gz") && !path.endsWith(".gz")){
     addHeader("Content-Encoding", "gzip");
-    _sendContentLength = true;
-    _chunked = false;
   }
 
   _content = content;
   _contentLength = _content.size();
-  setContentLength(_contentLength);
 
   if(contentType == "")
     _setContentType(path);
   else
-    _contentType = contentType;
-  setContentType(_contentType.c_str());
+    setContentType(contentType.c_str());
 
   int filenameStart = path.lastIndexOf('/') + 1;
   char buf[26+path.length()-filenameStart];
@@ -77,6 +70,8 @@ PsychicFileResponse::~PsychicFileResponse()
 }
 
 void PsychicFileResponse::_setContentType(const String& path){
+  const char *_contentType;
+	
   if (path.endsWith(".html")) _contentType = "text/html";
   else if (path.endsWith(".htm")) _contentType = "text/html";
   else if (path.endsWith(".css")) _contentType = "text/css";
@@ -96,6 +91,8 @@ void PsychicFileResponse::_setContentType(const String& path){
   else if (path.endsWith(".zip")) _contentType = "application/zip";
   else if(path.endsWith(".gz")) _contentType = "application/x-gzip";
   else _contentType = "text/plain";
+  
+  setContentType(_contentType);
 }
 
 esp_err_t PsychicFileResponse::send()
@@ -149,9 +146,6 @@ esp_err_t PsychicFileResponse::send()
       ESP_LOGI(PH_TAG, "File sending complete");
       this->finishChunking();
     }
-
-    /* Close file after sending complete */
-    _content.close();
   }
 
   return err;

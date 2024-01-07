@@ -12,10 +12,6 @@ class PsychicFileResponse: public PsychicResponse
   using FS = fs::FS;
   private:
     File _content;
-    String _path;
-    bool _sendContentLength;
-    bool _chunked;
-    String _contentType;
     void _setContentType(const String& path);
   public:
     PsychicFileResponse(PsychicRequest *request, FS &fs, const String& path, const String& contentType=String(), bool download=false);
