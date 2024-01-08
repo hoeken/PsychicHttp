@@ -17,11 +17,14 @@
 
 #if ARDUINOJSON_VERSION_MAJOR == 5
   #define ARDUINOJSON_5_COMPATIBILITY
-#else
+#elif ARDUINOJSON_VERSION_MAJOR == 6
   #ifndef DYNAMIC_JSON_DOCUMENT_SIZE
     #define DYNAMIC_JSON_DOCUMENT_SIZE 4096
   #endif
+#else 
+  #define ARDUINOJSON_7_COMPATIBILITY
 #endif
+
 
 #ifndef JSON_BUFFER_SIZE
   #define JSON_BUFFER_SIZE 4*1024
@@ -38,8 +41,10 @@ class PsychicJsonResponse : public PsychicResponse
   protected:
     #ifdef ARDUINOJSON_5_COMPATIBILITY
       DynamicJsonBuffer _jsonBuffer;
-    #else
+    #elif ARDUINOJSON_VERSION_MAJOR == 6
       DynamicJsonDocument _jsonBuffer;
+    #else
+      JsonDocument _jsonBuffer;
     #endif
 
     JsonVariant _root;
@@ -48,8 +53,10 @@ class PsychicJsonResponse : public PsychicResponse
   public:
     #ifdef ARDUINOJSON_5_COMPATIBILITY
       PsychicJsonResponse(PsychicRequest *request, bool isArray = false);
-    #else
+    #elif ARDUINOJSON_VERSION_MAJOR == 6
       PsychicJsonResponse(PsychicRequest *request, bool isArray = false, size_t maxJsonBufferSize = DYNAMIC_JSON_DOCUMENT_SIZE);
+    #else
+      PsychicJsonResponse(PsychicRequest *request, bool isArray = false);
     #endif
 
     ~PsychicJsonResponse() {}
@@ -64,7 +71,7 @@ class PsychicJsonHandler : public PsychicWebHandler
 {
   protected:
     PsychicJsonRequestCallback _onRequest;
-    #ifndef ARDUINOJSON_5_COMPATIBILITY
+    #if ARDUINOJSON_VERSION_MAJOR == 6
       const size_t _maxJsonBufferSize = DYNAMIC_JSON_DOCUMENT_SIZE;
     #endif
 
@@ -72,37 +79,16 @@ class PsychicJsonHandler : public PsychicWebHandler
     #ifdef ARDUINOJSON_5_COMPATIBILITY
       PsychicJsonHandler();
       PsychicJsonHandler(PsychicJsonRequestCallback onRequest);
-    #else
+    #elif ARDUINOJSON_VERSION_MAJOR == 6
       PsychicJsonHandler(size_t maxJsonBufferSize = DYNAMIC_JSON_DOCUMENT_SIZE);
       PsychicJsonHandler(PsychicJsonRequestCallback onRequest, size_t maxJsonBufferSize = DYNAMIC_JSON_DOCUMENT_SIZE);
+    #else
+      PsychicJsonHandler();
+      PsychicJsonHandler(PsychicJsonRequestCallback onRequest);
     #endif
 
     void onRequest(PsychicJsonRequestCallback fn);
     virtual esp_err_t handleRequest(PsychicRequest *request) override;
 };
-
-// class PrettyPsychicJsonResponse : public PsychicJsonResponse
-// {
-//   public:
-//     #ifdef ARDUINOJSON_5_COMPATIBILITY
-//       PrettyPsychicJsonResponse(PsychicRequest *request, bool isArray = false) : PsychicJsonResponse(request, isArray) {}
-//     #else
-//       PrettyPsychicJsonResponse(
-//         PsychicRequest *request,
-//         bool isArray = false,
-//         size_t maxJsonBufferSize = DYNAMIC_JSON_DOCUMENT_SIZE)
-//         : PsychicJsonResponse{request, isArray, maxJsonBufferSize} {}
-//     #endif
-
-//     size_t setLength()
-//     {
-//       #ifdef ARDUINOJSON_5_COMPATIBILITY
-//         _contentLength = _root.measurePrettyLength();
-//       #else
-//         _contentLength = measureJsonPretty(_root);
-//       #endif
-//       return _contentLength;
-//     }
-// };
 
 #endif

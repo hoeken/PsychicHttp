@@ -9,7 +9,7 @@
     else
       _root = _jsonBuffer.createObject();
   }
-#else
+#elif ARDUINOJSON_VERSION_MAJOR == 6
   PsychicJsonResponse::PsychicJsonResponse(PsychicRequest *request, bool isArray, size_t maxJsonBufferSize) :
     PsychicResponse(request),
     _jsonBuffer(maxJsonBufferSize)
@@ -19,6 +19,24 @@
       _root = _jsonBuffer.createNestedArray();
     else
       _root = _jsonBuffer.createNestedObject();
+  }
+#elif ARDUINOJSON_VERSION_MAJOR == 6
+  PsychicJsonResponse::PsychicJsonResponse(PsychicRequest *request, bool isArray) : PsychicResponse(request)
+  {
+    setContentType(JSON_MIMETYPE);
+    if (isArray)
+      _root = _jsonBuffer.createArray();
+    else
+      _root = _jsonBuffer.createObject();
+  }
+#else
+  PsychicJsonResponse::PsychicJsonResponse(PsychicRequest *request, bool isArray) : PsychicResponse(request)
+  {
+    setContentType(JSON_MIMETYPE);
+    if (isArray)
+      _root = _jsonBuffer.add<JsonArray>();
+    else
+      _root = _jsonBuffer.add<JsonObject>();
   }
 #endif
 
@@ -108,7 +126,7 @@ esp_err_t PsychicJsonResponse::send()
   PsychicJsonHandler::PsychicJsonHandler(PsychicJsonRequestCallback onRequest) :
     _onRequest(onRequest)
   {}
-#else
+#elif ARDUINOJSON_VERSION_MAJOR == 6
   PsychicJsonHandler::PsychicJsonHandler(size_t maxJsonBufferSize) :
     _onRequest(NULL),
     _maxJsonBufferSize(maxJsonBufferSize)
@@ -117,6 +135,14 @@ esp_err_t PsychicJsonResponse::send()
   PsychicJsonHandler::PsychicJsonHandler(PsychicJsonRequestCallback onRequest, size_t maxJsonBufferSize) :
     _onRequest(onRequest),
     _maxJsonBufferSize(maxJsonBufferSize)
+  {}
+#else
+  PsychicJsonHandler::PsychicJsonHandler() :
+    _onRequest(NULL)
+  {};
+
+  PsychicJsonHandler::PsychicJsonHandler(PsychicJsonRequestCallback onRequest) :
+    _onRequest(onRequest)
   {}
 #endif
 
@@ -134,8 +160,15 @@ esp_err_t PsychicJsonHandler::handleRequest(PsychicRequest *request)
       JsonVariant json = jsonBuffer.parse();
       if (!json.success())
         return request->reply(400);
-    #else
+    #elif ARDUINOJSON_VERSION_MAJOR == 6
       DynamicJsonDocument jsonBuffer(this->_maxJsonBufferSize);
+      DeserializationError error = deserializeJson(jsonBuffer, request->body());
+      if (error)
+        return request->reply(400);
+
+      JsonVariant json = jsonBuffer.as<JsonVariant>();
+    #else
+      JsonDocument jsonBuffer;
       DeserializationError error = deserializeJson(jsonBuffer, request->body());
       if (error)
         return request->reply(400);
