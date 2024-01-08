@@ -20,15 +20,6 @@
     else
       _root = _jsonBuffer.createNestedObject();
   }
-#elif ARDUINOJSON_VERSION_MAJOR == 6
-  PsychicJsonResponse::PsychicJsonResponse(PsychicRequest *request, bool isArray) : PsychicResponse(request)
-  {
-    setContentType(JSON_MIMETYPE);
-    if (isArray)
-      _root = _jsonBuffer.createArray();
-    else
-      _root = _jsonBuffer.createObject();
-  }
 #else
   PsychicJsonResponse::PsychicJsonResponse(PsychicRequest *request, bool isArray) : PsychicResponse(request)
   {
