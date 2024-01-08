@@ -8,21 +8,16 @@
 #ifndef PSYCHIC_JSON_H_
 #define PSYCHIC_JSON_H_
 
-// #include "PsychicCore.h"
-// #include "PsychicResponse.h"
 #include "PsychicRequest.h"
 #include "PsychicWebHandler.h"
 #include "ChunkPrinter.h"
 #include <ArduinoJson.h>
 
-#if ARDUINOJSON_VERSION_MAJOR == 5
-  #define ARDUINOJSON_5_COMPATIBILITY
-#elif ARDUINOJSON_VERSION_MAJOR == 6
+#if ARDUINOJSON_VERSION_MAJOR == 6
+  #define ARDUINOJSON_6_COMPATIBILITY
   #ifndef DYNAMIC_JSON_DOCUMENT_SIZE
     #define DYNAMIC_JSON_DOCUMENT_SIZE 4096
   #endif
-#else 
-  #define ARDUINOJSON_7_COMPATIBILITY
 #endif
 
 
