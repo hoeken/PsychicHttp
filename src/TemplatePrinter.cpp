@@ -28,7 +28,8 @@ size_t TemplatePrinter::write(uint8_t data){
     if(_inParam){
       
       // On false, return the parameter place holder as is: not a parameter
-      if(!_cb(_stream, _paramBuffer)){
+	  // Bug fix: ignore parameters that are zero length.
+      if(!_paramPos || !_cb(_stream, _paramBuffer)){
         resetParam(true);
         _stream.write(data);
       }else{
