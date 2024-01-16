@@ -129,37 +129,33 @@ esp_err_t PsychicRequest::loadBody()
 
   this->_body = String();
 
-  //Get header value string length and allocate memory for length + 1, extra byte for null termination
   size_t remaining = this->_req->content_len;
-  char *buf = (char *)malloc(remaining+1);
+  size_t actuallyReceived = 0;
+  char *buf = (char *)malloc(remaining + 1);
+  if (buf == NULL) {
+    ESP_LOGE(PH_TAG, "Failed to allocate memory for body");
+    return ESP_FAIL;
+  }
 
-  //while loop for retries
-  while (remaining > 0)
-  {
-    //read our data from the socket
-    int received = httpd_req_recv(this->_req, buf, this->_req->content_len);
+  while (remaining > 0) {
+    int received = httpd_req_recv(this->_req, buf + actuallyReceived, remaining);
 
-    //Retry if timeout occurred
-    if (received == HTTPD_SOCK_ERR_TIMEOUT)
+    if (received == HTTPD_SOCK_ERR_TIMEOUT) {
       continue;
-    //bail if we got an error
-    else if (received == HTTPD_SOCK_ERR_FAIL)
-    {
+    }
+    else if (received == HTTPD_SOCK_ERR_FAIL) {
+      ESP_LOGE(PH_TAG, "Failed to receive data.");
       err = ESP_FAIL;
       break;
     }
 
-    //keep track of our 
     remaining -= received;
+    actuallyReceived += received;
   }
 
-  //null terminate and make our string
-  buf[this->_req->content_len] = '\0';
+  buf[actuallyReceived] = '\0';
   this->_body = String(buf);
-
-  //keep track of that pesky memory
   free(buf);
-
   return err;
 }
 
