@@ -192,7 +192,7 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest *request)
   }
 
   // Text messages are our payload.
-  if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
+  if (ws_pkt.type == HTTPD_WS_TYPE_TEXT || ws_pkt.type == HTTPD_WS_TYPE_BINARY)
   {
     if (this->_onFrame != NULL)
       ret = this->_onFrame(&wsRequest, &ws_pkt);
