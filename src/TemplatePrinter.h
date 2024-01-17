@@ -4,6 +4,18 @@
   #include "PsychicCore.h"
   #include <Print.h>
   
+  /************************************************************
+  
+	TemplatePrinter Class
+	
+	A basic templating engine for a stream of text.
+	This wraps the Arduino Print interface and writes to any
+	Print interface.
+	
+	Written by Christopher Andrews (https://github.com/Chris--A) 
+  
+  ************************************************************/
+  
   class TemplatePrinter;
 
   typedef std::function<bool(Print &output, const char *parameter)> TemplateCallback;
