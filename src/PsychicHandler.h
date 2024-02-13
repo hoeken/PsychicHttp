@@ -28,7 +28,7 @@ class PsychicHandler {
 
   public:
     PsychicHandler();
-    ~PsychicHandler();
+    virtual ~PsychicHandler();
 
     PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicRequest *request);
