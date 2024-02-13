@@ -36,7 +36,7 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest *request)
 
     /* Respond with 400 Bad Request */
     char error[50];
-    sprintf(error, "File size must be less than %u bytes!", request->server()->maxUploadSize);
+    sprintf(error, "File size must be less than %lu bytes!", request->server()->maxUploadSize);
     httpd_resp_send_err(request->request(), HTTPD_400_BAD_REQUEST, error);
 
     /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
