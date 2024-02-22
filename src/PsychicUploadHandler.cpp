@@ -28,7 +28,7 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest *request)
 
   //save it for later (multipart)
   _request = request;
-
+  _parsedLength = 0;
   /* File cannot be larger than a limit */
   if (request->contentLength() > request->server()->maxUploadSize)
   {
