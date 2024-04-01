@@ -24,6 +24,8 @@ class PsychicHandler {
     String _realm;
     String _authFailMsg;
 
+    String _subprotocol;
+
     std::list<PsychicClient*> _clients;
 
   public:
@@ -38,6 +40,9 @@ class PsychicHandler {
     esp_err_t authenticate(PsychicRequest *request);
 
     virtual bool isWebSocket() { return false; };
+
+    void setSubprotocol(const String& subprotocol);
+    const char* getSubprotocol() const;
 
     PsychicClient * checkForNewClient(PsychicClient *client);
     void checkForClosedClient(PsychicClient *client);

@@ -141,7 +141,8 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method, Psyc
     .method   = method,
     .handler  = PsychicEndpoint::requestCallback,
     .user_ctx = endpoint,
-    .is_websocket = handler->isWebSocket()
+    .is_websocket = handler->isWebSocket(),
+    .supported_subprotocol = handler->getSubprotocol()
   };
   
   // Register endpoint with ESP-IDF server
