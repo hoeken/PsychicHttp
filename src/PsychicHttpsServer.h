@@ -1,10 +1,11 @@
 #ifndef PsychicHttpsServer_h
 #define PsychicHttpsServer_h
 
+#ifdef CONFIG_ESP_HTTPS_SERVER_ENABLE
+
 #include "PsychicCore.h"
 #include "PsychicHttpServer.h"
 #include <esp_https_server.h>
-
 #if !CONFIG_HTTPD_WS_SUPPORT
   #error PsychicHttpsServer cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
 #endif
@@ -30,3 +31,5 @@ class PsychicHttpsServer : public PsychicHttpServer
 };
 
 #endif // PsychicHttpsServer_h
+
+#endif // CONFIG_ESP_HTTPS_SERVER_ENABLE

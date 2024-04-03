@@ -1,5 +1,7 @@
 #include "PsychicHttpsServer.h"
 
+#ifdef CONFIG_ESP_HTTPS_SERVER_ENABLE
+
 PsychicHttpsServer::PsychicHttpsServer() : PsychicHttpServer()
 {
   //for a SSL server
@@ -48,3 +50,5 @@ void PsychicHttpsServer::stop()
   else
     httpd_stop(this->server);
 }
+
+#endif // CONFIG_ESP_HTTPS_SERVER_ENABLE
