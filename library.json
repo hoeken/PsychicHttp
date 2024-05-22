@@ -1,6 +1,6 @@
 {
   "name": "PsychicHttp",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Arduino style wrapper around ESP-IDF HTTP library. HTTP server with SSL + websockets. Works on esp32 and probably esp8266",
   "keywords": "network,http,https,tcp,ssl,tls,websocket,espasyncwebserver",
   "repository":
@@ -32,7 +32,7 @@
     {
       "owner": "bblanchon",
       "name": "ArduinoJson",
-      "version": "^6.21.4"
+      "version": "^7.0.4"
     },
     {
       "owner": "bblanchon",
