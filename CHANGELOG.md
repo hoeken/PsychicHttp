@@ -14,3 +14,4 @@
     * PsychicHttpServerResponse -> PsychicResponse
     * PsychicHttpWebsocket.h -> PsychicWebSocket.h
     * Websocket => WebSocket
+* Quite a few bugfixes from the community.

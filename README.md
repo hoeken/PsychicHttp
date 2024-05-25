@@ -589,15 +589,10 @@ ArduinoMongoose is a good alternative, although the latency issues when it gets 
 
 # Roadmap
 
-## v1.1: Event Source + Handlers
-
-* Fix all outstanding issues on Github
-* Another pass over the docs
-  * DefaultHeaders
-  
-
 ## v1.2: ESPAsyncWebserver Parity
 
+* Another pass over the docs
+  * DefaultHeaders
 * HTTP_ANY support (by abusing httpd_req_handle_err)
   * Issue: it would log a warning on every request (httpd_uri.c:298)
   * Issue: req->user_ctx is not passed in. (httpd_uri.c:309)
