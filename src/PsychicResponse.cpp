@@ -128,6 +128,14 @@ void PsychicResponse::sendHeaders()
   //now do our individual headers
   for (HTTPHeader header : _headers)
     httpd_resp_set_hdr(this->_request->request(), header.field, header.value);
+
+  // clean up our header variables after send
+  for (HTTPHeader header : _headers)
+  {
+    free(header.field);
+    free(header.value);
+  }
+  _headers.clear();
 }
 
 esp_err_t PsychicResponse::sendChunk(uint8_t *chunk, size_t chunksize)
