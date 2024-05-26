@@ -1,0 +1,22 @@
+dependencies:
+  esp_littlefs:
+    component_hash: e5b0b09133adbbcd01af9f264cd20690166a15970e5cd15eb55f1aa33a76bcdd
+    source:
+      git: https://github.com/joltwallet/esp_littlefs.git
+      path: .
+      type: git
+    version: 369d1a539a5946194add17307512c00ac4a6745f
+  idf:
+    component_hash: null
+    source:
+      type: idf
+    version: 4.4.6
+  joltwallet/littlefs:
+    component_hash: 7e9b6a652f846df473870263f7ecc0decdf54e6a04189af0c6a78df9d20bda0c
+    source:
+      service_url: https://api.components.espressif.com/
+      type: service
+    version: 1.14.4
+manifest_hash: 633633601c6c886e9596bbe76799ab53c1a932304ff1934535fa0ee1bae63ce3
+target: esp32
+version: 1.0.0
