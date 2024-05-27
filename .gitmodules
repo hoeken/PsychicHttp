@@ -12,3 +12,6 @@
 	path = examples/esp-idf/components/arduino-esp32
 	url = https://github.com/espressif/arduino-esp32
 	branch = release/v2.x
+[submodule "examples/esp-idf/components/esp_littlefs"]
+	path = examples/esp-idf/components/esp_littlefs
+	url = https://github.com/joltwallet/esp_littlefs.git
