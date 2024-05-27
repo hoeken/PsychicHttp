@@ -7,7 +7,18 @@ on:
     branches: []
 
 jobs:
+
   build:
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        idf_ver: ["v4.4"]
+        idf_target: ["esp32"]
+        include:
+          - idf_ver: "v4.4"
+            idf_target: esp32s2
+  
     runs-on: ubuntu-latest
     name: Build esp-idf v4.4.x examples
 
@@ -20,16 +31,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
   
-      - name: Run Python commands
-        run: |
-          pip install --upgrade pip
-          python -m venv env
-          source env/bin/activate
-          echo "VIRTUAL ENV:" $VIRTUAL_ENV
-
       - name: esp-idf build
-        uses: espressif/esp-idf-ci-action@v1
+        uses: espressif/esp-idf-ci-action@main
         with:
-          esp_idf_version: release-v4.4
-          target: esp32
+          esp_idf_version: ${{ matrix.idf_ver }}
+          target: ${{ matrix.idf_target }}
           path: app/examples/esp-idf
+          command: apt-get update && apt-get install -y python3-venv && idf.py build
