@@ -1,7 +1,10 @@
+name: ESP-IDF v4.4.x
+
 on:
   push:
-  schedule:
-    - cron: "0 2 * * *"
+    branches: []
+  pull_request:
+    branches: []
 
 jobs:
   build:
@@ -16,6 +19,6 @@ jobs:
       - name: esp-idf build
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v4.4.6
+          esp_idf_version: release-v4.4
           target: esp32
           path: app/examples/esp-idf
