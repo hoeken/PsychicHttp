@@ -18,6 +18,7 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 * Websocket support with onOpen, onFrame, and onClose callbacks
 * EventSource / SSE support with onOpen, and onClose callbacks
 * Request filters, including Client vs AP mode (ON_STA_FILTER / ON_AP_FILTER)
+* TemplatePrinter class for dynamic variables at runtime
 
 ## Differences from ESPAsyncWebserver
 
@@ -555,6 +556,193 @@ redirectServer->listen(80);
 redirectServer->onNotFound([](PsychicRequest *request) {
    String url = "https://" + request->host() + request->url();
    return request->redirect(url.c_str());
+});
+```
+
+# TemplatePrinter
+
+**This is not specific to PsychicHttp, and it works with any `Print` object. You could for example, template data out to `File`, `Serial`, etc...**.
+
+The template engine is a `Print` interface and can be printed to directly, however,  if you are just templating a few short strings, I'd probably just use `response.printf()` instead. **Its benefit will be seen when templating large inputs such as files.**
+
+One benefit may be **templating a **JSON** file avoiding the need to use ArduinoJson.**
+
+Before closing the underlying `Print`/`Stream` that this writes to, it must be flushed as small amounts of data can be buffered. A convenience method to take care of this is shows in `example 3`.
+
+The header file is not currently added to `PsychicHttp.h` and users will have to add it manually:
+
+```C++
+#include <TemplatePrinter.h>
+```
+ 
+## Template parameter definition:
+
+- Must start and end with a preset delimiter, the default is `%`
+- Can only contain `a-z`, `A-Z`, `0-9`, and `_`
+- Maximum length of 63 characters (buffer is 64 including `null`).
+- A parameter must not be zero length (not including delimiters).
+- Spaces or any other character do not match as a parameter, and will be output as is.
+- Valid examples
+  - `%MY_PARAM%`
+  - `%SOME1%`
+- **Invalid** examples
+  - `%MY PARAM%`
+  - `%SOME1 %`
+  - `%UNFINISHED`
+  - `%%`
+
+## Template processing
+A function or lambda is used to receive the parameter replacement.
+
+```C++
+bool templateHandler(Print &output, const char *param){
+  //...
+}
+
+[](Print &output, const char *param){
+  //...
+}
+```
+
+Parameters:
+- `Print &output` - the underlying `Print`, print the results of templating to this.
+- `const char *param` - a string containing the current parameter.
+
+The handler must return a `bool`.
+- `true`: the parameter was handled, continue as normal.
+- `false`: the input detected as a parameter is not, print literal.
+
+See output in **example 1** regarding the effects of returning `true` or `false`.
+
+## Template input handler
+This is not needed unless using the static convenience function `TemplatePrinter::start()`. See **example 3**.
+
+```C++
+bool inputHandler(TemplatePrinter &printer){
+  //...
+}
+
+[](TemplatePrinter &printer){
+  //...
+}
+```
+
+Parameters:
+- `TemplatePrinter &printer` - The template engine, print your template text to this for processing.
+
+
+## Example 1 - Simple use with `PsychicStreamResponse`:
+This example highlights its most basic usage.
+
+```C++
+
+//  Function to handle parameter requests.
+
+bool templateHandler(Print &output, const char *param){
+
+  if(strcmp(param, "FREE_HEAP") == 0){
+    output.print((double)ESP.getFreeHeap() / 1024.0, 2);
+
+  }else if(strcmp(param, "MIN_FREE_HEAP") == 0){
+    output.print((double)ESP.getMinFreeHeap() / 1024.0, 2);
+
+  }else if(strcmp(param, "MAX_ALLOC_HEAP") == 0){
+    output.print((double)ESP.getMaxAllocHeap() / 1024.0, 2);
+    
+  }else if(strcmp(param, "HEAP_SIZE") == 0){
+    output.print((double)ESP.getHeapSize() / 1024.0, 2);
+  }else{
+    return false;
+  }
+  output.print("Kb");
+  return true;
+}
+
+//  Example serving a request
+server.on("/template", [](PsychicRequest *request) {
+  PsychicStreamResponse response(request, "text/plain");
+
+  response.beginSend();
+  
+  TemplatePrinter printer(response, templateHandler);
+
+  printer.println("My ESP has %FREE_HEAP% left. Its lifetime minimum heap is %MIN_FREE_HEAP%.");
+  printer.println("The maximum allocation size is %MAX_ALLOC_HEAP%, and its total size is %HEAP_SIZE%.");
+  printer.println("This is an unhandled parameter: %UNHANDLED_PARAM% and this is an invalid param %INVALID PARAM%.");
+  printer.println("This line finished with %UNFIN");
+  printer.flush();
+
+  return response.endSend();
+});   
+```
+
+The output for example looks like:
+```
+My ESP has 170.92Kb left. Its lifetime minimum heap is 169.83Kb.
+The maximum allocation size is 107.99Kb, and its total size is 284.19Kb.
+This is an unhandled parameter: %UNHANDLED_PARAM% and this is an invalid param %INVALID PARAM%.
+This line finished with %UNFIN
+```
+
+## Example 2 - Templating a file
+
+```C++
+server.on("/home", [](PsychicRequest *request) {
+  PsychicStreamResponse response(request, "text/html");
+  File file = SD.open("/www/index.html");
+
+  response.beginSend();
+
+  TemplatePrinter printer(response, templateHandler);
+
+  printer.copyFrom(file);
+  printer.flush();
+  file.close();
+
+  return response.endSend();
+}); 
+```
+
+## Example 3 - Using the `TemplatePrinter::start` method.
+This static method allows an RAII approach, allowing you to template a stream, etc... without needing a `flush()`. The function call is laid out as:
+
+```C++
+TemplatePrinter::start(host_stream, template_handler, input_handler);
+```
+
+\*these examples use the `templateHandler` function defined in example 1.
+
+### Serve a file like example 2
+```C++
+server.on("/home", [](PsychicRequest *request) {
+  PsychicStreamResponse response(request, "text/html");
+  File file = SD.open("/www/index.html");
+
+  response.beginSend();
+  TemplatePrinter::start(response, templateHandler, [&file](TemplatePrinter &printer){
+    printer.copyFrom(file);
+  });
+  file.close();
+
+  return response.endSend();
+});
+```
+
+### Template a string like example 1
+```C++
+server.on("/template2", [](PsychicRequest *request) {
+
+  PsychicStreamResponse response(request, "text/plain");
+
+  response.beginSend();
+
+  TemplatePrinter::start(response, templateHandler, [](TemplatePrinter &printer){
+    printer.println("My ESP has %FREE_HEAP% left. Its lifetime minimum heap is %MIN_FREE_HEAP%.");
+    printer.println("The maximum allocation size is %MAX_ALLOC_HEAP%, and its total size is %HEAP_SIZE%.");
+    printer.println("This is an unhandled parameter: %UNHANDLED_PARAM% and this is an invalid param %INVALID PARAM%.");
+  });
+
+  return response.endSend();
 });
 ```
 
