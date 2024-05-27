@@ -5,6 +5,8 @@ on:
     branches: []
   pull_request:
     branches: []
+  schedule:
+    - cron: "0 1 * * 6" # Every Saturday at 1AM  
 
 jobs:
 

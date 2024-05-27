@@ -272,13 +272,13 @@ void setup()
       {
         output["status"] = "success";
         output["millis"] = millis();
-      }
 
-      //work with some params
-      if (json.containsKey("foo"))
-      {
-        String foo = json["foo"];
-        output["foo"] = foo;
+        //work with some params
+        if (json.containsKey("foo"))
+        {
+          String foo = json["foo"];
+          output["foo"] = foo;
+        }
       }
 
       //serialize and return

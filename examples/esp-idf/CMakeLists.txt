@@ -11,6 +11,8 @@ cmake_minimum_required(VERSION 3.5)
 
 set(EXTRA_COMPONENT_DIRS "../../")
 
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-error)
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 project(PsychicHttp_IDF)
