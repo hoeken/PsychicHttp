@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    name: Build esp-idf v4.4.x examples
 
     steps:
       - uses: actions/checkout@v3
@@ -16,6 +17,9 @@ jobs:
           submodules: 'recursive'
           path: ${{ github.workspace }}/app
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+  
       - name: esp-idf build
         uses: espressif/esp-idf-ci-action@v1
         with:
