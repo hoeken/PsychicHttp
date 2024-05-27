@@ -1,3 +1,13 @@
+# v1.2
+
+* Add TemplatePrinter from https://github.com/Chris--A/PsychicHttp/tree/templatePrint
+* Support using as ESP IDF component
+* Optional using https server in ESP IDF
+* Fix memory leak when send headers in PsychicResponse
+* Add ESP IDF example + CI script
+
+Thanks to @Chris--A and @dzungpv for your contributions.
+
 # v1.1
 
 * Changed the internal structure to support request handlers on endpoints and generic requests that do not match an endpoint
@@ -14,4 +24,4 @@
     * PsychicHttpServerResponse -> PsychicResponse
     * PsychicHttpWebsocket.h -> PsychicWebSocket.h
     * Websocket => WebSocket
-* Quite a few bugfixes from the community.
+* Quite a few bugfixes from the community. Thank you @glennsky, @gb88, @KastanEr, @kstam, and @zekageri
