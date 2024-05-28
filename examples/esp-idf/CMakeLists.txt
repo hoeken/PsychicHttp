@@ -10,4 +10,4 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(PsychicHttp_IDF)
 
 #warnings are breaking our CI scripts!
-idf_build_set_property(COMPILE_OPTIONS "-Wno-error" APPEND)
+#idf_build_set_property(COMPILE_OPTIONS "-Wno-error" APPEND)
