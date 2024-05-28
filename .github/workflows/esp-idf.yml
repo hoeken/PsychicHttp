@@ -27,10 +27,14 @@ jobs:
           submodules: 'recursive'
           path: ${{ github.workspace }}/app
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+
       - name: esp-idf build
         uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
           target: ${{ matrix.idf_target }}
           path: app/examples/esp-idf
-          command: pip install --upgrade idf-component-manager && apt-get update && apt-get install -y python3-venv && idf.py build
+          #command: pip install --upgrade idf-component-manager && apt-get update && apt-get install -y python3-venv && idf.py build
+          command: idf.py build

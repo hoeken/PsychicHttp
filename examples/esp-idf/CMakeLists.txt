@@ -6,13 +6,14 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 if(DEFINED ENV{HTTP_PATH})
   set(HTTP_PATH $ENV{HTTP_PATH})
 else()
+  #these both work
   set(HTTP_PATH "../../")
-  #this works
   #set(HTTP_PATH ${CMAKE_CURRENT_LIST_DIR}/../../../)
+  
+  #this does not work for me...
+  #set(HTTP_PATH ${CMAKE_CURRENT_LIST_DIR}/../../../PsychicHttp)
 endif(DEFINED ENV{HTTP_PATH})
 
 set(EXTRA_COMPONENT_DIRS ${HTTP_PATH})
-
-message(EXTRA_COMPONENT_DIRS="${EXTRA_COMPONENT_DIRS}")
 
 project(PsychicHttp_IDF)
