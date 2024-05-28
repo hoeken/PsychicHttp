@@ -29,10 +29,10 @@ jobs:
 
       - name: Setup Python
         uses: actions/setup-python@v4
-        with:
-          command: apt-get install -y python3-venv
 
-      - name: esp-idf build
+      - run: apt-get install -y python3-venv
+
+      - name: Compile
         uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
