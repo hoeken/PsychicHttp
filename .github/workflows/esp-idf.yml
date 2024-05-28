@@ -15,11 +15,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        idf_ver: ["release-v4.4"]
+        idf_ver: ["v4.4.7"]
         idf_target: ["esp32"]
   
     runs-on: ubuntu-latest
-    name: Build esp-idf v4.4 example
+    name: Build
 
     steps:
       - uses: actions/checkout@v3
@@ -27,10 +27,11 @@ jobs:
           submodules: 'recursive'
           path: ${{ github.workspace }}/app
 
-      - name: esp-idf build
+      - name: Compile
         uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
           target: ${{ matrix.idf_target }}
           path: app/examples/esp-idf
-          command: pip install --upgrade idf-component-manager && apt-get update && apt-get install -y python3-venv && idf.py build
+          #command: pip install --upgrade idf-component-manager && apt-get update && apt-get install -y python3-venv && idf.py build
+          command: apt-get update && apt-get install -y python3-venv && idf.py build
