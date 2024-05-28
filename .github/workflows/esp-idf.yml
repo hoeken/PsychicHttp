@@ -34,4 +34,4 @@ jobs:
           target: ${{ matrix.idf_target }}
           path: app/examples/esp-idf
           #command: pip install --upgrade idf-component-manager && apt-get update && apt-get install -y python3-venv && idf.py build
-          command: apt-get install -y python3-venv && idf.py build
+          command: apt-get update && apt-get install -y python3-venv && idf.py build
