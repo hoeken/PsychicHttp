@@ -6,7 +6,7 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 if(DEFINED ENV{HTTP_PATH})
   set(HTTP_PATH $ENV{HTTP_PATH})
 else()
-  set(HTTP_PATH ${CMAKE_CURRENT_LIST_DIR}/../../../)
+  set(HTTP_PATH ${CMAKE_CURRENT_LIST_DIR}/../../../PsychicHttp)
 endif(DEFINED ENV{HTTP_PATH})
 
 set(EXTRA_COMPONENT_DIRS ${HTTP_PATH})
