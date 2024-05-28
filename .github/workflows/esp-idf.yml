@@ -19,7 +19,7 @@ jobs:
         idf_target: ["esp32"]
   
     runs-on: ubuntu-latest
-    name: Build esp-idf v4.4 example
+    name: Build
 
     steps:
       - uses: actions/checkout@v3
