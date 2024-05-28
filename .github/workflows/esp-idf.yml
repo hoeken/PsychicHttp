@@ -1,4 +1,4 @@
-name: ESP-IDF v4.4.x
+name: ESP-IDF v4.4
 
 on:
   push:
@@ -15,11 +15,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        idf_ver: ["v4.4"]
+        idf_ver: ["release-v4.4"]
         idf_target: ["esp32"]
   
     runs-on: ubuntu-latest
-    name: Build esp-idf v4.4.x examples
+    name: Build esp-idf v4.4 example
 
     steps:
       - uses: actions/checkout@v3
@@ -28,7 +28,7 @@ jobs:
           path: ${{ github.workspace }}/app
 
       - name: esp-idf build
-        uses: espressif/esp-idf-ci-action@main
+        uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
           target: ${{ matrix.idf_target }}
