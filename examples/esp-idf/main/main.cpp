@@ -261,14 +261,24 @@ void setup()
       //create our response json
       JsonDocument output;
       output["msg"] = "status";
-      output["status"] = "success";
-      output["millis"] = millis();
 
-      //work with some params
-      if (json.containsKey("foo"))
+      //did it parse?
+      if (err)
       {
-        String foo = json["foo"];
-        output["foo"] = foo;
+        output["status"] = "failure";
+        output["error"] = err.c_str();
+      }
+      else
+      {
+        output["status"] = "success";
+        output["millis"] = millis();
+
+        //work with some params
+        if (json.containsKey("foo"))
+        {
+          String foo = json["foo"];
+          output["foo"] = foo;
+        }
       }
 
       //serialize and return

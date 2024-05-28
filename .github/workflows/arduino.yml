@@ -1,5 +1,13 @@
 name: Arduino Lint
-on: [push, pull_request]
+
+on:
+  push:
+    branches: []
+  pull_request:
+    branches: []
+  schedule:
+    - cron: "0 1 * * 6" # Every Saturday at 1AM  
+
 jobs:
   lint:
     runs-on: ubuntu-latest

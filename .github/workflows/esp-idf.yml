@@ -1,11 +1,25 @@
+name: ESP-IDF v4.4
+
 on:
   push:
+    branches: []
+  pull_request:
+    branches: []
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "0 1 * * 6" # Every Saturday at 1AM  
 
 jobs:
+
   build:
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        idf_ver: ["release-v4.4"]
+        idf_target: ["esp32"]
+  
     runs-on: ubuntu-latest
+    name: Build esp-idf v4.4 example
 
     steps:
       - uses: actions/checkout@v3
@@ -16,6 +30,7 @@ jobs:
       - name: esp-idf build
         uses: espressif/esp-idf-ci-action@v1
         with:
-          esp_idf_version: v4.4.6
-          target: esp32
+          esp_idf_version: ${{ matrix.idf_ver }}
+          target: ${{ matrix.idf_target }}
           path: app/examples/esp-idf
+          command: pip install --upgrade idf-component-manager && apt-get update && apt-get install -y python3-venv && idf.py build
