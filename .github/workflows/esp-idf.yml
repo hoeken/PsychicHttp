@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        idf_ver: ["release-v4.4"]
+        idf_ver: ["v4.4.7"]
         idf_target: ["esp32"]
   
     runs-on: ubuntu-latest
