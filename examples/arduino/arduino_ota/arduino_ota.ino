@@ -24,8 +24,8 @@ const char *local_hostname = "psychichttp"; // hostname for mdns
 bool esprestart=false; // true if/when ESP should be restarted, after OTA update
 
 // Wifi
-const char *ssid = "Livebox-9BB4"; // your SSID
-const char *password = "461EC75EDAFD1C17DEDEC93D36"; // your PASSWORD
+const char *ssid = "PASSWORD"; // your SSID
+const char *password = "PASSWORD"; // your PASSWORD
 
 bool connectToWifi() { // Wifi
   //client in STA mode
