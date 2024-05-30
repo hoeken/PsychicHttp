@@ -123,19 +123,20 @@ void PsychicResponse::sendHeaders()
 {
   //get our global headers out of the way first
   for (HTTPHeader header : DefaultHeaders::Instance().getHeaders())
+  {
     httpd_resp_set_hdr(_request->request(), header.field, header.value);
+    //Log global header
+    ESP_LOGI(PH_TAG, "HEADER_G[%s]: %s\n", header.field, header.value);
+  }
 
   //now do our individual headers
   for (HTTPHeader header : _headers)
-    httpd_resp_set_hdr(this->_request->request(), header.field, header.value);
-
-  // clean up our header variables after send
-  for (HTTPHeader header : _headers)
   {
-    free(header.field);
-    free(header.value);
+    httpd_resp_set_hdr(this->_request->request(), header.field, header.value);
+    //Log individual header
+    ESP_LOGI(PH_TAG, "HEADER_I[%s]: %s\n", header.field, header.value);
   }
-  _headers.clear();
+  // clean up header make cookie and other feature not work
 }
 
 esp_err_t PsychicResponse::sendChunk(uint8_t *chunk, size_t chunksize)
