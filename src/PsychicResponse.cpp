@@ -136,17 +136,7 @@ void PsychicResponse::sendHeaders()
     //Log individual header
     ESP_LOGI(PH_TAG, "HEADER_I[%s]: %s\n", header.field, header.value);
   }
-  // clean up our header variables after send
-  for (HTTPHeader header : _headers)
-  {
-    //Work around: Keep "Location" and "Content-Disposition" or captivate portal not show in iPhone Safari, what wrong?
-    if (strcmp(header.field, "Location") && strcmp(header.field, "Content-Disposition"))
-    {
-      free(header.field);
-      free(header.value);
-    }
-  }
-  _headers.clear();
+  // clean up header make cookie and other feature not work
 }
 
 esp_err_t PsychicResponse::sendChunk(uint8_t *chunk, size_t chunksize)
