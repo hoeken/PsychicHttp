@@ -39,6 +39,11 @@ arduino_ota
 	littlefs.bin
 	README
 ```
+"code.bin" and "littlefs.bin" are example update files which can be used to update respectily code (firmware) or data (littlefs).
+
+"Real" update files can be generated on Arduino IDE 1.x :
+- for code, menu "Sketch -> Export bin"
+- for data, using plugin arduino-esp32fs-plugin  https://github.com/lorol/arduino-esp32fs-plugin/releases
 
 **SCREENSHOTS**
 

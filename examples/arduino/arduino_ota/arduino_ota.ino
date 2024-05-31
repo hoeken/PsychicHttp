@@ -24,7 +24,7 @@ const char *local_hostname = "psychichttp"; // hostname for mdns
 bool esprestart=false; // true if/when ESP should be restarted, after OTA update
 
 // Wifi
-const char *ssid = "PASSWORD"; // your SSID
+const char *ssid = "SSID";         // your SSID
 const char *password = "PASSWORD"; // your PASSWORD
 
 bool connectToWifi() { // Wifi
