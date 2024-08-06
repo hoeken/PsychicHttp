@@ -18,7 +18,7 @@ class PsychicHttpsServer : public PsychicHttpServer
     bool _use_ssl = false;
 
   public:
-    PsychicHttpsServer();
+    PsychicHttpsServer(uint16_t port = 443);
     ~PsychicHttpsServer();
 
     httpd_ssl_config_t ssl_config;

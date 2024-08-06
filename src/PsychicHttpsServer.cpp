@@ -2,7 +2,7 @@
 
 #ifdef CONFIG_ESP_HTTPS_SERVER_ENABLE
 
-PsychicHttpsServer::PsychicHttpsServer() : PsychicHttpServer()
+PsychicHttpsServer::PsychicHttpsServer(uint16_t port) : PsychicHttpServer(port)
 {
   //for a SSL server
   ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
