@@ -1,12 +1,14 @@
 # v1.2
 
-* Add TemplatePrinter from https://github.com/Chris--A/PsychicHttp/tree/templatePrint
+* Added TemplatePrinter from https://github.com/Chris--A/PsychicHttp/tree/templatePrint
 * Support using as ESP IDF component
 * Optional using https server in ESP IDF
-* Fix memory leak when send headers in PsychicResponse
+* Fixed bug with headers
 * Add ESP IDF example + CI script
+* Added Arduino Captive Portal example and OTAUpdate from @06GitHub
+* HTTPS fix for ESP-IDF v5.0.2+ from @06GitHub
 
-Thanks to @Chris--A and @dzungpv for your contributions.
+Thanks to @Chris--A, @06GitHub, and @dzungpv for your contributions.
 
 # v1.1
 
