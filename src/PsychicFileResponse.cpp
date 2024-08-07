@@ -150,7 +150,7 @@ esp_err_t PsychicFileResponse::send()
 
     if (err == ESP_OK)
     {
-      ESP_LOGI(PH_TAG, "File sending complete");
+      ESP_LOGD(PH_TAG, "File sending complete");
       this->finishChunking();
     }
   }

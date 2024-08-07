@@ -65,7 +65,7 @@ void async_req_worker_task(void *p)
         httpd_async_req_t async_req;
         if (xQueueReceive(async_req_queue, &async_req, portMAX_DELAY)) {
 
-            ESP_LOGI(PH_TAG, "invoking %s", async_req.req->uri);
+            // ESP_LOGD(PH_TAG, "invoking %s", async_req.req->uri);
 
             // call the handler
             async_req.handler(async_req.req);
@@ -78,7 +78,7 @@ void async_req_worker_task(void *p)
         }
     }
 
-    ESP_LOGW(PH_TAG, "worker stopped");
+    ESP_LOGI(PH_TAG, "worker stopped");
     vTaskDelete(NULL);
 }
 
