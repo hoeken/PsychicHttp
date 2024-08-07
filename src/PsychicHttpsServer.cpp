@@ -27,8 +27,15 @@ esp_err_t PsychicHttpsServer::listen(uint16_t port, const char *cert, const char
   this->_use_ssl = true;
 
   this->ssl_config.port_secure = port;
-  this->ssl_config.cacert_pem = (uint8_t *)cert;
-  this->ssl_config.cacert_len = strlen(cert)+1;
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 2)
+    this->ssl_config.servercert = (uint8_t *)cert;
+    this->ssl_config.servercert_len = strlen(cert)+1;
+#else
+    this->ssl_config.cacert_pem = (uint8_t *)cert;
+    this->ssl_config.cacert_len = strlen(cert)+1;
+#endif
+
   this->ssl_config.prvtkey_pem = (uint8_t *)private_key;
   this->ssl_config.prvtkey_len = strlen(private_key)+1;
 
