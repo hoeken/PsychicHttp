@@ -78,6 +78,11 @@ esp_err_t PsychicHttpServer::_start()
     return ret;
   }
 
+  _started = true;
+
+  for (PsychicEndpoint *endpoint : _endpoints)
+    endpoint->install();
+
   // Register handler
   ret = httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, PsychicHttpServer::notFoundHandler);
   if (ret != ESP_OK)
@@ -90,9 +95,18 @@ esp_err_t PsychicHttpServer::_startServer() {
   return httpd_start(&this->server, &this->config);
 }
 
-void PsychicHttpServer::stop()
+esp_err_t PsychicHttpServer::stop()
 {
-  httpd_stop(this->server);  
+  esp_err_t ret = httpd_stop(this->server);
+  if(ret != ESP_OK)
+  {
+    ESP_LOGE(PH_TAG, "Server stop failed (%s)", esp_err_to_name(ESP_FAIL));
+    return ret;
+  }
+
+  _started = false;
+  ESP_LOGI(PH_TAG, "Server stopped");
+  return ret;
 }
 
 PsychicHandler& PsychicHttpServer::addHandler(PsychicHandler* handler){
@@ -102,6 +116,13 @@ PsychicHandler& PsychicHttpServer::addHandler(PsychicHandler* handler){
 
 void PsychicHttpServer::removeHandler(PsychicHandler *handler){
   _handlers.remove(handler);
+}
+
+esp_err_t PsychicHttpServer::removeEndpoint(PsychicEndpoint *endpoint){
+  _endpoints.remove(endpoint);
+  esp_err_t ret = endpoint->uninstall();
+  delete endpoint;
+  return ret;
 }
 
 PsychicEndpoint* PsychicHttpServer::on(const char* uri) {
@@ -128,20 +149,8 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method, Psyc
   //set our handler
   endpoint->setHandler(handler);
 
-  // URI handler structure
-  httpd_uri_t my_uri {
-    .uri      = uri,
-    .method   = method,
-    .handler  = PsychicEndpoint::requestCallback,
-    .user_ctx = endpoint,
-    .is_websocket = handler->isWebSocket(),
-    .supported_subprotocol = handler->getSubprotocol()
-  };
-  
-  // Register endpoint with ESP-IDF server
-  esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
-  if (ret != ESP_OK)
-    ESP_LOGE(PH_TAG, "Add endpoint failed (%s)", esp_err_to_name(ret));
+  if(_started)
+    endpoint->install();
 
   //save it for later
   _endpoints.push_back(endpoint);

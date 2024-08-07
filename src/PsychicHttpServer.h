@@ -22,6 +22,7 @@ class PsychicHttpServer
 
     esp_err_t _start();
     virtual esp_err_t _startServer();
+    bool _started = false;
 
   public:
     PsychicHttpServer();
@@ -39,10 +40,11 @@ class PsychicHttpServer
 
     esp_err_t listen(uint16_t port);
 
-    virtual void stop();
+    virtual esp_err_t stop();
 
     PsychicHandler& addHandler(PsychicHandler* handler);
     void removeHandler(PsychicHandler* handler);
+    esp_err_t removeEndpoint(PsychicEndpoint* endpoint);
 
     void addClient(PsychicClient *client);
     void removeClient(PsychicClient *client);

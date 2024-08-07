@@ -18,6 +18,7 @@ class PsychicEndpoint
     String _uri;
     http_method _method;
     PsychicHandler *_handler;
+    bool _registered = false;
 
   public:
     PsychicEndpoint();
@@ -30,6 +31,9 @@ class PsychicEndpoint
     PsychicEndpoint* setAuthentication(const char *username, const char *password, HTTPAuthMethod method = BASIC_AUTH, const char *realm = "", const char *authFailMsg = "");
 
     String uri();
+
+    esp_err_t install();
+    esp_err_t uninstall();
 
     static esp_err_t requestCallback(httpd_req_t *req);
 };
