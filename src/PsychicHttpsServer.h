@@ -27,7 +27,7 @@ class PsychicHttpsServer : public PsychicHttpServer
     esp_err_t listen(uint16_t port, const char *cert, const char *private_key);
 
     virtual esp_err_t _startServer() override final;
-    virtual void stop() override final;
+    virtual esp_err_t stop() override final;
 };
 
 #endif // PsychicHttpsServer_h
