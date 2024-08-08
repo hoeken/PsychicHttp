@@ -36,15 +36,11 @@ esp_err_t PsychicJsonResponse::send()
   size_t buffer_size;
   char *buffer;
 
-  DUMP(length);
-
   //how big of a buffer do we want?
   if (length < JSON_BUFFER_SIZE)
     buffer_size = length+1;
   else
     buffer_size = JSON_BUFFER_SIZE;
-
-  DUMP(buffer_size);
 
   buffer = (char *)malloc(buffer_size);
   if (buffer == NULL) {
@@ -55,8 +51,6 @@ esp_err_t PsychicJsonResponse::send()
   //send it in one shot or no?
   if (length < JSON_BUFFER_SIZE)
   {
-    TRACE();
-
     serializeJson(_root, buffer, buffer_size);
 
     this->setContent((uint8_t *)buffer, length);

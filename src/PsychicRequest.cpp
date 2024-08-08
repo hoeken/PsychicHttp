@@ -409,12 +409,6 @@ bool PsychicRequest::authenticate(const char * username, const char * password)
       }
       if((_opaque != this->getSessionKey("opaque")) || (_nonce != this->getSessionKey("nonce")) || (_realm != this->getSessionKey("realm")))
       {
-        // DUMP(_opaque);
-        // DUMP(this->getSessionKey("opaque"));
-        // DUMP(_nonce);
-        // DUMP(this->getSessionKey("nonce"));
-        // DUMP(_realm);
-        // DUMP(this->getSessionKey("realm"));
         authReq = "";
         return false;
       }
@@ -502,8 +496,6 @@ esp_err_t PsychicRequest::requestAuthentication(HTTPAuthMethod mode, const char*
     authStr = "Digest realm=\"" + this->getSessionKey("realm") + "\", qop=\"auth\", nonce=\"" + this->getSessionKey("nonce") + "\", opaque=\"" + this->getSessionKey("opaque") + "\"";
     response.addHeader("WWW-Authenticate", authStr.c_str());
   }
-
-  //DUMP(authStr);
 
   response.setCode(401);
   response.setContentType("text/html");

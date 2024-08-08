@@ -93,7 +93,6 @@ PsychicWebSocketClient * PsychicWebSocketHandler::getClient(int socket)
 
   if (client->_friend == NULL)
   {
-    DUMP(socket);
     return NULL;
   }
 
@@ -119,7 +118,6 @@ void PsychicWebSocketHandler::openCallback(PsychicClient *client) {
   PsychicWebSocketClient *buddy = getClient(client);
   if (buddy == NULL)
   {
-    TRACE();
     return;
   }
 
@@ -131,7 +129,6 @@ void PsychicWebSocketHandler::closeCallback(PsychicClient *client) {
   PsychicWebSocketClient *buddy = getClient(client);
   if (buddy == NULL)
   {
-    TRACE();
     return;
   }
 
@@ -235,7 +232,6 @@ void PsychicWebSocketHandler::sendAll(httpd_ws_frame_t * ws_pkt)
 
     if (client->_friend == NULL)
     {
-      TRACE();
       return;
     }
 

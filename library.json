@@ -35,11 +35,6 @@
       "version": "^7.0.4"
     },
     {
-      "owner": "bblanchon",
-      "name": "ArduinoTrace",
-      "version": "^1.2.0"
-    },
-    {
       "owner": "plageoj",
       "name" : "UrlEncode",
       "version" : "^1.0.1"
