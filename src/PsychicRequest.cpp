@@ -280,17 +280,17 @@ void PsychicRequest::loadParams()
     _query.concat(query);
 
     //parse them.
-    _addParams(_query);
+    _addParams(_query, false);
   }
 
   //did we get form data as body?
   if (this->method() == HTTP_POST && this->contentType().startsWith("application/x-www-form-urlencoded"))
   {
-    _addParams(_body);
+    _addParams(_body, true);
   }
 }
 
-void PsychicRequest::_addParams(const String& params){
+void PsychicRequest::_addParams(const String& params, bool post){
   size_t start = 0;
   while (start < params.length()){
     int end = params.indexOf('&', start);
@@ -299,20 +299,21 @@ void PsychicRequest::_addParams(const String& params){
     if (equal < 0 || equal > end) equal = end;
     String name = params.substring(start, equal);
     String value = equal + 1 < end ? params.substring(equal + 1, end) : String();
-    addParam(name, value);
+    addParam(name, value, true, post);
     start = end + 1;
   }
 }
 
-PsychicWebParameter * PsychicRequest::addParam(const String &name, const String &value, bool decode)
+PsychicWebParameter * PsychicRequest::addParam(const String &name, const String &value, bool decode, bool post)
 {
   if (decode)
-    return addParam(new PsychicWebParameter(urlDecode(name.c_str()), urlDecode(value.c_str())));
+    return addParam(new PsychicWebParameter(urlDecode(name.c_str()), urlDecode(value.c_str()), post));
   else
-    return addParam(new PsychicWebParameter(name, value));
+    return addParam(new PsychicWebParameter(name, value, post));
 }
 
 PsychicWebParameter * PsychicRequest::addParam(PsychicWebParameter *param) {
+  // ESP_LOGD(PH_TAG, "Adding param: '%s' = '%s'", param->name().c_str(), param->value().c_str());
   _params.push_back(param);
   return param;
 }
