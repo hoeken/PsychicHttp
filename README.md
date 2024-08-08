@@ -777,44 +777,12 @@ ArduinoMongoose is a good alternative, although the latency issues when it gets 
 
 # Roadmap
 
-## v1.2: ESPAsyncWebserver Parity
+## v2.0: ESPAsyncWebserver Parity
 
-
-Change:
-Modify the request handling to bring initail url matching and filtering into PsychicHttpServer itself.
-
-Benefits: 
-* Fix a bug with filter() where endpoint is matched, but filter fails and it doesn't continue matching further endpoints (checks are in different codebases)
-* HTTP_ANY support
-* unlimited endpoints
-  * we would use a List to store endpoints
-  * dont have to pre-declare config.max_uri_handlers;
-* url rewriting
-* much more flexibility for future
-
-Issues
-* it would log a warning on every request as if its a 404. (httpd_uri.c:298)
-* req->user_ctx is not passed in. (httpd_uri.c:309)
-    * but... user_ctx is something we could store in the psychicendpoint data
-  * Websocket support assumes an endpoint with matching url / method (httpd_uri.c:312)
-    * we could copy and bring this code into our own internal request processor
-  * would need to manually maintain more code (~100 lines?) and be more prone to esp-idf http_server updates causing problems.
-
-How to implement
-* set config.max_uri_handlers = 1;
-* possibly do not register any uri_handlers (looks like it would be fastest way to exit httpd_find_uri_handler (httpd_uri.c:94))
-  * looks like 404 is set by default, so should work.
-* modify PsychicEndpoint to store the stuff we would pass to http_server
-* create a new function handleRequest() before PsychicHttpServer::defaultNotFoundHandler to process incoming requests.
-  * bring in code from PsychicHttpServer::notFoundHandler
-  * add new code to loop over endpoints to call match and filter
-* bring code from esp-idf library
-
-* templating system
+* update syntax to match ESPAsync better
 * regex url matching
-* rewrite urls?
+* rewrite urls
 * What else are we missing?
-
 
 ## Longterm Wants
 
