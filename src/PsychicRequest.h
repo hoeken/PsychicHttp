@@ -93,6 +93,35 @@ class PsychicRequest {
     esp_err_t reply(int code);
     esp_err_t reply(const char *content);
     esp_err_t reply(int code, const char *contentType, const char *content);
+
+#ifdef PSYCHIC_TO_ESPASYNCWS
+    esp_err_t send(int code) { return reply(code); }
+    esp_err_t send(int code, const char *contentType, const char *content) { return reply(code, contentType, content); }
+    esp_err_t send(PsychicResponse* response) { 
+      esp_err_t err = response->send();
+      delete response;
+      return err;
+    }
+    bool hasParam(const char *name, bool post, bool file = false) {
+      for (auto *param : _params)
+        if (param->name().equals(name) && post == param->isPost() && file == param->isFile())
+          return true;
+      return false;
+    }
+    PsychicWebParameter * getParam(const char *name, bool post, bool file = false) {
+      for (auto *param : _params)
+        if (param->name().equals(name) && post == param->isPost() && file == param->isFile())
+          return param;
+      return NULL;
+    }
+    PsychicResponse* beginResponse(int code, const char* contentType, const uint8_t* content, size_t len) {
+      PsychicResponse* response = new PsychicResponse(this);
+      response->setContentType(contentType);
+      response->setContent(content, len);
+      response->setCode(code);
+      return response;
+    }
+#endif
 };
 
 #endif // PsychicRequest_h

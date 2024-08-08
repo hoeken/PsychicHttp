@@ -18,7 +18,7 @@ class PsychicHttpsServer : public PsychicHttpServer
     bool _use_ssl = false;
 
   public:
-    PsychicHttpsServer();
+    PsychicHttpsServer(uint16_t port = 443);
     ~PsychicHttpsServer();
 
     httpd_ssl_config_t ssl_config;
@@ -27,7 +27,7 @@ class PsychicHttpsServer : public PsychicHttpServer
     esp_err_t listen(uint16_t port, const char *cert, const char *private_key);
 
     virtual esp_err_t _startServer() override final;
-    virtual void stop() override final;
+    virtual esp_err_t stop() override final;
 };
 
 #endif // PsychicHttpsServer_h

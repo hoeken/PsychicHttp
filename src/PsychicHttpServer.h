@@ -22,9 +22,10 @@ class PsychicHttpServer
 
     esp_err_t _start();
     virtual esp_err_t _startServer();
+    bool _started = false;
 
   public:
-    PsychicHttpServer();
+    PsychicHttpServer(uint16_t port = 80);
     virtual ~PsychicHttpServer();
 
     //esp-idf specific stuff
@@ -41,10 +42,11 @@ class PsychicHttpServer
 
     esp_err_t listen(uint16_t port);
 
-    virtual void stop();
+    virtual esp_err_t stop();
 
     PsychicHandler& addHandler(PsychicHandler* handler);
     void removeHandler(PsychicHandler* handler);
+    esp_err_t removeEndpoint(PsychicEndpoint* endpoint);
 
     void addClient(PsychicClient *client);
     void removeClient(PsychicClient *client);
@@ -54,14 +56,14 @@ class PsychicHttpServer
     int count() { return _clients.size(); };
     const std::list<PsychicClient*>& getClientList();
 
-    PsychicEndpoint* on(const char* uri);
-    PsychicEndpoint* on(const char* uri, http_method method);
-    PsychicEndpoint* on(const char* uri, PsychicHandler *handler);
-    PsychicEndpoint* on(const char* uri, http_method method, PsychicHandler *handler);
-    PsychicEndpoint* on(const char* uri, PsychicHttpRequestCallback onRequest);
-    PsychicEndpoint* on(const char* uri, http_method method, PsychicHttpRequestCallback onRequest);
-    PsychicEndpoint* on(const char* uri, PsychicJsonRequestCallback onRequest);
-    PsychicEndpoint* on(const char* uri, http_method method, PsychicJsonRequestCallback onRequest);
+    PsychicEndpoint& on(const char* uri);
+    PsychicEndpoint& on(const char* uri, http_method method);
+    PsychicEndpoint& on(const char* uri, PsychicHandler *handler);
+    PsychicEndpoint& on(const char* uri, http_method method, PsychicHandler *handler);
+    PsychicEndpoint& on(const char* uri, PsychicHttpRequestCallback onRequest);
+    PsychicEndpoint& on(const char* uri, http_method method, PsychicHttpRequestCallback onRequest);
+    PsychicEndpoint& on(const char* uri, PsychicJsonRequestCallback onRequest);
+    PsychicEndpoint& on(const char* uri, http_method method, PsychicJsonRequestCallback onRequest);
 
     static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
     static esp_err_t defaultNotFoundHandler(PsychicRequest *request);
@@ -73,6 +75,12 @@ class PsychicHttpServer
     static void closeCallback(httpd_handle_t hd, int sockfd);
 
     PsychicStaticFileHandler* serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
+
+#ifdef PSYCHIC_TO_ESPASYNCWS
+    void begin(uint16_t port = 80) { listen(port); }
+    void end() { stop(); }
+    void removeHandler(PsychicEndpoint* endpoint) { removeEndpoint(endpoint); }
+#endif
 };
 
 bool ON_STA_FILTER(PsychicRequest *request);

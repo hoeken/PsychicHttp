@@ -21,4 +21,8 @@
   #include "async_worker.h"
 #endif
 
+#ifdef PSYCHIC_TO_ESPASYNCWS
+  #include <PsychicFromEspAsyncwebServer.h>
+#endif
+
 #endif /* PsychicHttp_h */

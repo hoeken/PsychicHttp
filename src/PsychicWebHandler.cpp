@@ -19,6 +19,8 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
   if (client->isNew)
     openCallback(client);
 
+  // ESP_LOGD(PH_TAG, "%s > %s %s (%s)", client->remoteIP().toString().c_str(), request->methodStr().c_str(), request->uri().c_str(), request->contentType().c_str());
+
   /* Request body cannot be larger than a limit */
   if (request->contentLength() > request->server()->maxRequestBodySize)
   {
@@ -35,8 +37,12 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
 
   //get our body loaded up.
   esp_err_t err = request->loadBody();
-  if (err != ESP_OK)
+  if (err != ESP_OK) {
+    ESP_LOGE(PH_TAG, "Failed to load body (%s)", esp_err_to_name(err));
     return err;
+  }
+
+  // ESP_LOGD(PH_TAG, "Body: %s", request->body().c_str());
 
   //load our params in.
   request->loadParams();

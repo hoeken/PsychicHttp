@@ -41,6 +41,50 @@ String PsychicEndpoint::uri() {
   return _uri;
 }
 
+esp_err_t PsychicEndpoint::install()
+{
+  if (!_registered)
+  {
+    // URI handler structure
+    httpd_uri_t my_uri {
+      .uri      = _uri.c_str(),
+      .method   = _method,
+      .handler  = PsychicEndpoint::requestCallback,
+      .user_ctx = this,
+      .is_websocket = _handler->isWebSocket(),
+      .handle_ws_control_frames = false,
+      .supported_subprotocol = _handler->getSubprotocol()
+    };
+    
+    // Register endpoint with ESP-IDF server
+    esp_err_t ret = httpd_register_uri_handler(_server->server, &my_uri);
+    if (ret != ESP_OK) {
+      ESP_LOGE(PH_TAG, "Add endpoint failed (%s) for: %s", esp_err_to_name(ret), _uri.c_str());
+      return ret;
+    }
+
+    _registered = true;
+  }
+
+  return ESP_OK;
+}
+
+esp_err_t PsychicEndpoint::uninstall()
+{
+  if (_registered)
+  {
+    esp_err_t ret = httpd_unregister_uri_handler(_server->server, _uri.c_str(), _method);
+    if (ret != ESP_OK) {
+      ESP_LOGE(PH_TAG, "Remove endpoint failed (%s) for: %s", esp_err_to_name(ret), _uri.c_str());
+      return ret;
+    }
+
+    _registered = false;
+  }
+
+  return ESP_OK;
+}
+
 esp_err_t PsychicEndpoint::requestCallback(httpd_req_t *req)
 {
   #ifdef ENABLE_ASYNC
