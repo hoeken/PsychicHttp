@@ -39,5 +39,15 @@
       "name" : "UrlEncode",
       "version" : "^1.0.1"
     }
-  ]
+  ],
+  "export": {
+    "include": [
+      "examples/platformio",
+      "src",
+      "library.json",
+      "library.properties",
+      "LICENSE",
+      "README.md"
+    ]
+  }
 }
