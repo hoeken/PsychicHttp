@@ -169,7 +169,7 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest *request)
   }
 
   //okay, now try to load the packet
-  //ESP_LOGI(PH_TAG, "frame len is %d", ws_pkt.len);
+  //ESP_LOGD(PH_TAG, "frame len is %d", ws_pkt.len);
   if (ws_pkt.len) {
     /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
     buf = (uint8_t*) calloc(1, ws_pkt.len + 1);
@@ -185,7 +185,7 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest *request)
       free(buf);
       return ret;
     }
-    //ESP_LOGI(PH_TAG, "Got packet with message: %s", ws_pkt.payload);
+    //ESP_LOGD(PH_TAG, "Got packet with message: %s", ws_pkt.payload);
   }
 
   // Text messages are our payload.
@@ -198,7 +198,7 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest *request)
   //logging housekeeping
   if (ret != ESP_OK)
     ESP_LOGE(PH_TAG, "httpd_ws_send_frame failed with %s", esp_err_to_name(ret));
-    // ESP_LOGI(PH_TAG, "ws_handler: httpd_handle_t=%p, sockfd=%d, client_info:%d", 
+    // ESP_LOGD(PH_TAG, "ws_handler: httpd_handle_t=%p, sockfd=%d, client_info:%d", 
     //   request->server(),
     //   httpd_req_to_sockfd(request->request()),
     //   httpd_ws_get_fd_info(request->server()->server, httpd_req_to_sockfd(request->request())));
@@ -228,7 +228,7 @@ void PsychicWebSocketHandler::sendAll(httpd_ws_frame_t * ws_pkt)
 {
   for (PsychicClient *client : _clients)
   {
-    //ESP_LOGI(PH_TAG, "Active client (fd=%d) -> sending async message", client->socket());
+    //ESP_LOGD(PH_TAG, "Active client (fd=%d) -> sending async message", client->socket());
 
     if (client->_friend == NULL)
     {

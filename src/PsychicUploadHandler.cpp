@@ -93,7 +93,7 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest *request)
       httpd_sess_update_lru_counter(request->server()->server, request->client()->socket());
     #endif
 
-    //ESP_LOGI(PH_TAG, "Remaining size : %d", remaining);
+    //ESP_LOGD(PH_TAG, "Remaining size : %d", remaining);
 
     /* Receive the file part by part into a buffer */
     if ((received = httpd_req_recv(request->request(), buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)
@@ -161,7 +161,7 @@ esp_err_t PsychicUploadHandler::_multipartUploadHandler(PsychicRequest *request)
       httpd_sess_update_lru_counter(request->server()->server, request->client()->socket());
     #endif
 
-    //ESP_LOGI(PH_TAG, "Remaining size : %d", remaining);
+    //ESP_LOGD(PH_TAG, "Remaining size : %d", remaining);
 
     /* Receive the file part by part into a buffer */
     if ((received = httpd_req_recv(request->request(), buf, min(remaining, FILE_CHUNK_SIZE))) <= 0)

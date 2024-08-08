@@ -233,7 +233,7 @@ void PsychicHttpServer::onOpen(PsychicClientCallback handler) {
 
 esp_err_t PsychicHttpServer::openCallback(httpd_handle_t hd, int sockfd)
 {
-  //ESP_LOGI(PH_TAG, "New client connected %d", sockfd);
+  ESP_LOGD(PH_TAG, "New client connected %d", sockfd);
 
   //get our global server reference
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
@@ -259,7 +259,7 @@ void PsychicHttpServer::onClose(PsychicClientCallback handler) {
 
 void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
 {
-  //ESP_LOGI(PH_TAG, "Client disconnected %d", sockfd);
+  ESP_LOGD(PH_TAG, "Client disconnected %d", sockfd);
 
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(hd);
 
