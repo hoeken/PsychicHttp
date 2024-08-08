@@ -180,7 +180,7 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method, Psyc
 void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
 {
   PsychicWebHandler *handler = new PsychicWebHandler();
-  handler->onRequest(fn);
+  handler->onRequest(fn == nullptr ? PsychicHttpServer::defaultNotFoundHandler : fn);
 
   this->defaultEndpoint->setHandler(handler);
 }
