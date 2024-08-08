@@ -45,6 +45,8 @@ class PsychicHttpServer
 
     PsychicEndpoint *defaultEndpoint;
 
+    static void destroy(void *ctx);
+
     void listen(uint16_t port);
 
     virtual esp_err_t begin() {return start();}
