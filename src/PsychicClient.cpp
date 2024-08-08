@@ -44,7 +44,7 @@ IPAddress PsychicClient::localIP()
 
   // Convert to IPv4 string
   inet_ntop(AF_INET, &addr.sin6_addr.un.u32_addr[3], ipstr, sizeof(ipstr));
-  ESP_LOGI(PH_TAG, "Client Local IP => %s", ipstr);
+  //ESP_LOGI(PH_TAG, "Client Local IP => %s", ipstr);
   address.fromString(ipstr);
 
   return address;
@@ -65,7 +65,7 @@ IPAddress PsychicClient::remoteIP()
 
   // Convert to IPv4 string
   inet_ntop(AF_INET, &addr.sin6_addr.un.u32_addr[3], ipstr, sizeof(ipstr));
-  ESP_LOGI(PH_TAG, "Client Remote IP => %s", ipstr);
+  //ESP_LOGI(PH_TAG, "Client Remote IP => %s", ipstr);
   address.fromString(ipstr);
 
   return address;
