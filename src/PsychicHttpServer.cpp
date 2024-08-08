@@ -23,7 +23,6 @@ PsychicHttpServer::PsychicHttpServer() :
   config.close_fn = PsychicHttpServer::closeCallback;
   config.uri_match_fn = httpd_uri_match_wildcard;
   config.global_user_ctx = this;
-  config.global_user_ctx_free_fn = destroy;
   config.max_uri_handlers = 20;
 
   #ifdef ENABLE_ASYNC
@@ -52,12 +51,6 @@ PsychicHttpServer::~PsychicHttpServer()
   _handlers.clear();
 
   delete defaultEndpoint;
-}
-
-void PsychicHttpServer::destroy(void *ctx)
-{
-  PsychicHttpServer *temp = (PsychicHttpServer *)ctx;
-  delete temp;
 }
 
 esp_err_t PsychicHttpServer::listen(uint16_t port)
