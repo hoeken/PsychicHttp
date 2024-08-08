@@ -104,9 +104,16 @@ esp_err_t PsychicFileResponse::send()
   if (size < FILE_CHUNK_SIZE)
   {
     uint8_t *buffer = (uint8_t *)malloc(size);
-    int readSize = _content.readBytes((char *)buffer, size);
+    if (buffer == NULL)
+    {
+      /* Respond with 500 Internal Server Error */
+      httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
+      return ESP_FAIL;
+    }
 
-    this->setContent(buffer, size);
+    size_t readSize = _content.readBytes((char *)buffer, size);
+
+    this->setContent(buffer, readSize);
     err = PsychicResponse::send();
     
     free(buffer);
