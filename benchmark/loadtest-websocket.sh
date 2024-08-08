@@ -2,7 +2,7 @@
 #Command to install the testers:
 # npm install -g loadtest
 
-TEST_IP="192.168.2.131"
+TEST_IP="psychic.local"
 TEST_TIME=60
 LOG_FILE=psychic-websocket-loadtest.log
 PROTOCOL=ws

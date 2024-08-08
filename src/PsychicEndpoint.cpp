@@ -55,8 +55,6 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t *req)
     }
   #endif
 
-  Serial.println("HERE");
-
   PsychicEndpoint *self = (PsychicEndpoint *)req->user_ctx;
   PsychicHandler *handler = self->handler();
   PsychicRequest request(self->_server, req);

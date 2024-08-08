@@ -11,7 +11,8 @@
 #include <WiFi.h>
 #include <PsychicHttp.h>
 #include <LittleFS.h>
-#include <ArduinoJSON.h>
+#include <ArduinoJson.h>
+#include <ESPmDNS.h>
 #include "_secret.h"
 
 #ifndef WIFI_SSID
@@ -21,6 +22,9 @@
 //Enter your WIFI credentials in secret.h
 const char *ssid = WIFI_SSID;
 const char *password = WIFI_PASS;
+
+//hostname for mdns (psychic.local)
+const char *local_hostname = "psychic";
 
 PsychicHttpServer server;
 PsychicWebSocketHandler websocketHandler;
@@ -159,6 +163,13 @@ void setup()
 
   if (connectToWifi())
   {
+    //set up our esp32 to listen on the local_hostname.local domain
+    if (!MDNS.begin(local_hostname)) {
+      Serial.println("Error starting mDNS");
+      return;
+    }
+    MDNS.addService("http", "tcp", 80);
+
     if(!LittleFS.begin())
     {
       Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
@@ -179,7 +190,7 @@ void setup()
 
     //a websocket echo server
     websocketHandler.onOpen([](PsychicWebSocketClient *client) {
-      client->sendMessage("Hello!");
+      //client->sendMessage("Hello!");
     });
     websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
       request->reply(frame);
@@ -197,7 +208,7 @@ void setup()
     server.on("/api", HTTP_GET, [](PsychicRequest *request)
     {
       //create a response object
-      StaticJsonDocument<128> output;
+      JsonDocument output;
       output["msg"] = "status";
       output["status"] = "success";
       output["millis"] = millis();
@@ -214,6 +225,8 @@ void setup()
       serializeJson(output, jsonBuffer);
       return request->reply(200, "application/json", jsonBuffer.c_str());
     });
+
+    server.begin();
   }
 }
 
