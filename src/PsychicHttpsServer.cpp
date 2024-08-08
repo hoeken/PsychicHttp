@@ -21,7 +21,7 @@ PsychicHttpsServer::PsychicHttpsServer() : PsychicHttpServer()
 
 PsychicHttpsServer::~PsychicHttpsServer() {}
 
-esp_err_t PsychicHttpsServer::listen(uint16_t port, const char *cert, const char *private_key)
+void PsychicHttpsServer::listen(uint16_t port, const char *cert, const char *private_key)
 {
   this->_use_ssl = true;
 
@@ -37,8 +37,6 @@ esp_err_t PsychicHttpsServer::listen(uint16_t port, const char *cert, const char
 
   this->ssl_config.prvtkey_pem = (uint8_t *)private_key;
   this->ssl_config.prvtkey_len = strlen(private_key)+1;
-
-  return this->_start();
 }
 
 esp_err_t PsychicHttpsServer::_startServer()

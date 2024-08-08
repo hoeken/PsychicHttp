@@ -5,6 +5,8 @@
 #include "PsychicClient.h"
 #include "PsychicHandler.h"
 
+enum PsychicHttpMethod { HTTP_ANY = 99 };
+
 class PsychicEndpoint;
 class PsychicHandler;
 class PsychicStaticFileHandler;
@@ -13,6 +15,8 @@ class PsychicHttpServer
 {
   protected:
     bool _use_ssl = false;
+
+    std::list<httpd_uri_t> _esp_idf_endpoints;
     std::list<PsychicEndpoint*> _endpoints;
     std::list<PsychicHandler*> _handlers;
     std::list<PsychicClient*> _clients;
@@ -27,9 +31,13 @@ class PsychicHttpServer
     PsychicHttpServer();
     virtual ~PsychicHttpServer();
 
+    //what methods to support
+    std::list<http_method> supported_methods = {HTTP_GET, HTTP_POST, HTTP_DELETE, HTTP_HEAD, HTTP_PUT};
+
     //esp-idf specific stuff
     httpd_handle_t server;
     httpd_config_t config;
+    httpd_uri_match_func_t uri_match_fn;
 
     //some limits on what we will accept
     unsigned long maxUploadSize;
@@ -37,9 +45,12 @@ class PsychicHttpServer
 
     PsychicEndpoint *defaultEndpoint;
 
-    esp_err_t listen(uint16_t port);
+    void listen(uint16_t port);
 
+    virtual esp_err_t begin() {return start();}
+    virtual esp_err_t start();
     virtual void stop();
+
 
     PsychicHandler& addHandler(PsychicHandler* handler);
     void removeHandler(PsychicHandler* handler);
@@ -53,14 +64,15 @@ class PsychicHttpServer
     const std::list<PsychicClient*>& getClientList();
 
     PsychicEndpoint* on(const char* uri);
-    PsychicEndpoint* on(const char* uri, http_method method);
+    PsychicEndpoint* on(const char* uri, int method);
     PsychicEndpoint* on(const char* uri, PsychicHandler *handler);
-    PsychicEndpoint* on(const char* uri, http_method method, PsychicHandler *handler);
+    PsychicEndpoint* on(const char* uri, int method, PsychicHandler *handler);
     PsychicEndpoint* on(const char* uri, PsychicHttpRequestCallback onRequest);
-    PsychicEndpoint* on(const char* uri, http_method method, PsychicHttpRequestCallback onRequest);
+    PsychicEndpoint* on(const char* uri, int method, PsychicHttpRequestCallback onRequest);
     PsychicEndpoint* on(const char* uri, PsychicJsonRequestCallback onRequest);
-    PsychicEndpoint* on(const char* uri, http_method method, PsychicJsonRequestCallback onRequest);
+    PsychicEndpoint* on(const char* uri, int method, PsychicJsonRequestCallback onRequest);
 
+    static esp_err_t requestHandler(httpd_req_t *req);
     static esp_err_t notFoundHandler(httpd_req_t *req, httpd_err_code_t err);
     static esp_err_t defaultNotFoundHandler(PsychicRequest *request);
     void onNotFound(PsychicHttpRequestCallback fn);

@@ -21,9 +21,13 @@ PsychicHttpServer::PsychicHttpServer() :
   config = HTTPD_DEFAULT_CONFIG();
   config.open_fn = PsychicHttpServer::openCallback;
   config.close_fn = PsychicHttpServer::closeCallback;
-  config.uri_match_fn = httpd_uri_match_wildcard;
   config.global_user_ctx = this;
-  config.max_uri_handlers = 20;
+
+  //use their matching function internally
+  uri_match_fn = httpd_uri_match_wildcard;
+  config.uri_match_fn = httpd_uri_match_wildcard;
+  //new internal endpoint matching - always match url
+  //config.uri_match_fn = [](const char *uri_template, const char *uri_to_match, size_t match_upto) { return true;};
 
   #ifdef ENABLE_ASYNC
     // It is advisable that httpd_config_t->max_open_sockets > MAX_ASYNC_REQUESTS
@@ -53,15 +57,13 @@ PsychicHttpServer::~PsychicHttpServer()
   delete defaultEndpoint;
 }
 
-esp_err_t PsychicHttpServer::listen(uint16_t port)
+void PsychicHttpServer::listen(uint16_t port)
 {
   this->_use_ssl = false;
   this->config.server_port = port;
-
-  return this->_start();
 }
 
-esp_err_t PsychicHttpServer::_start()
+esp_err_t PsychicHttpServer::start()
 {
   esp_err_t ret;
 
@@ -70,12 +72,43 @@ esp_err_t PsychicHttpServer::_start()
     start_async_req_workers();
   #endif
 
+  //one URI handler for each http_method
+  config.max_uri_handlers = supported_methods.size() + _esp_idf_endpoints.size();
+
   //fire it up.
   ret = _startServer();
   if (ret != ESP_OK)
   {
     ESP_LOGE(PH_TAG, "Server start failed (%s)", esp_err_to_name(ret));
     return ret;
+  }
+
+  //some handlers (aka websockets) need actual endpoints in esp-idf http_server
+  for (auto endpoint : _esp_idf_endpoints)
+  {
+    ESP_LOGD(PH_TAG, "Adding endpoint %s | %s", endpoint.uri, http_method_str((http_method)endpoint.method)); 
+
+    // Register endpoint with ESP-IDF server
+    esp_err_t ret = httpd_register_uri_handler(this->server, &endpoint);
+    if (ret != ESP_OK)
+      ESP_LOGE(PH_TAG, "Add endpoint failed (%s)", esp_err_to_name(ret));
+  }
+
+  // Register a handler for each http_method method - it will match all requests with that URI/method
+  for (auto method : supported_methods)
+  {
+    ESP_LOGD(PH_TAG, "Adding %s meta endpoint", http_method_str((http_method)method)); 
+
+    httpd_uri_t my_uri {
+      .uri      = "*",
+      .method   = method,
+      .handler  = PsychicHttpServer::requestHandler
+    };
+    
+    // Register endpoint with ESP-IDF server
+    esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
+    if (ret != ESP_OK)
+      ESP_LOGE(PH_TAG, "Add endpoint failed (%s)", esp_err_to_name(ret));
   }
 
   // Register handler
@@ -108,7 +141,7 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri) {
   return on(uri, HTTP_GET);
 }
 
-PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method)
+PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method)
 {
   PsychicWebHandler *handler = new PsychicWebHandler();
 
@@ -120,7 +153,7 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, PsychicHandler *handler)
   return on(uri, HTTP_GET, handler);
 }
 
-PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method, PsychicHandler *handler)
+PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicHandler *handler)
 {
   //make our endpoint
   PsychicEndpoint *endpoint = new PsychicEndpoint(this, method, uri);
@@ -128,21 +161,25 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method, Psyc
   //set our handler
   endpoint->setHandler(handler);
 
-  // URI handler structure
-  httpd_uri_t my_uri {
-    .uri      = uri,
-    .method   = method,
-    .handler  = PsychicEndpoint::requestCallback,
-    .user_ctx = endpoint,
-    .is_websocket = handler->isWebSocket(),
-    .supported_subprotocol = handler->getSubprotocol()
-  };
-  
-  // Register endpoint with ESP-IDF server
-  esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
-  if (ret != ESP_OK)
-    ESP_LOGE(PH_TAG, "Add endpoint failed (%s)", esp_err_to_name(ret));
+  //websockets need a real endpoint in esp-idf
+  if (handler->isWebSocket())
+  {
+    Serial.println("Websocket added.");
 
+    // URI handler structure
+    httpd_uri_t my_uri {
+      .uri      = uri,
+      .method   = HTTP_GET,
+      .handler  = PsychicEndpoint::requestCallback,
+      .user_ctx = endpoint,
+      .is_websocket = handler->isWebSocket(),
+      .supported_subprotocol = handler->getSubprotocol()
+    };
+
+    //save it to our 'real' handlers for later.
+    _esp_idf_endpoints.push_back(my_uri);
+  }
+  
   //save it for later
   _endpoints.push_back(endpoint);
 
@@ -154,7 +191,7 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, PsychicHttpRequestCallba
   return on(uri, HTTP_GET, fn);
 }
 
-PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method, PsychicHttpRequestCallback fn)
+PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicHttpRequestCallback fn)
 {
   //these basic requests need a basic web handler
   PsychicWebHandler *handler = new PsychicWebHandler();
@@ -168,7 +205,7 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, PsychicJsonRequestCallba
   return on(uri, HTTP_GET, fn);
 }
 
-PsychicEndpoint* PsychicHttpServer::on(const char* uri, http_method method, PsychicJsonRequestCallback fn)
+PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicJsonRequestCallback fn)
 {
   //these basic requests need a basic web handler
   PsychicJsonHandler *handler = new PsychicJsonHandler();
@@ -185,10 +222,49 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
   this->defaultEndpoint->setHandler(handler);
 }
 
-esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
+esp_err_t PsychicHttpServer::requestHandler(httpd_req_t *req)
 {
   PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicRequest request(server, req);
+
+  //ESP_LOGD(PH_TAG, "Request: %s | %s", request.uri(), request.methodStr());
+
+  //loop through our endpoints and see if anyone wants it.
+  for(auto *endpoint: server->_endpoints)
+  {
+    //ESP_LOGD(PH_TAG, "Checking endpoint: %s | %s", endpoint->uri(), http_method_str((http_method)req->method));
+
+    //check urls first
+    if (endpoint->matches(req->uri))
+    {
+      //ESP_LOGD(PH_TAG, "URI Matched");
+
+      //check the http_method next
+      if (endpoint->_method == request.method() || endpoint->_method == HTTP_ANY)
+      {
+        //ESP_LOGD(PH_TAG, "http_method OK");
+
+        //check other filter functions
+        PsychicHandler *handler = endpoint->handler();
+        if (handler->filter(&request) && handler->canHandle(&request))
+        {
+          //ESP_LOGD(PH_TAG, "Filter OK");
+
+          //is the handler ok?
+          if (handler->canHandle(&request))
+          {
+            //ESP_LOGD(PH_TAG, "Handler OK");
+
+            //check our credentials
+            if (handler->needsAuthentication(&request))
+              return handler->authenticate(&request);
+            else
+              return handler->handleRequest(&request);
+          }
+        }
+      }
+    }
+  }
 
   //loop through our global handlers and see if anyone wants it
   for(auto *handler: server->_handlers)
@@ -205,6 +281,20 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t 
   }
 
   //nothing found, give it to our defaultEndpoint
+  PsychicHandler *handler = server->defaultEndpoint->handler();
+  if (handler->filter(&request) && handler->canHandle(&request))
+    return handler->handleRequest(&request);
+
+  //not sure how we got this far.
+  return ESP_ERR_HTTPD_INVALID_REQ;
+}
+
+esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t *req, httpd_err_code_t err)
+{
+  PsychicHttpServer *server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
+  PsychicRequest request(server, req);
+
+  //pull up our default handler / endpoint
   PsychicHandler *handler = server->defaultEndpoint->handler();
   if (handler->filter(&request) && handler->canHandle(&request))
     return handler->handleRequest(&request);

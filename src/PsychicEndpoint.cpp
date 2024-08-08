@@ -9,7 +9,7 @@ PsychicEndpoint::PsychicEndpoint() :
 {
 }
 
-PsychicEndpoint::PsychicEndpoint(PsychicHttpServer *server, http_method method, const char * uri) :
+PsychicEndpoint::PsychicEndpoint(PsychicHttpServer *server, int method, const char * uri) :
   _server(server),
   _uri(uri),
   _method(method),
@@ -55,6 +55,8 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t *req)
     }
   #endif
 
+  Serial.println("HERE");
+
   PsychicEndpoint *self = (PsychicEndpoint *)req->user_ctx;
   PsychicHandler *handler = self->handler();
   PsychicRequest request(self->_server, req);
@@ -77,6 +79,33 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t *req)
   }
   else
     return request.reply(500, "text/html", "No handler registered.");
+}
+
+bool PsychicEndpoint::matches(const char *uri)
+{
+  //we only want to match the path, no GET strings
+  char * ptr;
+  size_t position = 0;
+
+  //look for a ? and set our path length to that, 
+  ptr = strchr(uri, '?');
+  if (ptr != NULL)
+    position = (size_t)(int)(ptr - uri);
+  //or use the whole uri if not found
+  else
+    position = strlen(uri);
+
+  //do we have a match function?
+  if (_server->uri_match_fn != NULL)
+  {
+    //ESP_LOGD(PH_TAG, "Match? %s == %s (%d)", _uri.c_str(), uri, position);
+    return _server->uri_match_fn(_uri.c_str(), uri, (size_t)position);
+  }
+  else
+  {
+    ESP_LOGE(PH_TAG, "No uri matching function set");
+    return false;
+  }
 }
 
 PsychicEndpoint* PsychicEndpoint::setFilter(PsychicRequestFilterFunction fn) {

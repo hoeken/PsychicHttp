@@ -16,15 +16,17 @@ class PsychicEndpoint
   private:
     PsychicHttpServer *_server;
     String _uri;
-    http_method _method;
+    int _method;
     PsychicHandler *_handler;
 
   public:
     PsychicEndpoint();
-    PsychicEndpoint(PsychicHttpServer *server, http_method method, const char * uri);
+    PsychicEndpoint(PsychicHttpServer *server, int method, const char * uri);
 
     PsychicEndpoint *setHandler(PsychicHandler *handler);
     PsychicHandler *handler();
+
+    bool matches(const char *uri);
 
     PsychicEndpoint* setFilter(PsychicRequestFilterFunction fn);
     PsychicEndpoint* setAuthentication(const char *username, const char *password, HTTPAuthMethod method = BASIC_AUTH, const char *realm = "", const char *authFailMsg = "");

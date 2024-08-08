@@ -789,6 +789,7 @@ Benefits:
 * unlimited endpoints
   * we would use a List to store endpoints
   * dont have to pre-declare config.max_uri_handlers;
+* url rewriting
 * much more flexibility for future
 
 Issues

@@ -24,7 +24,7 @@ class PsychicHttpsServer : public PsychicHttpServer
     httpd_ssl_config_t ssl_config;
 
     using PsychicHttpServer::listen; //keep the regular version
-    esp_err_t listen(uint16_t port, const char *cert, const char *private_key);
+    void listen(uint16_t port, const char *cert, const char *private_key);
 
     virtual esp_err_t _startServer() override final;
     virtual void stop() override final;

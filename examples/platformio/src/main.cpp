@@ -158,6 +158,9 @@ bool connectToWifi()
 
 void setup()
 {
+  esp_log_level_set(PH_TAG, ESP_LOG_DEBUG);
+  esp_log_level_set("httpd_uri", ESP_LOG_DEBUG);
+
   Serial.begin(115200);
   delay(10);
 
@@ -219,12 +222,7 @@ void setup()
       }
     #endif
 
-    //setup server config stuff here
-    server.config.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
-
     #ifdef PSY_ENABLE_SSL
-      server.ssl_config.httpd.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
-
       //do we want secure or not?
       if (app_enable_ssl)
       {
@@ -290,6 +288,7 @@ void setup()
       output["msg"] = "status";
       output["status"] = "success";
       output["millis"] = millis();
+      output["method"] = request->methodStr();
 
       //work with some params
       if (input.containsKey("foo"))
@@ -330,13 +329,6 @@ void setup()
     // curl -i 'http://psychic.local/api?foo=bar'
     server.on("/api", HTTP_GET, [](PsychicRequest *request)
     {
-      //showcase some of the variables
-      Serial.println(request->host());
-      Serial.println(request->uri());
-      Serial.println(request->path());
-      Serial.println(request->queryString());
-
-      //create a response object
       //create our response json
       PsychicJsonResponse response = PsychicJsonResponse(request);
       JsonObject output = response.getRoot();
@@ -344,6 +336,7 @@ void setup()
       output["msg"] = "status";
       output["status"] = "success";
       output["millis"] = millis();
+      output["method"] = request->methodStr();
 
       //work with some params
       if (request->hasParam("foo"))
@@ -351,6 +344,22 @@ void setup()
         String foo = request->getParam("foo")->value();
         output["foo"] = foo;
       }
+
+      return response.send();
+    });
+
+    // curl -i -X GET 'http://psychic.local/any'
+    // curl -i -X POST 'http://psychic.local/any'
+    server.on("/any", HTTP_ANY, [](PsychicRequest *request)
+    {
+      //create our response json
+      PsychicJsonResponse response = PsychicJsonResponse(request);
+      JsonObject output = response.getRoot();
+
+      output["msg"] = "status";
+      output["status"] = "success";
+      output["millis"] = millis();
+      output["method"] = request->methodStr();
 
       return response.send();
     });
@@ -562,6 +571,8 @@ void setup()
       Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
     });
     server.on("/events", &eventSource);
+
+    server.begin();
   }
 }
 
