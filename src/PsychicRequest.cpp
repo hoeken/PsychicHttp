@@ -284,7 +284,7 @@ void PsychicRequest::loadParams()
   }
 
   //did we get form data as body?
-  if (this->method() == HTTP_POST && this->contentType() == "application/x-www-form-urlencoded")
+  if (this->method() == HTTP_POST && this->contentType().startsWith("application/x-www-form-urlencoded"))
   {
     _addParams(_body);
   }
