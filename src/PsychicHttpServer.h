@@ -38,6 +38,8 @@ class PsychicHttpServer
 
     PsychicEndpoint *defaultEndpoint;
 
+    static void destroy(void *ctx);
+
     esp_err_t listen(uint16_t port);
 
     virtual esp_err_t stop();

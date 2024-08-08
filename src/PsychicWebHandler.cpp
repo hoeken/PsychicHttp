@@ -38,7 +38,7 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest *request)
   //get our body loaded up.
   esp_err_t err = request->loadBody();
   if (err != ESP_OK) {
-    ESP_LOGE(PH_TAG, "Failed to load body (%S)", esp_err_to_name(err));
+    ESP_LOGE(PH_TAG, "Failed to load body (%s)", esp_err_to_name(err));
     return err;
   }
 
