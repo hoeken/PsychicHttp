@@ -201,8 +201,10 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest *request)
   //logging housekeeping
   if (ret != ESP_OK)
     ESP_LOGE(PH_TAG, "httpd_ws_send_frame failed with %s", esp_err_to_name(ret));
-  ESP_LOGI(PH_TAG, "ws_handler: httpd_handle_t=%p, sockfd=%d, client_info:%d", request->server(),
-    httpd_req_to_sockfd(request->request()), httpd_ws_get_fd_info(request->server(), httpd_req_to_sockfd(request->request())));
+    ESP_LOGI(PH_TAG, "ws_handler: httpd_handle_t=%p, sockfd=%d, client_info:%d", 
+      request->server(),
+      httpd_req_to_sockfd(request->request()),
+      httpd_ws_get_fd_info(request->server()->server, httpd_req_to_sockfd(request->request())));
 
   //dont forget to release our buffer memory
   free(buf);

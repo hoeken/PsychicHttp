@@ -146,7 +146,7 @@
                 function websocketConnect()
                 {
                     // Create a WebSocket connection
-                    socket = new WebSocket('ws://' + window.location.host + '/ws');
+                    socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/ws");
             
                     // Event handler for when the WebSocket connection is open
                     socket.addEventListener('open', (event) => {
