@@ -65,9 +65,6 @@ void PsychicResponse::setCookie(const char *name, const char *value, unsigned lo
   addHeader("Set-Cookie", output.c_str());
 }
 
-  // time_t now = time(nullptr);
-  // // Set the cookie with the "expires" attribute
-
 void PsychicResponse::setCode(int code)
 {
   _code = code;
