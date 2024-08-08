@@ -7,6 +7,7 @@
 * Add ESP IDF example + CI script
 * Added Arduino Captive Portal example and OTAUpdate from @06GitHub
 * HTTPS fix for ESP-IDF v5.0.2+ from @06GitHub
+* lots of bugfixes from @mathieucarbou
 
 Thanks to @Chris--A, @06GitHub, and @dzungpv for your contributions.
 
