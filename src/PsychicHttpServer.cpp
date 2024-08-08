@@ -56,8 +56,7 @@ PsychicHttpServer::~PsychicHttpServer()
 
 void PsychicHttpServer::destroy(void *ctx)
 {
-  PsychicHttpServer *temp = (PsychicHttpServer *)ctx;
-  delete temp;
+  // do not release any resource for PsychicHttpServer in order to be able to restart it after stopping
 }
 
 esp_err_t PsychicHttpServer::listen(uint16_t port)
