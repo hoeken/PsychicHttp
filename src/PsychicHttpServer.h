@@ -29,6 +29,7 @@ class PsychicHttpServer
     virtual esp_err_t _startServer();
     virtual esp_err_t _stopServer();
     bool _running = false;
+    httpd_uri_match_func_t _uri_match_fn = nullptr;
 
   public:
     PsychicHttpServer(uint16_t port = 80);
@@ -40,7 +41,6 @@ class PsychicHttpServer
     // esp-idf specific stuff
     httpd_handle_t server;
     httpd_config_t config;
-    httpd_uri_match_func_t uri_match_fn;
 
     // some limits on what we will accept
     unsigned long maxUploadSize;
@@ -57,6 +57,9 @@ class PsychicHttpServer
     esp_err_t end() { return stop(); }
     esp_err_t start();
     esp_err_t stop();
+
+    httpd_uri_match_func_t getURIMatchFunction();
+    void setURIMatchFunction(httpd_uri_match_func_t match_fn);
 
     PsychicHandler& addHandler(PsychicHandler* handler);
     void removeHandler(PsychicHandler* handler);
@@ -93,5 +96,10 @@ class PsychicHttpServer
 
 bool ON_STA_FILTER(PsychicRequest* request);
 bool ON_AP_FILTER(PsychicRequest* request);
+
+bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2);
+
+#define MATCH_SIMPLE   psychic_uri_match_simple
+#define MATCH_WILDCARD httpd_uri_match_wildcard
 
 #endif // PsychicHttpServer_h

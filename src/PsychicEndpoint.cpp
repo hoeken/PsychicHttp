@@ -96,17 +96,33 @@ bool PsychicEndpoint::matches(const char* uri)
   else
     position = strlen(uri);
 
-  // do we have a match function?
-  if (_server->uri_match_fn != NULL)
+  // do we have a per-endpoint match function
+  if (this->getURIMatchFunction() != NULL)
   {
     // ESP_LOGD(PH_TAG, "Match? %s == %s (%d)", _uri.c_str(), uri, position);
-    return _server->uri_match_fn(_uri.c_str(), uri, (size_t)position);
+    return this->getURIMatchFunction()(_uri.c_str(), uri, (size_t)position);
+  }
+  // do we have a global match function
+  if (_server->getURIMatchFunction() != NULL)
+  {
+    // ESP_LOGD(PH_TAG, "Match? %s == %s (%d)", _uri.c_str(), uri, position);
+    return _server->getURIMatchFunction()(_uri.c_str(), uri, (size_t)position);
   }
   else
   {
     ESP_LOGE(PH_TAG, "No uri matching function set");
     return false;
   }
+}
+
+httpd_uri_match_func_t PsychicEndpoint::getURIMatchFunction()
+{
+  return _uri_match_fn;
+}
+
+void PsychicEndpoint::setURIMatchFunction(httpd_uri_match_func_t match_fn)
+{
+  _uri_match_fn = match_fn;
 }
 
 PsychicEndpoint* PsychicEndpoint::setFilter(PsychicRequestFilterFunction fn)

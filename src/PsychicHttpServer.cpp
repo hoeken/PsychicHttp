@@ -22,12 +22,10 @@ PsychicHttpServer::PsychicHttpServer(uint16_t port) : _onOpen(NULL),
   config.close_fn = PsychicHttpServer::closeCallback;
   config.global_user_ctx = this;
   config.global_user_ctx_free_fn = PsychicHttpServer::destroy;
+  config.uri_match_fn = MATCH_WILDCARD; // new internal endpoint matching - do not change this!!!
 
-  // use their matching function internally
-  uri_match_fn = httpd_uri_match_wildcard;
-  config.uri_match_fn = httpd_uri_match_wildcard;
-  // new internal endpoint matching - always match url
-  // config.uri_match_fn = [](const char *uri_template, const char *uri_to_match, size_t match_upto) { return true;};
+  // our internal matching function for endpoints
+  _uri_match_fn = MATCH_WILDCARD; // use this change the endpoint matching function.
 
 #ifdef ENABLE_ASYNC
   // It is advisable that httpd_config_t->max_open_sockets > MAX_ASYNC_REQUESTS
@@ -155,6 +153,16 @@ esp_err_t PsychicHttpServer::_stopServer()
   return httpd_stop(this->server);
 }
 
+httpd_uri_match_func_t PsychicHttpServer::getURIMatchFunction()
+{
+  return _uri_match_fn;
+}
+
+void PsychicHttpServer::setURIMatchFunction(httpd_uri_match_func_t match_fn)
+{
+  _uri_match_fn = match_fn;
+}
+
 PsychicHandler& PsychicHttpServer::addHandler(PsychicHandler* handler)
 {
   _handlers.push_back(handler);
@@ -194,8 +202,6 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicHandl
   // websockets need a real endpoint in esp-idf
   if (handler->isWebSocket())
   {
-    Serial.println("Websocket added.");
-
     // URI handler structure
     httpd_uri_t my_uri{
       .uri = uri,
@@ -493,4 +499,10 @@ String urlDecode(const char* encoded)
   free(decoded);
 
   return output;
+}
+
+bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2)
+{
+  return strlen(uri1) == len2 &&           // First match lengths
+         (strncmp(uri1, uri2, len2) == 0); // Then match actual URIs
 }
