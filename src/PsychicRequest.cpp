@@ -323,12 +323,25 @@ bool PsychicRequest::hasParam(const char *key)
   return getParam(key) != NULL;
 }
 
+bool PsychicRequest::hasParam(const char *key, bool isPost, bool isFile)
+{
+  return getParam(key, isPost, isFile) != NULL;
+}
+
 PsychicWebParameter * PsychicRequest::getParam(const char *key)
 {
   for (auto *param : _params)
     if (param->name().equals(key))
       return param;
 
+  return NULL;
+}
+
+PsychicWebParameter * PsychicRequest::getParam(const char *key, bool isPost, bool isFile)
+{
+  for (auto *param : _params)
+    if (param->name().equals(key) && isPost == param->isPost() && isFile == param->isFile())
+      return param;
   return NULL;
 }
 
