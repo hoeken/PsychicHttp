@@ -7,8 +7,8 @@ PsychicRequest::PsychicRequest(PsychicHttpServer* server, httpd_req_t* req) : _s
                                                                               _method(HTTP_GET),
                                                                               _query(""),
                                                                               _body(""),
-                                                                              _tempObject(NULL),
-                                                                              _endpoint(nullptr)
+                                                                              _endpoint(nullptr),
+                                                                              _tempObject(nullptr)
 {
   // load up our client.
   this->_client = server->getClient(req);
