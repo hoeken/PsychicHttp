@@ -22,6 +22,7 @@ PsychicHttpServer::PsychicHttpServer() :
   config.open_fn = PsychicHttpServer::openCallback;
   config.close_fn = PsychicHttpServer::closeCallback;
   config.global_user_ctx = this;
+  config.global_user_ctx_free_fn = destroy;
 
   //use their matching function internally
   uri_match_fn = httpd_uri_match_wildcard;
@@ -55,6 +56,11 @@ PsychicHttpServer::~PsychicHttpServer()
   _handlers.clear();
 
   delete defaultEndpoint;
+}
+
+void PsychicHttpServer::destroy(void *ctx)
+{
+  // do not release any resource for PsychicHttpServer in order to be able to restart it after stopping
 }
 
 void PsychicHttpServer::listen(uint16_t port)
