@@ -27,24 +27,28 @@ extern "C"
 #define PSYCHIC_VERSION_PATCH 0
 
 /**
- * Macro to convert ARDUINO version number into an integer
+ * Macro to convert PsychicHttp version number into an integer
  *
  * To be used in comparisons, such as PSYCHIC_VERSION >= PSYCHIC_VERSION_VAL(2, 0, 0)
  */
 #define PSYCHIC_VERSION_VAL(major, minor, patch) ((major << 16) | (minor << 8) | (patch))
 
 /**
- * Current ARDUINO version, as an integer
+ * Current PsychicHttp version, as an integer
  *
  * To be used in comparisons, such as PSYCHIC_VERSION >= PSYCHIC_VERSION_VAL(2, 0, 0)
  */
 #define PSYCHIC_VERSION PSYCHIC_VERSION_VAL(PSYCHIC_VERSION_MAJOR, PSYCHIC_VERSION_MINOR, PSYCHIC_VERSION_PATCH)
 
 /**
- * Current ARDUINO version, as string
+ * Current PsychicHttp version, as string
  */
+#ifndef df2xstr
 #define df2xstr(s)          #s
+#endif
+#ifndef df2str
 #define df2str(s)           df2xstr(s)
+#endif
 #define PSYCHIC_VERSION_STR df2str(PSYCHIC_VERSION_MAJOR) "." df2str(PSYCHIC_VERSION_MINOR) "." df2str(PSYCHIC_VERSION_PATCH)
 
 #ifdef __cplusplus
