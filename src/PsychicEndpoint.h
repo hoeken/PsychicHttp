@@ -11,29 +11,29 @@ class PsychicHandler;
 
 class PsychicEndpoint
 {
-  friend PsychicHttpServer;
+    friend PsychicHttpServer;
 
   private:
-    PsychicHttpServer *_server;
+    PsychicHttpServer* _server;
     String _uri;
     int _method;
-    PsychicHandler *_handler;
+    PsychicHandler* _handler;
 
   public:
     PsychicEndpoint();
-    PsychicEndpoint(PsychicHttpServer *server, int method, const char * uri);
+    PsychicEndpoint(PsychicHttpServer* server, int method, const char* uri);
 
-    PsychicEndpoint *setHandler(PsychicHandler *handler);
-    PsychicHandler *handler();
+    PsychicEndpoint* setHandler(PsychicHandler* handler);
+    PsychicHandler* handler();
 
-    bool matches(const char *uri);
+    bool matches(const char* uri);
 
     PsychicEndpoint* setFilter(PsychicRequestFilterFunction fn);
-    PsychicEndpoint* setAuthentication(const char *username, const char *password, HTTPAuthMethod method = BASIC_AUTH, const char *realm = "", const char *authFailMsg = "");
+    PsychicEndpoint* setAuthentication(const char* username, const char* password, HTTPAuthMethod method = BASIC_AUTH, const char* realm = "", const char* authFailMsg = "");
 
     String uri();
 
-    static esp_err_t requestCallback(httpd_req_t *req);
+    static esp_err_t requestCallback(httpd_req_t* req);
 };
 
 #endif // PsychicEndpoint_h

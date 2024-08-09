@@ -7,30 +7,30 @@
    CONDITIONS OF ANY KIND, either express or implied.
 
 */
+#include "_secret.h"
 #include <Arduino.h>
-#include <WiFi.h>
-#include <PsychicHttp.h>
-#include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
-#include "_secret.h"
+#include <LittleFS.h>
+#include <PsychicHttp.h>
+#include <WiFi.h>
 
 #ifndef WIFI_SSID
   #error "You need to enter your wifi credentials.  Copy secret.h to _secret.h and enter your credentials there."
 #endif
 
-//Enter your WIFI credentials in secret.h
-const char *ssid = WIFI_SSID;
-const char *password = WIFI_PASS;
+// Enter your WIFI credentials in secret.h
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASS;
 
-//hostname for mdns (psychic.local)
-const char *local_hostname = "psychic";
+// hostname for mdns (psychic.local)
+const char* local_hostname = "psychic";
 
 PsychicHttpServer server;
 PsychicWebSocketHandler websocketHandler;
 PsychicEventSource eventSource;
 
-const char *htmlContent = R"(
+const char* htmlContent = R"(
 <!DOCTYPE html>
 <html>
 <head>
@@ -163,47 +163,46 @@ void setup()
 
   if (connectToWifi())
   {
-    //set up our esp32 to listen on the local_hostname.local domain
-    if (!MDNS.begin(local_hostname)) {
+    // set up our esp32 to listen on the local_hostname.local domain
+    if (!MDNS.begin(local_hostname))
+    {
       Serial.println("Error starting mDNS");
       return;
     }
     MDNS.addService("http", "tcp", 80);
 
-    if(!LittleFS.begin())
+    if (!LittleFS.begin())
     {
       Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
       return;
     }
 
-    //our index
-    server.on("/", HTTP_GET, [](PsychicRequest *request)
-    {
-      return request->reply(200, "text/html", htmlContent);
-    });
+    // our index
+    server.on("/", HTTP_GET, [](PsychicRequest* request)
+              { return request->reply(200, "text/html", htmlContent); });
 
-    //serve static files from LittleFS/www on /
+    // serve static files from LittleFS/www on /
     server.serveStatic("/", LittleFS, "/www/");
 
-    //a websocket echo server
-    websocketHandler.onOpen([](PsychicWebSocketClient *client) {
-      //client->sendMessage("Hello!");
-    });
-    websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
+    // a websocket echo server
+    websocketHandler.onOpen([](PsychicWebSocketClient* client)
+                            {
+                              // client->sendMessage("Hello!");
+                            });
+    websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame)
+                             {
       request->reply(frame);
-      return ESP_OK;
-    });
+      return ESP_OK; });
     server.on("/ws", &websocketHandler);
 
-    //EventSource server
-    eventSource.onOpen([](PsychicEventSourceClient *client) {
-      client->send("Hello", NULL, millis(), 1000);
-    });
+    // EventSource server
+    eventSource.onOpen([](PsychicEventSourceClient* client)
+                       { client->send("Hello", NULL, millis(), 1000); });
     server.on("/events", &eventSource);
 
-    //api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/api", HTTP_GET, [](PsychicRequest *request)
-    {
+    // api - parameters passed in via query eg. /api/endpoint?foo=bar
+    server.on("/api", HTTP_GET, [](PsychicRequest* request)
+              {
       //create a response object
       JsonDocument output;
       output["msg"] = "status";
@@ -220,8 +219,7 @@ void setup()
       //serialize and return
       String jsonBuffer;
       serializeJson(output, jsonBuffer);
-      return request->reply(200, "application/json", jsonBuffer.c_str());
-    });
+      return request->reply(200, "application/json", jsonBuffer.c_str()); });
 
     server.begin();
   }

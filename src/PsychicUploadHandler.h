@@ -7,18 +7,19 @@
 #include "PsychicWebHandler.h"
 #include "PsychicWebParameter.h"
 
-//callback definitions
-typedef std::function<esp_err_t(PsychicRequest *request, const String& filename, uint64_t index, uint8_t *data, size_t len, bool final)> PsychicUploadCallback;
+// callback definitions
+typedef std::function<esp_err_t(PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool final)> PsychicUploadCallback;
 
 /*
-* HANDLER :: Can be attached to any endpoint or as a generic request handler.
-*/
+ * HANDLER :: Can be attached to any endpoint or as a generic request handler.
+ */
 
-class PsychicUploadHandler : public PsychicWebHandler {
+class PsychicUploadHandler : public PsychicWebHandler
+{
   protected:
     PsychicUploadCallback _uploadCallback;
 
-    PsychicRequest *_request;
+    PsychicRequest* _request;
 
     String _temp;
     size_t _parsedLength;
@@ -31,12 +32,12 @@ class PsychicUploadHandler : public PsychicWebHandler {
     String _itemFilename;
     String _itemType;
     String _itemValue;
-    uint8_t *_itemBuffer;
+    uint8_t* _itemBuffer;
     size_t _itemBufferIndex;
     bool _itemIsFile;
 
-    esp_err_t _basicUploadHandler(PsychicRequest *request);
-    esp_err_t _multipartUploadHandler(PsychicRequest *request);
+    esp_err_t _basicUploadHandler(PsychicRequest* request);
+    esp_err_t _multipartUploadHandler(PsychicRequest* request);
 
     void _handleUploadByte(uint8_t data, bool last);
     void _parseMultipartPostByte(uint8_t data, bool last);
@@ -45,13 +46,14 @@ class PsychicUploadHandler : public PsychicWebHandler {
     PsychicUploadHandler();
     ~PsychicUploadHandler();
 
-    bool canHandle(PsychicRequest *request) override;
-    esp_err_t handleRequest(PsychicRequest *request) override;
+    bool canHandle(PsychicRequest* request) override;
+    esp_err_t handleRequest(PsychicRequest* request) override;
 
-    PsychicUploadHandler * onUpload(PsychicUploadCallback fn);
+    PsychicUploadHandler* onUpload(PsychicUploadCallback fn);
 };
 
-enum {
+enum
+{
   EXPECT_BOUNDARY,
   PARSE_HEADERS,
   WAIT_FOR_RETURN1,

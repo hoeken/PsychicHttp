@@ -1,30 +1,38 @@
 #ifndef PsychicRequest_h
 #define PsychicRequest_h
 
+#include "PsychicClient.h"
 #include "PsychicCore.h"
 #include "PsychicHttpServer.h"
-#include "PsychicClient.h"
-#include "PsychicWebParameter.h"
 #include "PsychicResponse.h"
+#include "PsychicWebParameter.h"
 
 typedef std::map<String, String> SessionData;
 
-enum Disposition { NONE, INLINE, ATTACHMENT, FORM_DATA};
-
-struct ContentDisposition {
-  Disposition disposition;
-  String filename;
-  String name;
+enum Disposition
+{
+  NONE,
+  INLINE,
+  ATTACHMENT,
+  FORM_DATA
 };
 
-class PsychicRequest {
-  friend PsychicHttpServer;
+struct ContentDisposition
+{
+    Disposition disposition;
+    String filename;
+    String name;
+};
+
+class PsychicRequest
+{
+    friend PsychicHttpServer;
 
   protected:
-    PsychicHttpServer *_server;
-    httpd_req_t *_req;
-    SessionData *_session;
-    PsychicClient *_client;
+    PsychicHttpServer* _server;
+    httpd_req_t* _req;
+    SessionData* _session;
+    PsychicClient* _client;
 
     http_method _method;
     String _uri;
@@ -41,28 +49,28 @@ class PsychicRequest {
     const String _getRandomHexString();
 
   public:
-    PsychicRequest(PsychicHttpServer *server, httpd_req_t *req);
+    PsychicRequest(PsychicHttpServer* server, httpd_req_t* req);
     virtual ~PsychicRequest();
 
-    void *_tempObject;
+    void* _tempObject;
 
-    PsychicHttpServer * server();
-    httpd_req_t * request();
-    virtual PsychicClient * client();
+    PsychicHttpServer* server();
+    httpd_req_t* request();
+    virtual PsychicClient* client();
 
     bool isMultipart();
     esp_err_t loadBody();
 
-    const String header(const char *name);
-    bool hasHeader(const char *name);
+    const String header(const char* name);
+    bool hasHeader(const char* name);
 
-    static void freeSession(void *ctx);
+    static void freeSession(void* ctx);
     bool hasSessionKey(const String& key);
     const String getSessionKey(const String& key);
     void setSessionKey(const String& key, const String& value);
 
-    bool hasCookie(const char * key);
-    const String getCookie(const char * key);
+    bool hasCookie(const char* key);
+    const String getCookie(const char* key);
 
     http_method method();       // returns the HTTP method used as enum value (eg. HTTP_GET)
     const String methodStr();   // returns the HTTP method used as a string (eg. "GET")
@@ -75,26 +83,26 @@ class PsychicRequest {
     const String& body();       // returns the body of the request
     const ContentDisposition getContentDisposition();
 
-    const String& queryString() { return query(); }  //compatability function.  same as query()
-    const String& url() { return uri(); }            //compatability function.  same as uri()
+    const String& queryString() { return query(); } // compatability function.  same as query()
+    const String& url() { return uri(); }           // compatability function.  same as uri()
 
     void loadParams();
-    PsychicWebParameter * addParam(PsychicWebParameter *param);
-    PsychicWebParameter * addParam(const String &name, const String &value, bool decode = true, bool post = false);
-    bool hasParam(const char *key);
-    bool hasParam(const char *key, bool isPost, bool isFile = false);
-    PsychicWebParameter * getParam(const char *name);
-    PsychicWebParameter * getParam(const char *name, bool isPost, bool isFile = false);
+    PsychicWebParameter* addParam(PsychicWebParameter* param);
+    PsychicWebParameter* addParam(const String& name, const String& value, bool decode = true, bool post = false);
+    bool hasParam(const char* key);
+    bool hasParam(const char* key, bool isPost, bool isFile = false);
+    PsychicWebParameter* getParam(const char* name);
+    PsychicWebParameter* getParam(const char* name, bool isPost, bool isFile = false);
 
     const String getFilename();
 
-    bool authenticate(const char * username, const char * password);
+    bool authenticate(const char* username, const char* password);
     esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const char* authFailMsg);
 
-    esp_err_t redirect(const char *url);
+    esp_err_t redirect(const char* url);
     esp_err_t reply(int code);
-    esp_err_t reply(const char *content);
-    esp_err_t reply(int code, const char *contentType, const char *content);
+    esp_err_t reply(const char* content);
+    esp_err_t reply(int code, const char* contentType, const char* content);
     esp_err_t reply(PsychicResponse* response);
 
     PsychicResponse* beginReply(int code);
