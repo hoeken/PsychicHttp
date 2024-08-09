@@ -7,7 +7,8 @@ PsychicRequest::PsychicRequest(PsychicHttpServer* server, httpd_req_t* req) : _s
                                                                               _method(HTTP_GET),
                                                                               _query(""),
                                                                               _body(""),
-                                                                              _tempObject(NULL)
+                                                                              _tempObject(NULL),
+                                                                              _endpoint(nullptr)
 {
   // load up our client.
   this->_client = server->getClient(req);
@@ -63,6 +64,33 @@ PsychicClient* PsychicRequest::client()
 {
   return _client;
 }
+
+PsychicEndpoint* PsychicRequest::endpoint()
+{
+  return _endpoint;
+}
+
+void PsychicRequest::setEndpoint(PsychicEndpoint* endpoint)
+{
+  _endpoint = endpoint;
+}
+
+#ifdef PSYCHIC_REGEX
+  bool PsychicRequest::getRegexMatches(std::smatch& matches, bool use_full_uri)
+  {
+    if (_endpoint != nullptr)
+    {
+      std::regex pattern(_endpoint->uri().c_str());
+      std::string s(this->path().c_str());
+      if (use_full_uri)
+        s = this->uri().c_str();
+
+      return std::regex_search(s, matches, pattern);
+    }
+
+    return false;
+  }
+#endif
 
 const String PsychicRequest::getFilename()
 {

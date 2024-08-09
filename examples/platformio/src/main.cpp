@@ -364,6 +364,24 @@ void setup()
       return request->reply("Simple");
     })->setURIMatchFunction(MATCH_SIMPLE);
 
+    // curl -i 'http://psychic.local/regex/23'
+    // curl -i 'http://psychic.local/regex/4223'
+    server.on("^/regex/([\\d]+)/?$", HTTP_GET, [](PsychicRequest* request) {
+      //look up our regex matches
+      std::smatch matches;
+      if (request->getRegexMatches(matches))
+      {
+        String output;
+        output += "Matches: " + String(matches.size()) + "<br/>\n";
+        output += "Matched URI: " + String(matches.str(0).c_str()) + "<br/>\n";
+        output += "Match 1: " + String(matches.str(1).c_str()) + "<br/>\n";
+
+        return request->reply(output.c_str());
+      }
+      else
+        return request->reply("No regex match.");
+    })->setURIMatchFunction(MATCH_REGEX);
+
     // JsonResponse example
     //  curl -i http://psychic.local/json
     server.on("/json", HTTP_GET, [](PsychicRequest* request) {

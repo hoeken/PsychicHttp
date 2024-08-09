@@ -5,6 +5,10 @@
 #include "PsychicCore.h"
 #include "PsychicHandler.h"
 
+#ifdef PSYCHIC_REGEX
+#include <regex>
+#endif
+
 enum PsychicHttpMethod
 {
   HTTP_ANY = 99
@@ -97,9 +101,14 @@ class PsychicHttpServer
 bool ON_STA_FILTER(PsychicRequest* request);
 bool ON_AP_FILTER(PsychicRequest* request);
 
+//URI matching functions
 bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2);
-
 #define MATCH_SIMPLE   psychic_uri_match_simple
 #define MATCH_WILDCARD httpd_uri_match_wildcard
+
+#ifdef PSYCHIC_REGEX
+bool psychic_uri_match_regex(const char* uri1, const char* uri2, size_t len2);
+#define MATCH_REGEX psychic_uri_match_regex
+#endif
 
 #endif // PsychicHttpServer_h

@@ -6,6 +6,11 @@
 #include "PsychicHttpServer.h"
 #include "PsychicResponse.h"
 #include "PsychicWebParameter.h"
+#include "PsychicEndpoint.h"
+
+#ifdef PSYCHIC_REGEX
+#include <regex>
+#endif
 
 typedef std::map<String, String> SessionData;
 
@@ -33,6 +38,7 @@ class PsychicRequest
     httpd_req_t* _req;
     SessionData* _session;
     PsychicClient* _client;
+    PsychicEndpoint* _endpoint;
 
     http_method _method;
     String _uri;
@@ -57,6 +63,13 @@ class PsychicRequest
     PsychicHttpServer* server();
     httpd_req_t* request();
     virtual PsychicClient* client();
+
+    PsychicEndpoint* endpoint();
+    void setEndpoint(PsychicEndpoint* endpoint);
+
+    #ifdef PSYCHIC_REGEX
+      bool getRegexMatches(std::smatch& matches, bool use_full_uri = false);
+    #endif
 
     bool isMultipart();
     esp_err_t loadBody();

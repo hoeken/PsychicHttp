@@ -278,10 +278,11 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
       if (endpoint->_method == request.method() || endpoint->_method == HTTP_ANY)
       {
         // ESP_LOGD(PH_TAG, "http_method OK");
+        request.setEndpoint(endpoint);
 
         // check other filter functions
         PsychicHandler* handler = endpoint->handler();
-        if (handler->filter(&request) && handler->canHandle(&request))
+        if (handler->filter(&request))
         {
           // ESP_LOGD(PH_TAG, "Filter OK");
 
@@ -289,6 +290,7 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
           if (handler->canHandle(&request))
           {
             // ESP_LOGD(PH_TAG, "Handler OK");
+
 
             // check our credentials
             if (handler->needsAuthentication(&request))
@@ -506,3 +508,19 @@ bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2)
   return strlen(uri1) == len2 &&           // First match lengths
          (strncmp(uri1, uri2, len2) == 0); // Then match actual URIs
 }
+
+#ifdef PSYCHIC_REGEX
+bool psychic_uri_match_regex(const char* uri1, const char* uri2, size_t len2)
+{
+  std::regex pattern(uri1);
+  std::smatch matches;
+  std::string s(uri2);
+
+  if (s.length() > len2) {
+    Serial.printf("%d > %d\n");
+    s = s.substr(0, len2);
+  }
+
+  return std::regex_search(s, matches, pattern);
+}
+#endif
