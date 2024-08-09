@@ -128,7 +128,6 @@ void setup() {
 
     //setup server config stuff here
     server.config.max_uri_handlers = 20; //maximum number of uri handlers (.on() calls)
-    server.listen(80);
         
     DefaultHeaders::Instance().addHeader("Server", "PsychicHttp");
 

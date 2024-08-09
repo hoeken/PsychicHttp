@@ -120,7 +120,7 @@ If you have existing code using ESPAsyncWebserver, you will feel right at home w
 
 ## setup() Stuff
 
-* no more server.begin(), call server.listen(80), before you add your handlers
+* add your handlers and call server.begin()
 * server has a configurable limit on .on() endpoints. change it with ```server.config.max_uri_handlers = 20;``` as needed.
 * check your callback function definitions:
    * AsyncWebServerRequest -> PsychicRequest
@@ -163,9 +163,6 @@ void setup()
    server.config.max_uri_handlers = 20; 
 
    //connect to wifi
-
-   //start the server listening on port 80 (standard HTTP port)
-   server.listen(80);
 
    //call server methods to attach endpoints and handlers
    server.on(...);
@@ -524,7 +521,7 @@ PsychicHttp supports HTTPS / SSL out of the box, however there are some limitati
 #include <PsychicHttp.h>
 #include <PsychicHttpsServer.h>
 PsychicHttpsServer server;
-server.listen(443, server_cert, server_key);
+server.setCertificate(server_cert, server_key);
 ```
 
 ```server_cert``` and ```server_key``` are both ```const char *``` parameters which contain the server certificate and private key, respectively.
@@ -552,7 +549,6 @@ Last, but not least, you can create a separate HTTP server on port 80 that redir
 //this creates a 2nd server listening on port 80 and redirects all requests HTTPS
 PsychicHttpServer *redirectServer = new PsychicHttpServer();
 redirectServer->config.ctrl_port = 20420; // just a random port different from the default one
-redirectServer->listen(80);
 redirectServer->onNotFound([](PsychicRequest *request) {
    String url = "https://" + request->host() + request->url();
    return request->redirect(url.c_str());

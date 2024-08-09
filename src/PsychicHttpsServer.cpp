@@ -2,7 +2,7 @@
 
 #ifdef CONFIG_ESP_HTTPS_SERVER_ENABLE
 
-PsychicHttpsServer::PsychicHttpsServer() : PsychicHttpServer()
+PsychicHttpsServer::PsychicHttpsServer(uint16_t port, const char *cert, const char *private_key) : PsychicHttpServer(port)
 {
   //for a SSL server
   ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
@@ -18,16 +18,22 @@ PsychicHttpsServer::PsychicHttpsServer() : PsychicHttpServer()
   // if we set it higher than 2 and use all the connections, we get lots of memory errors.
   // not to mention there is no heap left over for the program itself.
   ssl_config.httpd.max_open_sockets = 2;
+
+  setPort(port);
+  setCertificate(cert, private_key);
 }
 
 PsychicHttpsServer::~PsychicHttpsServer() {}
 
-void PsychicHttpsServer::listen(uint16_t port, const char *cert, const char *private_key)
+void PsychicHttpsServer::setPort(uint16_t port)
 {
-  this->_use_ssl = true;
-
   this->ssl_config.port_secure = port;
+}
 
+void PsychicHttpsServer::setCertificate(const char *cert, const char *private_key)
+{
+  if (cert) 
+  {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 2)
     this->ssl_config.servercert = (uint8_t *)cert;
     this->ssl_config.servercert_len = strlen(cert)+1;
@@ -35,25 +41,23 @@ void PsychicHttpsServer::listen(uint16_t port, const char *cert, const char *pri
     this->ssl_config.cacert_pem = (uint8_t *)cert;
     this->ssl_config.cacert_len = strlen(cert)+1;
 #endif
+  }
 
-  this->ssl_config.prvtkey_pem = (uint8_t *)private_key;
-  this->ssl_config.prvtkey_len = strlen(private_key)+1;
+  if (private_key)
+  {
+    this->ssl_config.prvtkey_pem = (uint8_t *)private_key;
+    this->ssl_config.prvtkey_len = strlen(private_key)+1;
+  }
 }
 
 esp_err_t PsychicHttpsServer::_startServer()
 {
-  if (this->_use_ssl)
-    return httpd_ssl_start(&this->server, &this->ssl_config);
-  else
-    return httpd_start(&this->server, &this->config);
+  return httpd_ssl_start(&this->server, &this->ssl_config);
 }
 
 esp_err_t PsychicHttpsServer::_stopServer()
 {
-  if (this->_use_ssl)
-    ret = httpd_ssl_stop(this->server);
-  else
-    ret = httpd_stop(this->server);
+  ret = httpd_ssl_stop(this->server);
 }
 
 #endif // CONFIG_ESP_HTTPS_SERVER_ENABLE

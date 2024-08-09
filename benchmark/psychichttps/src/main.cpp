@@ -187,7 +187,7 @@ void setup()
     fp2.close();
 
     //start our server
-    server.listen(443, server_cert.c_str(), server_key.c_str());
+    server.setCertificate(server_cert.c_str(), server_key.c_str());
 
     //our index
     server.on("/", HTTP_GET, [](PsychicRequest *request)

@@ -7,7 +7,7 @@
 #include "PsychicJson.h"
 #include "WiFi.h"
 
-PsychicHttpServer::PsychicHttpServer() :
+PsychicHttpServer::PsychicHttpServer(uint16_t port) :
   _onOpen(NULL),
   _onClose(NULL)
 {
@@ -39,6 +39,8 @@ PsychicHttpServer::PsychicHttpServer() :
     config.max_open_sockets = ASYNC_WORKER_COUNT + 1;
     config.lru_purge_enable = true;
   #endif
+
+  setPort(port);
 }
 
 PsychicHttpServer::~PsychicHttpServer()
@@ -63,9 +65,8 @@ void PsychicHttpServer::destroy(void *ctx)
   // do not release any resource for PsychicHttpServer in order to be able to restart it after stopping
 }
 
-void PsychicHttpServer::listen(uint16_t port)
+void PsychicHttpServer::setPort(uint16_t port)
 {
-  this->_use_ssl = false;
   this->config.server_port = port;
 }
 
