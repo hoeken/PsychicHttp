@@ -3,6 +3,7 @@
 
 // #define ENABLE_ASYNC // This is something added in ESP-IDF 5.1.x where each request can be handled in its own thread
 
+#include "PsychicVersion.h"
 #include "PsychicEndpoint.h"
 #include "PsychicEventSource.h"
 #include "PsychicFileResponse.h"

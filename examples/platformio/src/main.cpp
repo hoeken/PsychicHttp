@@ -22,7 +22,6 @@
 #include <WiFi.h>
 #include <esp_sntp.h>
 // #include <PsychicHttpsServer.h> //uncomment this to enable HTTPS / SSL
-
 #ifndef WIFI_SSID
   #error "You need to enter your wifi credentials. Rename secret.h to _secret.h and enter your credentials there."
 #endif
@@ -165,6 +164,9 @@ void setup()
   Serial.begin(115200);
   delay(10);
 
+  Serial.printf("ESP-IDF Version: %s\n", esp_get_idf_version());
+  Serial.printf("Arduino Version: %s\n", ESP_ARDUINO_VERSION_STR);
+  Serial.printf("PsychicHttp Version: %s\n", PSYCHIC_VERSION_STR);
   // We start by connecting to a WiFi network
   // To debug, please enable Core Debug Level to Verbose
   if (connectToWifi())
