@@ -165,7 +165,12 @@ void setup()
   delay(10);
 
   Serial.printf("ESP-IDF Version: %s\n", esp_get_idf_version());
-  Serial.printf("Arduino Version: %s\n", ESP_ARDUINO_VERSION_STR);
+
+  #ifdef ESP_ARDUINO_VERSION_STR
+    Serial.printf("Arduino Version: %s\n", ESP_ARDUINO_VERSION_STR);
+  #else
+    Serial.printf("Arduino Version: %d.%d.%d\n", ESP_ARDUINO_VERSION_MAJOR, ESP_ARDUINO_VERSION_MINOR, ESP_ARDUINO_VERSION_PATCH);
+  #endif
   Serial.printf("PsychicHttp Version: %s\n", PSYCHIC_VERSION_STR);
 
   // We start by connecting to a WiFi network
