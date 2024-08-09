@@ -176,9 +176,6 @@ void setup()
       return;
     }
 
-    //start our server
-    server.listen(80);
-
     //our index
     server.on("/", HTTP_GET, [](PsychicRequest *request)
     {

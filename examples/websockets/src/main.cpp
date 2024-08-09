@@ -135,8 +135,6 @@ void setup()
       return;
     }
 
-    server.listen(80);
-
     //this is where our /index.html file lives
     // curl -i http://psychic.local/
     PsychicStaticFileHandler* handler = server.serveStatic("/", LittleFS, "/www/");

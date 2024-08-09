@@ -14,8 +14,6 @@ class PsychicStaticFileHandler;
 class PsychicHttpServer
 {
   protected:
-    bool _use_ssl = false;
-
     std::list<httpd_uri_t> _esp_idf_endpoints;
     std::list<PsychicEndpoint*> _endpoints;
     std::list<PsychicHandler*> _handlers;
@@ -30,7 +28,7 @@ class PsychicHttpServer
     bool _running = false;
 
   public:
-    PsychicHttpServer();
+    PsychicHttpServer(uint16_t port = 80);
     virtual ~PsychicHttpServer();
 
     //what methods to support
@@ -49,7 +47,7 @@ class PsychicHttpServer
 
     static void destroy(void *ctx);
 
-    void listen(uint16_t port);
+    virtual void setPort(uint16_t port);
 
     bool isRunning() { return _running; }
     esp_err_t begin() {return start();}

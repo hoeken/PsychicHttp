@@ -15,18 +15,18 @@
 class PsychicHttpsServer : public PsychicHttpServer
 {
   protected:
-    bool _use_ssl = false;
     virtual esp_err_t _startServer() override final;
     virtual esp_err_t _stopServer() override final;
 
   public:
-    PsychicHttpsServer();
+    PsychicHttpsServer(uint16_t port = 443, const char *cert = nullptr, const char *private_key = nullptr);
     ~PsychicHttpsServer();
 
     httpd_ssl_config_t ssl_config;
 
     using PsychicHttpServer::listen; //keep the regular version
-    void listen(uint16_t port, const char *cert, const char *private_key);
+    virtual void setPort(uint16_t port) override final;
+    void setCertificate(const char *cert, const char *private_key);
 };
 
 #endif // PsychicHttpsServer_h
