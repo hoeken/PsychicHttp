@@ -174,7 +174,7 @@ void setup()
   {
     // Setup our NTP to get the current time.
     sntp_set_time_sync_notification_cb(timeAvailable);
-    sntp_servermode_dhcp(1); // (optional)
+    esp_sntp_servermode_dhcp(1); // (optional)
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
 
     // set up our esp32 to listen on the local_hostname.local domain
