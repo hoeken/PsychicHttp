@@ -775,10 +775,12 @@ ArduinoMongoose is a good alternative, although the latency issues when it gets 
 
 ## v2.0: ESPAsyncWebserver Parity
 
-* update syntax to match ESPAsync better
+* As much ESPAsyncWebServer compatibility as possible
+* URL rewrite functionality
 * regex url matching
-* rewrite urls
-* What else are we missing?
+  * also allow per-endpoint matching functions
+* Update benchmarks and get new data
+  * we should also track program size and memory usage
 
 ## Longterm Wants
 
