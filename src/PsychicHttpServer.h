@@ -4,6 +4,7 @@
 #include "PsychicClient.h"
 #include "PsychicCore.h"
 #include "PsychicHandler.h"
+#include "PsychicRewrite.h"
 
 #ifdef PSYCHIC_REGEX
 #include <regex>
@@ -25,6 +26,7 @@ class PsychicHttpServer
     std::list<PsychicEndpoint*> _endpoints;
     std::list<PsychicHandler*> _handlers;
     std::list<PsychicClient*> _clients;
+    std::list<PsychicRewrite*> _rewrites;
 
     PsychicClientCallback _onOpen;
     PsychicClientCallback _onClose;
@@ -34,6 +36,8 @@ class PsychicHttpServer
     virtual esp_err_t _stopServer();
     bool _running = false;
     httpd_uri_match_func_t _uri_match_fn = nullptr;
+
+    bool _rewriteRequest(PsychicRequest *request);
 
   public:
     PsychicHttpServer(uint16_t port = 80);
@@ -64,6 +68,10 @@ class PsychicHttpServer
 
     httpd_uri_match_func_t getURIMatchFunction();
     void setURIMatchFunction(httpd_uri_match_func_t match_fn);
+
+    PsychicRewrite& addRewrite(PsychicRewrite* rewrite);
+    void removeRewrite(PsychicRewrite* rewrite);
+    PsychicRewrite& rewrite(const char* from, const char* to);
 
     PsychicHandler& addHandler(PsychicHandler* handler);
     void removeHandler(PsychicHandler* handler);

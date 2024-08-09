@@ -245,6 +245,9 @@ void setup()
 
     DefaultHeaders::Instance().addHeader("Server", "PsychicHttp");
 
+    //rewrites!
+    server.rewrite("/rewrite", "/api?foo=rewrite");
+
     // serve static files from LittleFS/www on / only to clients on same wifi network
     // this is where our /index.html file lives
     //  curl -i http://psychic.local/

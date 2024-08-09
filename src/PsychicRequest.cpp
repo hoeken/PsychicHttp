@@ -312,15 +312,12 @@ const String PsychicRequest::getCookie(const char* key)
 
 void PsychicRequest::loadParams()
 {
-  // did we get a query string?
-  size_t query_len = httpd_req_get_url_query_len(_req);
-  if (query_len)
+  //look for our query separator
+  int index = _uri.indexOf('?');
+  if (index)
   {
-    char query[query_len + 1];
-    httpd_req_get_url_query_str(_req, query, sizeof(query));
-    _query.concat(query);
-
     // parse them.
+    _query.concat(_uri.substring(index+1));
     _addParams(_query, false);
   }
 

@@ -54,6 +54,10 @@ PsychicHttpServer::~PsychicHttpServer()
     delete (handler);
   _handlers.clear();
 
+  for (auto* rewrite : _rewrites)
+    delete (rewrite);
+  _rewrites.clear();
+
   delete defaultEndpoint;
 }
 
@@ -174,6 +178,22 @@ void PsychicHttpServer::removeHandler(PsychicHandler* handler)
   _handlers.remove(handler);
 }
 
+PsychicRewrite& PsychicHttpServer::addRewrite(PsychicRewrite* rewrite)
+{
+  _rewrites.push_back(rewrite);
+  return *rewrite;
+}
+
+void PsychicHttpServer::removeRewrite(PsychicRewrite* rewrite)
+{
+  _rewrites.remove(rewrite);
+}
+
+PsychicRewrite& PsychicHttpServer::rewrite(const char* from, const char* to)
+{
+  return addRewrite(new PsychicRewrite(from, to));
+}
+
 PsychicEndpoint* PsychicHttpServer::on(const char* uri)
 {
   return on(uri, HTTP_GET);
@@ -257,12 +277,30 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
   this->defaultEndpoint->setHandler(handler);
 }
 
+bool PsychicHttpServer::_rewriteRequest(PsychicRequest *request)
+{
+  for (auto* r : _rewrites)
+  {
+    if (r->match(request))
+    {
+      request->_uri = r->toUrl();
+      return true;
+    }
+  }
+
+  return false;
+}
+
 esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
 {
   PsychicHttpServer* server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicRequest request(server, req);
+  //ESP_LOGD(PH_TAG, "Request: %s | %s", request.uri().c_str(), request.methodStr());
 
-  // ESP_LOGD(PH_TAG, "Request: %s | %s", request.uri(), request.methodStr());
+  //check our rewrites
+  if (server->_rewriteRequest(&request)) {
+    //ESP_LOGD(PH_TAG, "Rewrite: %s | %s", request.uri().c_str(), request.methodStr());
+  }
 
   // loop through our endpoints and see if anyone wants it.
   for (auto* endpoint : server->_endpoints)
@@ -270,7 +308,7 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
     // ESP_LOGD(PH_TAG, "Checking endpoint: %s | %s", endpoint->uri(), http_method_str((http_method)req->method));
 
     // check urls first
-    if (endpoint->matches(req->uri))
+    if (endpoint->matches(request.uri().c_str()))
     {
       // ESP_LOGD(PH_TAG, "URI Matched");
 
@@ -516,10 +554,9 @@ bool psychic_uri_match_regex(const char* uri1, const char* uri2, size_t len2)
   std::smatch matches;
   std::string s(uri2);
 
-  if (s.length() > len2) {
-    Serial.printf("%d > %d\n");
+  //len2 is passed in to tell us to match up to a point.
+  if (s.length() > len2)
     s = s.substr(0, len2);
-  }
 
   return std::regex_search(s, matches, pattern);
 }
