@@ -5,12 +5,17 @@
     * HTTP_ANY support
     * unlimited endpoints (no more need to manually set config.max_uri_handlers)
     * much more flexibility for future
+* Endpoint Matching Updates
+    * Endpoint matching functions can be set on server level (```server.setURIMatchFunction()```) or endpoint level (```endpoint.setURIMatchFunction()```)
+    * Added convenience macros MATCH_SIMPLE, MATCH_WILDCARD, and MATCH_REGEX
+    * Added regex matching of URIs, enable it with define PSYCHIC_REGEX
+    * On regex matched requests, you can get match data with request->getRegexMatches()
 
 ## Changes required from v1.x to v2.0:
 
 * add a ```server.begin()``` or ```server.start()``` after all your ```server.on()``` calls
 * remove any calls to ```config.max_uri_handlers```
-* if you are using a custom ```server.config.uri_match_fn``` to match uris, change it to ```server.uri_match_fn```
+* if you are using a custom ```server.config.uri_match_fn``` to match uris, change it to ```server.setURIMatchFunction()```
 
 # v1.2
 

@@ -777,8 +777,6 @@ ArduinoMongoose is a good alternative, although the latency issues when it gets 
 
 * As much ESPAsyncWebServer compatibility as possible
 * URL rewrite functionality
-* regex url matching
-  * also allow per-endpoint matching functions
 * Update benchmarks and get new data
   * we should also track program size and memory usage
 
