@@ -21,3 +21,4 @@ ReferenceAlignment: Left
 TabWidth: 2
 UseTab: Never
 BreakBeforeBraces: Allman
+AlignAfterOpenBracket: BAS_DontAlign
