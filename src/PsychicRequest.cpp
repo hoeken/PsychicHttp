@@ -553,3 +553,43 @@ esp_err_t PsychicRequest::reply(int code, const char *contentType, const char *c
 
   return response.send();
 }
+
+esp_err_t PsychicRequest::reply(PsychicResponse* response)
+{
+  esp_err_t err = response->send();
+  delete response;
+  return err;
+}
+
+PsychicResponse* PsychicRequest::beginReply(int code)
+{
+  PsychicResponse *response = new PsychicResponse(this);
+  response->setCode(code);
+  return response;
+}
+
+PsychicResponse* PsychicRequest::beginReply(int code, const char *contentType)
+{
+  PsychicResponse *response = new PsychicResponse(this);
+  response->setCode(code);
+  response->setContentType(contentType);
+  return response;
+}
+
+PsychicResponse* PsychicRequest::beginReply(int code, const char *contentType, const char *content)
+{
+  PsychicResponse *response = new PsychicResponse(this);
+  response->setCode(code);
+  response->setContentType(contentType);
+  response->setContent(content);
+  return response;
+}
+
+PsychicResponse* PsychicRequest::beginReply(int code, const char *contentType, const uint8_t *content, size_t len)
+{
+  PsychicResponse *response = new PsychicResponse(this);
+  response->setCode(code);
+  response->setContentType(contentType);
+  response->setContent(content, len);
+  return response;
+}
