@@ -9,14 +9,12 @@ on:
     - cron: "0 1 * * 6" # Every Saturday at 1AM  
 
 jobs:
-
   build:
     strategy:
       fail-fast: false
       matrix:
-        include:
-        - example: platformio
-          board: ["arduino2", "arduino3"]
+        example: ["platformio"]
+        board: ["arduino2", "arduino3"]
 
     runs-on: ubuntu-latest
     name: Build ${{ matrix.example }}-${{ matrix.board }}
