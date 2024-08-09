@@ -48,12 +48,12 @@ esp_err_t PsychicHttpsServer::_startServer()
     return httpd_start(&this->server, &this->config);
 }
 
-void PsychicHttpsServer::stop()
+esp_err_t PsychicHttpsServer::_stopServer()
 {
   if (this->_use_ssl)
-    httpd_ssl_stop(this->server);
+    ret = httpd_ssl_stop(this->server);
   else
-    httpd_stop(this->server);
+    ret = httpd_stop(this->server);
 }
 
 #endif // CONFIG_ESP_HTTPS_SERVER_ENABLE

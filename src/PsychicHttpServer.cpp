@@ -71,6 +71,9 @@ void PsychicHttpServer::listen(uint16_t port)
 
 esp_err_t PsychicHttpServer::start()
 {
+  if (_running)
+    return ESP_OK;
+
   esp_err_t ret;
 
   #ifdef ENABLE_ASYNC
@@ -122,6 +125,7 @@ esp_err_t PsychicHttpServer::start()
   if (ret != ESP_OK)
     ESP_LOGE(PH_TAG, "Add 404 handler failed (%s)", esp_err_to_name(ret)); 
 
+  _running = true;
   return ret;
 }
 
@@ -129,9 +133,25 @@ esp_err_t PsychicHttpServer::_startServer() {
   return httpd_start(&this->server, &this->config);
 }
 
-void PsychicHttpServer::stop()
+esp_err_t PsychicHttpServer::stop()
 {
-  httpd_stop(this->server);  
+  if (!_running)
+    return ESP_OK;
+
+  esp_err_t ret = _stopServer();
+  if (ret != ESP_OK)
+  {
+    ESP_LOGE(PH_TAG, "Server stop failed (%s)", esp_err_to_name(ret));
+    return ret;
+  }
+
+  ESP_LOGI(PH_TAG, "Server stopped");
+  _running = false;
+  return ret;
+}
+
+esp_err_t PsychicHttpServer::_stopServer() {
+  return httpd_stop(this->server);
 }
 
 PsychicHandler& PsychicHttpServer::addHandler(PsychicHandler* handler){
