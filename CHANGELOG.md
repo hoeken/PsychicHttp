@@ -10,6 +10,7 @@
     * Added convenience macros MATCH_SIMPLE, MATCH_WILDCARD, and MATCH_REGEX
     * Added regex matching of URIs, enable it with define PSYCHIC_REGEX
     * On regex matched requests, you can get match data with request->getRegexMatches()
+* Ported URL rewrite functionality from ESPAsyncWS
 
 ## Changes required from v1.x to v2.0:
 
