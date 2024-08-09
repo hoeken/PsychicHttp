@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         example: ["platformio"]
-        board: ["arduino2", "arduino3"]
+        board: ["arduino3"]
 
     runs-on: ubuntu-latest
     name: Build ${{ matrix.example }}-${{ matrix.board }}
