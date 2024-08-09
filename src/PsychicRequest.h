@@ -82,7 +82,9 @@ class PsychicRequest {
     PsychicWebParameter * addParam(PsychicWebParameter *param);
     PsychicWebParameter * addParam(const String &name, const String &value, bool decode = true, bool post = false);
     bool hasParam(const char *key);
+    bool hasParam(const char *key, bool isPost, bool isFile = false);
     PsychicWebParameter * getParam(const char *name);
+    PsychicWebParameter * getParam(const char *name, bool isPost, bool isFile = false);
 
     const String getFilename();
 
@@ -93,6 +95,12 @@ class PsychicRequest {
     esp_err_t reply(int code);
     esp_err_t reply(const char *content);
     esp_err_t reply(int code, const char *contentType, const char *content);
+    esp_err_t reply(PsychicResponse* response);
+
+    PsychicResponse* beginReply(int code);
+    PsychicResponse* beginReply(int code, const char* contentType);
+    PsychicResponse* beginReply(int code, const char* contentType, const char* content);
+    PsychicResponse* beginReply(int code, const char* contentType, const uint8_t* content, size_t len);
 };
 
 #endif // PsychicRequest_h

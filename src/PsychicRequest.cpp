@@ -323,12 +323,25 @@ bool PsychicRequest::hasParam(const char *key)
   return getParam(key) != NULL;
 }
 
+bool PsychicRequest::hasParam(const char *key, bool isPost, bool isFile)
+{
+  return getParam(key, isPost, isFile) != NULL;
+}
+
 PsychicWebParameter * PsychicRequest::getParam(const char *key)
 {
   for (auto *param : _params)
     if (param->name().equals(key))
       return param;
 
+  return NULL;
+}
+
+PsychicWebParameter * PsychicRequest::getParam(const char *key, bool isPost, bool isFile)
+{
+  for (auto *param : _params)
+    if (param->name().equals(key) && isPost == param->isPost() && isFile == param->isFile())
+      return param;
   return NULL;
 }
 
@@ -539,4 +552,44 @@ esp_err_t PsychicRequest::reply(int code, const char *contentType, const char *c
   response.setContent(content);
 
   return response.send();
+}
+
+esp_err_t PsychicRequest::reply(PsychicResponse* response)
+{
+  esp_err_t err = response->send();
+  delete response;
+  return err;
+}
+
+PsychicResponse* PsychicRequest::beginReply(int code)
+{
+  PsychicResponse *response = new PsychicResponse(this);
+  response->setCode(code);
+  return response;
+}
+
+PsychicResponse* PsychicRequest::beginReply(int code, const char *contentType)
+{
+  PsychicResponse *response = new PsychicResponse(this);
+  response->setCode(code);
+  response->setContentType(contentType);
+  return response;
+}
+
+PsychicResponse* PsychicRequest::beginReply(int code, const char *contentType, const char *content)
+{
+  PsychicResponse *response = new PsychicResponse(this);
+  response->setCode(code);
+  response->setContentType(contentType);
+  response->setContent(content);
+  return response;
+}
+
+PsychicResponse* PsychicRequest::beginReply(int code, const char *contentType, const uint8_t *content, size_t len)
+{
+  PsychicResponse *response = new PsychicResponse(this);
+  response->setCode(code);
+  response->setContentType(contentType);
+  response->setContent(content, len);
+  return response;
 }
