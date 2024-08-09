@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
         - example: platformio
-          board: default
+          board: ["arduino2", "arduino3"]
 
     runs-on: ubuntu-latest
     name: Build ${{ matrix.example }}-${{ matrix.board }}
