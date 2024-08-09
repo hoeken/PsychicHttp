@@ -16,6 +16,8 @@ class PsychicHttpsServer : public PsychicHttpServer
 {
   protected:
     bool _use_ssl = false;
+    virtual esp_err_t _startServer() override final;
+    virtual esp_err_t _stopServer() override final;
 
   public:
     PsychicHttpsServer();
@@ -25,9 +27,6 @@ class PsychicHttpsServer : public PsychicHttpServer
 
     using PsychicHttpServer::listen; //keep the regular version
     void listen(uint16_t port, const char *cert, const char *private_key);
-
-    virtual esp_err_t _startServer() override final;
-    virtual void stop() override final;
 };
 
 #endif // PsychicHttpsServer_h

@@ -26,6 +26,8 @@ class PsychicHttpServer
 
     esp_err_t _start();
     virtual esp_err_t _startServer();
+    virtual esp_err_t _stopServer();
+    bool _running = false;
 
   public:
     PsychicHttpServer();
@@ -49,9 +51,11 @@ class PsychicHttpServer
 
     void listen(uint16_t port);
 
-    virtual esp_err_t begin() {return start();}
-    virtual esp_err_t start();
-    virtual void stop();
+    bool isRunning() { return _running; }
+    esp_err_t begin() {return start();}
+    esp_err_t end() {return stop();}
+    esp_err_t start();
+    esp_err_t stop();
 
 
     PsychicHandler& addHandler(PsychicHandler* handler);
