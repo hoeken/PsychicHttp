@@ -110,10 +110,10 @@ esp_err_t PsychicHttpServer::start()
   {
     ESP_LOGD(PH_TAG, "Adding %s meta endpoint", http_method_str((http_method)method));
 
-    httpd_uri_t my_uri{
-      .uri = "*",
-      .method = method,
-      .handler = PsychicHttpServer::requestHandler};
+    httpd_uri_t my_uri;
+    my_uri.uri = "*";
+    my_uri.method = method;
+    my_uri.handler = PsychicHttpServer::requestHandler;
 
     // Register endpoint with ESP-IDF server
     esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
@@ -223,13 +223,13 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicHandl
   if (handler->isWebSocket())
   {
     // URI handler structure
-    httpd_uri_t my_uri{
-      .uri = uri,
-      .method = HTTP_GET,
-      .handler = PsychicEndpoint::requestCallback,
-      .user_ctx = endpoint,
-      .is_websocket = handler->isWebSocket(),
-      .supported_subprotocol = handler->getSubprotocol()};
+    httpd_uri_t my_uri;
+    my_uri.uri = uri;
+    my_uri.method = HTTP_GET;
+    my_uri.handler = PsychicEndpoint::requestCallback;
+    my_uri.user_ctx = endpoint;
+    my_uri.is_websocket = handler->isWebSocket();
+    my_uri.supported_subprotocol = handler->getSubprotocol();
 
     // save it to our 'real' handlers for later.
     _esp_idf_endpoints.push_back(my_uri);
