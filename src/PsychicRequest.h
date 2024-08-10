@@ -44,6 +44,8 @@ class PsychicRequest
     String _uri;
     String _query;
     String _body;
+    esp_err_t _bodyParsed = ESP_ERR_NOT_FINISHED;
+    esp_err_t _paramsParsed = ESP_ERR_NOT_FINISHED;
 
     std::list<PsychicWebParameter*> _params;
 
