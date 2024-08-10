@@ -28,7 +28,7 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest* request)
     /* Respond with 400 Bad Request */
     char error[60];
     sprintf(error, "Request body must be less than %lu bytes!", request->server()->maxRequestBodySize);
-    httpd_resp_send_err(request->request(), HTTPD_400_BAD_REQUEST, error);
+    request->reply(400, "text/html", error);
 
     /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
     return ESP_FAIL;
@@ -37,7 +37,7 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest* request)
   // get our body loaded up.
   esp_err_t err = request->loadBody();
   if (err != ESP_OK)
-    return err;
+    return request->reply(400, "text/html", "Error loading request body.");
 
   // load our params in.
   request->loadParams();

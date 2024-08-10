@@ -155,7 +155,7 @@ const ContentDisposition PsychicRequest::getContentDisposition()
 
 esp_err_t PsychicRequest::loadBody()
 {
-  if(_bodyParsed != ESP_ERR_NOT_FINISHED)
+  if (_bodyParsed != ESP_ERR_NOT_FINISHED)
     return _bodyParsed;
 
   this->_body = String();
@@ -191,6 +191,9 @@ esp_err_t PsychicRequest::loadBody()
   buf[actuallyReceived] = '\0';
   this->_body = String(buf);
   free(buf);
+
+  _bodyParsed = ESP_OK;
+
   return _bodyParsed;
 }
 
@@ -314,7 +317,7 @@ const String PsychicRequest::getCookie(const char* key)
 
 void PsychicRequest::loadParams()
 {
-  if(_paramsParsed != ESP_ERR_NOT_FINISHED)
+  if (_paramsParsed != ESP_ERR_NOT_FINISHED)
     return;
 
   // did we get form data as body?
