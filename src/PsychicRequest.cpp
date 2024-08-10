@@ -155,7 +155,8 @@ const ContentDisposition PsychicRequest::getContentDisposition()
 
 esp_err_t PsychicRequest::loadBody()
 {
-  esp_err_t err = ESP_OK;
+  if(_bodyParsed != ESP_ERR_NOT_FINISHED)
+    return _bodyParsed;
 
   this->_body = String();
 
@@ -165,7 +166,7 @@ esp_err_t PsychicRequest::loadBody()
   if (buf == NULL)
   {
     ESP_LOGE(PH_TAG, "Failed to allocate memory for body");
-    return ESP_FAIL;
+    return _bodyParsed = ESP_FAIL;
   }
 
   while (remaining > 0)
@@ -179,7 +180,7 @@ esp_err_t PsychicRequest::loadBody()
     else if (received == HTTPD_SOCK_ERR_FAIL)
     {
       ESP_LOGE(PH_TAG, "Failed to receive data.");
-      err = ESP_FAIL;
+      _bodyParsed = ESP_FAIL;
       break;
     }
 
@@ -190,7 +191,7 @@ esp_err_t PsychicRequest::loadBody()
   buf[actuallyReceived] = '\0';
   this->_body = String(buf);
   free(buf);
-  return err;
+  return _bodyParsed;
 }
 
 http_method PsychicRequest::method()
@@ -313,11 +314,16 @@ const String PsychicRequest::getCookie(const char* key)
 
 void PsychicRequest::loadParams()
 {
+  if(_paramsParsed != ESP_ERR_NOT_FINISHED)
+    return;
+
   // did we get form data as body?
   if (this->method() == HTTP_POST && this->contentType().startsWith("application/x-www-form-urlencoded"))
   {
     _addParams(_body, true);
   }
+
+  _paramsParsed = ESP_OK;
 }
 
 void PsychicRequest::_setUri(const char* uri)
