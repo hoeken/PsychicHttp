@@ -295,41 +295,28 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
 {
   PsychicHttpServer* server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicRequest request(server, req);
-  // ESP_LOGD(PH_TAG, "Request: %s | %s", request.uri().c_str(), request.methodStr());
 
   // check our rewrites
-  if (server->_rewriteRequest(&request))
-  {
-    // ESP_LOGD(PH_TAG, "Rewrite: %s | %s", request.uri().c_str(), request.methodStr());
-  }
+  server->_rewriteRequest(&request);
 
   // loop through our endpoints and see if anyone wants it.
   for (auto* endpoint : server->_endpoints)
   {
-    // ESP_LOGD(PH_TAG, "Checking endpoint: %s | %s", endpoint->uri(), http_method_str((http_method)req->method));
-
     // check urls first
     if (endpoint->matches(request.uri().c_str()))
     {
-      // ESP_LOGD(PH_TAG, "URI Matched");
-
       // check the http_method next
       if (endpoint->_method == request.method() || endpoint->_method == HTTP_ANY)
       {
-        // ESP_LOGD(PH_TAG, "http_method OK");
         request.setEndpoint(endpoint);
 
         // check other filter functions
         PsychicHandler* handler = endpoint->handler();
         if (handler->filter(&request))
         {
-          // ESP_LOGD(PH_TAG, "Filter OK");
-
           // is the handler ok?
           if (handler->canHandle(&request))
           {
-            // ESP_LOGD(PH_TAG, "Handler OK");
-
             // check our credentials
             if (handler->needsAuthentication(&request))
               return handler->authenticate(&request);
