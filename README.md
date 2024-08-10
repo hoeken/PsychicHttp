@@ -776,6 +776,7 @@ ArduinoMongoose is a good alternative, although the latency issues when it gets 
 ## v2.0: ESPAsyncWebserver Parity
 
 * As much ESPAsyncWebServer compatibility as possible
+* fix issue #73
 * Update benchmarks and get new data
   * we should also track program size and memory usage
 
