@@ -20,6 +20,7 @@
 #include <LittleFS.h>
 #include <PsychicHttp.h>
 #include <WiFi.h>
+#include <esp_sntp.h>
 
 // #define this to enable SSL at build (or switch to the 'ssl' build target in vscode)
 #ifdef PSY_ENABLE_SSL
@@ -62,6 +63,28 @@ PsychicHttpServer server;
 #endif
 PsychicWebSocketHandler websocketHandler;
 PsychicEventSource eventSource;
+
+// NTP server stuff
+const char* ntpServer1 = "pool.ntp.org";
+const char* ntpServer2 = "time.nist.gov";
+const long gmtOffset_sec = 0;
+const int daylightOffset_sec = 0;
+struct tm timeinfo;
+
+// Callback function (gets called when time adjusts via NTP)
+void timeAvailable(struct timeval* t)
+{
+  if (!getLocalTime(&timeinfo))
+  {
+    Serial.println("Failed to obtain time");
+    return;
+  }
+
+  Serial.print("NTP update: ");
+  char buffer[40];
+  strftime(buffer, 40, "%FT%T%z", &timeinfo);
+  Serial.println(buffer);
+}
 
 bool connectToWifi()
 {
@@ -159,6 +182,11 @@ void setup()
   // To debug, please enable Core Debug Level to Verbose
   if (connectToWifi())
   {
+    // Setup our NTP to get the current time.
+    sntp_set_time_sync_notification_cb(timeAvailable);
+    esp_sntp_servermode_dhcp(1); // (optional)
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
+
     // set up our esp32 to listen on the local_hostname.local domain
     if (!MDNS.begin(local_hostname))
     {
@@ -428,11 +456,9 @@ void setup()
     //  curl -i -d "param1=value1&param2=value2" -X POST http://psychic.local/post
     server.on("/post", HTTP_POST, [](PsychicRequest* request)
       {
-      String output = "POST DATA:\n";
-      if (request->hasParam("param1"))
-        output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
-      if (request->hasParam("param2"))
-        output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+      String output;
+      output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+      output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
 
       return request->reply(output.c_str()); });
 
