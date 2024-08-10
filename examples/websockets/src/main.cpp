@@ -146,7 +146,7 @@ void setup()
     //  wscat -c ws://psychic.local/ws
     websocketHandler.onOpen([](PsychicWebSocketClient* client)
                             {
-      Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
+      Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
       client->sendMessage("Hello!"); });
     websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame)
                              {
@@ -183,7 +183,7 @@ void setup()
 
       return ESP_OK; });
     websocketHandler.onClose([](PsychicWebSocketClient* client)
-                             { Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString()); });
+                             { Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
     server.on("/ws", &websocketHandler);
   }
 }
