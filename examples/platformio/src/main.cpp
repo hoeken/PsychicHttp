@@ -517,54 +517,57 @@ void setup()
     PsychicUploadHandler* multipartHandler = new PsychicUploadHandler();
     multipartHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last)
       {
-      File file;
-      String path = "/www/" + filename;
+        File file;
+        String path = "/www/" + filename;
 
-      //some progress over serial.
-      Serial.printf("Writing %d bytes to: %s\n", (int)len, path.c_str());
-      if (last)
-        Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index+(int)len);
+        // some progress over serial.
+        Serial.printf("Writing %d bytes to: %s\n", (int)len, path.c_str());
+        if (last)
+          Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index + (int)len);
 
-      //our first call?
-      if (!index)
-        file = LittleFS.open(path, FILE_WRITE);
-      else
-        file = LittleFS.open(path, FILE_APPEND);
-      
-      if(!file) {
-        Serial.println("Failed to open file");
-        return ESP_FAIL;
-      }
+        // our first call?
+        if (!index)
+          file = LittleFS.open(path, FILE_WRITE);
+        else
+          file = LittleFS.open(path, FILE_APPEND);
 
-      if(!file.write(data, len)) {
-        Serial.println("Write failed");
-        return ESP_FAIL;
-      }
+        if (!file)
+        {
+          Serial.println("Failed to open file");
+          return ESP_FAIL;
+        }
 
-      return ESP_OK; });
+        if (!file.write(data, len))
+        {
+          Serial.println("Write failed");
+          return ESP_FAIL;
+        }
+
+        return ESP_OK; });
 
     // gets called after upload has been handled
     multipartHandler->onRequest([](PsychicRequest* request)
       {
-      if (request->hasParam("file_upload"))
-      {
-        PsychicWebParameter *file = request->getParam("file_upload");
-
-        String url = "/" + file->value();
         String output;
+        if (request->hasParam("file_upload"))
+        {
+          PsychicWebParameter* file = request->getParam("file_upload");
 
-        output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
-        output += "Bytes: " + String(file->size()) + "<br/>\n";
-        output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
-        output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
-        
-        return request->reply(output.c_str());
-      }
-      else
-        return request->reply("No upload."); });
+          String url = "/" + file->value();
+          output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
+          output += "Bytes: " + String(file->size()) + "<br/>\n";
+        }
+
+        if (request->hasParam("param1"))
+          output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+        if (request->hasParam("param2"))
+          output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+
+        return request->reply(output.c_str()); });
 
     // wildcard basic file upload - POST to /upload/filename.ext
     //  use http://psychic.local/ to test
+    // just multipart data: curl -F "param1=multi" -F "param2=part" http://psychic.local/multipart
     server.on("/multipart", HTTP_POST, multipartHandler);
 
     // a websocket echo server
