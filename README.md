@@ -423,7 +423,7 @@ Here is a basic example of using WebSockets:
  PsychicWebSocketHandler websocketHandler();
 
  websocketHandler.onOpen([](PsychicWebSocketClient *client) {
-   Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
+   Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
    client->sendMessage("Hello!");
  });
 
@@ -433,7 +433,7 @@ Here is a basic example of using WebSockets:
  });
 
  websocketHandler.onClose([](PsychicWebSocketClient *client) {
-   Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
+   Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str());
  });
 
  //attach the handler to /ws.  You can then connect to ws://ip.address/ws
@@ -485,12 +485,12 @@ Here is a basic example of using PsychicEventSource:
  PsychicEventSource eventSource;
 
  eventSource.onOpen([](PsychicEventSourceClient *client) {
-   Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
+   Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
    client->send("Hello user!", NULL, millis(), 1000);
  });
 
  eventSource.onClose([](PsychicEventSourceClient *client) {
-   Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
+   Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str());
  });
 
  //attach the handler to /events

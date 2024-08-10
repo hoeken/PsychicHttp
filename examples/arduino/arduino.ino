@@ -334,7 +334,7 @@ void setup()
       }
 
       char cookie[10];
-      sprintf(cookie, "%i", counter);
+      sprintf(cookie, "%d", counter);
 
       response.setCookie("counter", cookie);
       response.setContent(cookie);
