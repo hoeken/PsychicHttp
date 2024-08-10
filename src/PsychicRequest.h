@@ -116,6 +116,7 @@ class PsychicRequest
     esp_err_t reply(int code);
     esp_err_t reply(const char* content);
     esp_err_t reply(int code, const char* contentType, const char* content);
+    esp_err_t reply(int code, const char* contentType, const uint8_t* content, size_t len);
     esp_err_t reply(PsychicResponse* response);
 
     PsychicResponse* beginReply(int code);
