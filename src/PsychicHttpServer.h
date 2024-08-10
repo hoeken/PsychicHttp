@@ -6,8 +6,8 @@
 #include "PsychicHandler.h"
 #include "PsychicRewrite.h"
 
-#ifdef PSYCHIC_REGEX
-#include <regex>
+#ifdef PSY_ENABLE_REGEX
+  #include <regex>
 #endif
 
 enum PsychicHttpMethod
@@ -37,7 +37,7 @@ class PsychicHttpServer
     bool _running = false;
     httpd_uri_match_func_t _uri_match_fn = nullptr;
 
-    bool _rewriteRequest(PsychicRequest *request);
+    bool _rewriteRequest(PsychicRequest* request);
 
   public:
     PsychicHttpServer(uint16_t port = 80);
@@ -109,14 +109,14 @@ class PsychicHttpServer
 bool ON_STA_FILTER(PsychicRequest* request);
 bool ON_AP_FILTER(PsychicRequest* request);
 
-//URI matching functions
+// URI matching functions
 bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2);
 #define MATCH_SIMPLE   psychic_uri_match_simple
 #define MATCH_WILDCARD httpd_uri_match_wildcard
 
-#ifdef PSYCHIC_REGEX
+#ifdef PSY_ENABLE_REGEX
 bool psychic_uri_match_regex(const char* uri1, const char* uri2, size_t len2);
-#define MATCH_REGEX psychic_uri_match_regex
+  #define MATCH_REGEX psychic_uri_match_regex
 #endif
 
 #endif // PsychicHttpServer_h

@@ -8,7 +8,7 @@
 #include "PsychicResponse.h"
 #include "PsychicWebParameter.h"
 
-#ifdef PSYCHIC_REGEX
+#ifdef PSY_ENABLE_REGEX
   #include <regex>
 #endif
 
@@ -68,7 +68,7 @@ class PsychicRequest
     PsychicEndpoint* endpoint();
     void setEndpoint(PsychicEndpoint* endpoint);
 
-#ifdef PSYCHIC_REGEX
+#ifdef PSY_ENABLE_REGEX
     bool getRegexMatches(std::smatch& matches, bool use_full_uri = false);
 #endif
 

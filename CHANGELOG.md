@@ -8,7 +8,7 @@
 * Endpoint Matching Updates
     * Endpoint matching functions can be set on server level (```server.setURIMatchFunction()```) or endpoint level (```endpoint.setURIMatchFunction()```)
     * Added convenience macros MATCH_SIMPLE, MATCH_WILDCARD, and MATCH_REGEX
-    * Added regex matching of URIs, enable it with define PSYCHIC_REGEX
+    * Added regex matching of URIs, enable it with define PSY_ENABLE_REGEX
     * On regex matched requests, you can get match data with request->getRegexMatches()
 * Ported URL rewrite functionality from ESPAsyncWS
 

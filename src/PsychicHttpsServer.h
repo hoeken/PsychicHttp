@@ -1,6 +1,8 @@
 #ifndef PsychicHttpsServer_h
 #define PsychicHttpsServer_h
 
+#include <sdkconfig.h>
+
 #ifdef CONFIG_ESP_HTTPS_SERVER_ENABLE
 
   #include "PsychicCore.h"
@@ -10,7 +12,9 @@
     #error PsychicHttpsServer cannot be used unless HTTPD_WS_SUPPORT is enabled in esp-http-server component configuration
   #endif
 
-  #define PSY_ENABLE_SSL // you can use this define in your code to enable/disable these features
+  #ifndef PSY_ENABLE_SSL
+    #define PSY_ENABLE_SSL // you can use this define in your code to enable/disable these features
+  #endif
 
 class PsychicHttpsServer : public PsychicHttpServer
 {
@@ -24,7 +28,7 @@ class PsychicHttpsServer : public PsychicHttpServer
 
     httpd_ssl_config_t ssl_config;
 
-    using PsychicHttpServer::listen; // keep the regular version
+    // using PsychicHttpServer::listen; // keep the regular version
     virtual void setPort(uint16_t port) override final;
     void setCertificate(const char* cert, const char* private_key);
 };

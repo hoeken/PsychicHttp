@@ -13,16 +13,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example: ["platformio"]
-        board: ["arduino2", "arduino3"]
+        feature: ["arduino2", "arduino3", "ssl", "regex"]
 
     runs-on: ubuntu-latest
-    name: Build ${{ matrix.example }}-${{ matrix.board }}
+    name: Build ${{ matrix.feature }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Pythonf
         uses: actions/setup-python@v4
 
       - name: Install Platform IO
@@ -35,9 +34,9 @@ jobs:
         run:
           pio lib -g install $GITHUB_WORKSPACE
 
-      - name: Build example 
+      - name: Build ${{ matrix.feature }} 
         run:
           |
-          cd examples/${{ matrix.example }}
+          cd examples/platformio
           cp src/secret.h src/_secret.h
-          pio run -e ${{ matrix.board }}
+          pio run -e ${{ matrix.feature }}

@@ -76,7 +76,7 @@ void PsychicRequest::setEndpoint(PsychicEndpoint* endpoint)
   _endpoint = endpoint;
 }
 
-#ifdef PSYCHIC_REGEX
+#ifdef PSY_ENABLE_REGEX
 bool PsychicRequest::getRegexMatches(std::smatch& matches, bool use_full_uri)
 {
   if (_endpoint != nullptr)

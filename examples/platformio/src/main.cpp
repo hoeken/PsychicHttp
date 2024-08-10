@@ -21,7 +21,12 @@
 #include <PsychicHttp.h>
 #include <WiFi.h>
 #include <esp_sntp.h>
-// #include <PsychicHttpsServer.h> //uncomment this to enable HTTPS / SSL
+
+// #define this to enable SSL at build (or switch to the 'ssl' build target in vscode)
+#ifdef PSY_ENABLE_SSL
+  #include <PsychicHttpsServer.h>
+#endif
+
 #ifndef WIFI_SSID
   #error "You need to enter your wifi credentials. Rename secret.h to _secret.h and enter your credentials there."
 #endif
@@ -367,24 +372,26 @@ void setup()
             { return request->reply("Simple"); })
       ->setURIMatchFunction(MATCH_SIMPLE);
 
+#ifdef PSY_ENABLE_REGEX
     // curl -i 'http://psychic.local/regex/23'
     // curl -i 'http://psychic.local/regex/4223'
     server.on("^/regex/([\\d]+)/?$", HTTP_GET, [](PsychicRequest* request)
             {
-      //look up our regex matches
-      std::smatch matches;
-      if (request->getRegexMatches(matches))
-      {
-        String output;
-        output += "Matches: " + String(matches.size()) + "<br/>\n";
-        output += "Matched URI: " + String(matches.str(0).c_str()) + "<br/>\n";
-        output += "Match 1: " + String(matches.str(1).c_str()) + "<br/>\n";
+        //look up our regex matches
+        std::smatch matches;
+        if (request->getRegexMatches(matches))
+        {
+          String output;
+          output += "Matches: " + String(matches.size()) + "<br/>\n";
+          output += "Matched URI: " + String(matches.str(0).c_str()) + "<br/>\n";
+          output += "Match 1: " + String(matches.str(1).c_str()) + "<br/>\n";
 
-        return request->reply(output.c_str());
-      }
-      else
-        return request->reply("No regex match."); })
+          return request->reply(output.c_str());
+        }
+        else
+          return request->reply("No regex match."); })
       ->setURIMatchFunction(MATCH_REGEX);
+#endif
 
     // JsonResponse example
     //  curl -i http://psychic.local/json
@@ -558,7 +565,8 @@ void setup()
 
     // a websocket echo server
     //  npm install -g wscat
-    //  wscat -c ws://psychic.local/ws
+    // Plaintext: wscat -c ws://psychic.local/ws
+    // SSL: wscat -n -c wss://psychic.local/ws
     websocketHandler.onOpen([](PsychicWebSocketClient* client)
       {
       Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());

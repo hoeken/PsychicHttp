@@ -57,7 +57,7 @@ esp_err_t PsychicHttpsServer::_startServer()
 
 esp_err_t PsychicHttpsServer::_stopServer()
 {
-  ret = httpd_ssl_stop(this->server);
+  return httpd_ssl_stop(this->server);
 }
 
 #endif // CONFIG_ESP_HTTPS_SERVER_ENABLE

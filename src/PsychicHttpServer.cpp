@@ -534,7 +534,7 @@ bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2)
          (strncmp(uri1, uri2, len2) == 0); // Then match actual URIs
 }
 
-#ifdef PSYCHIC_REGEX
+#ifdef PSY_ENABLE_REGEX
 bool psychic_uri_match_regex(const char* uri1, const char* uri2, size_t len2)
 {
   std::regex pattern(uri1);
