@@ -570,6 +570,20 @@ void setup()
     // just multipart data: curl -F "param1=multi" -F "param2=part" http://psychic.local/multipart
     server.on("/multipart", HTTP_POST, multipartHandler);
 
+    // form only multipart handler
+    // curl -F "param1=multi" -F "param2=part" http://psychic.local/multipart-data
+    PsychicUploadHandler* multipartFormHandler = new PsychicUploadHandler();
+    multipartFormHandler->onRequest([](PsychicRequest* request)
+      {
+        String output;
+        if (request->hasParam("param1"))
+          output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+        if (request->hasParam("param2"))
+          output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+
+        return request->reply(output.c_str()); });
+    server.on("/multipart-data", HTTP_POST, multipartFormHandler);
+
     // a websocket echo server
     //  npm install -g wscat
     // Plaintext: wscat -c ws://psychic.local/ws
