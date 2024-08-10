@@ -443,13 +443,14 @@ void setup()
       PsychicResponse response(request);
 
       int counter = 0;
-      if (request->hasCookie("counter"))
+      char cookie[14];
+      size_t size = 14;
+      if (request->getCookie("counter", cookie, &size) == ESP_OK)
       {
-        counter = std::stoi(request->getCookie("counter").c_str());
+        // value is null-terminated.
+        counter = std::stoi(cookie);
         counter++;
       }
-
-      char cookie[14];
       sprintf(cookie, "%d", counter);
 
       response.setCookie("counter", cookie);

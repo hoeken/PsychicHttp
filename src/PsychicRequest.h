@@ -86,7 +86,23 @@ class PsychicRequest
     void setSessionKey(const String& key, const String& value);
 
     bool hasCookie(const char* key);
-    const String getCookie(const char* key);
+
+    /**
+     * @brief   Get the value string of a cookie value from the "Cookie" request headers by cookie name.
+     *
+     * @param[in]       key             The cookie name to be searched in the request
+     * @param[out]      buffer          Pointer to the buffer into which the value of cookie will be copied if the cookie is found
+     * @param[inout]    size            Pointer to size of the user buffer "val". This variable will contain cookie length if
+     *                                  ESP_OK is returned and required buffer length in case ESP_ERR_HTTPD_RESULT_TRUNC is returned.
+     *
+     * @return
+     *  - ESP_OK : Key is found in the cookie string and copied to buffer. The value is null-terminated.
+     *  - ESP_ERR_NOT_FOUND          : Key not found
+     *  - ESP_ERR_INVALID_ARG        : Null arguments
+     *  - ESP_ERR_HTTPD_RESULT_TRUNC : Value string truncated
+     *  - ESP_ERR_NO_MEM             : Memory allocation failure
+     */
+    esp_err_t getCookie(const char* key, char* buffer, size_t* size);
 
     http_method method();       // returns the HTTP method used as enum value (eg. HTTP_GET)
     const String methodStr();   // returns the HTTP method used as a string (eg. "GET")
