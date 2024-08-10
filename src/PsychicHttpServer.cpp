@@ -277,13 +277,13 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
   this->defaultEndpoint->setHandler(handler);
 }
 
-bool PsychicHttpServer::_rewriteRequest(PsychicRequest *request)
+bool PsychicHttpServer::_rewriteRequest(PsychicRequest* request)
 {
   for (auto* r : _rewrites)
   {
     if (r->match(request))
     {
-      request->_uri = r->toUrl();
+      request->_setUri(r->toUrl().c_str());
       return true;
     }
   }
@@ -295,11 +295,12 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
 {
   PsychicHttpServer* server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicRequest request(server, req);
-  //ESP_LOGD(PH_TAG, "Request: %s | %s", request.uri().c_str(), request.methodStr());
+  // ESP_LOGD(PH_TAG, "Request: %s | %s", request.uri().c_str(), request.methodStr());
 
-  //check our rewrites
-  if (server->_rewriteRequest(&request)) {
-    //ESP_LOGD(PH_TAG, "Rewrite: %s | %s", request.uri().c_str(), request.methodStr());
+  // check our rewrites
+  if (server->_rewriteRequest(&request))
+  {
+    // ESP_LOGD(PH_TAG, "Rewrite: %s | %s", request.uri().c_str(), request.methodStr());
   }
 
   // loop through our endpoints and see if anyone wants it.
@@ -328,7 +329,6 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
           if (handler->canHandle(&request))
           {
             // ESP_LOGD(PH_TAG, "Handler OK");
-
 
             // check our credentials
             if (handler->needsAuthentication(&request))
@@ -554,7 +554,7 @@ bool psychic_uri_match_regex(const char* uri1, const char* uri2, size_t len2)
   std::smatch matches;
   std::string s(uri2);
 
-  //len2 is passed in to tell us to match up to a point.
+  // len2 is passed in to tell us to match up to a point.
   if (s.length() > len2)
     s = s.substr(0, len2);
 

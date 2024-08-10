@@ -6,6 +6,7 @@ PsychicRequest::PsychicRequest(PsychicHttpServer* server, httpd_req_t* req) : _s
                                                                               _req(req),
                                                                               _endpoint(nullptr),
                                                                               _method(HTTP_GET),
+                                                                              _uri(""),
                                                                               _query(""),
                                                                               _body(""),
                                                                               _tempObject(nullptr)
@@ -25,8 +26,8 @@ PsychicRequest::PsychicRequest(PsychicHttpServer* server, httpd_req_t* req) : _s
   // callback for freeing the session later
   req->free_ctx = this->freeSession;
 
-  // load up some data
-  this->_uri = String(this->_req->uri);
+  // load and parse our uri.
+  this->_setUri(this->_req->uri);
 }
 
 PsychicRequest::~PsychicRequest()
@@ -76,20 +77,20 @@ void PsychicRequest::setEndpoint(PsychicEndpoint* endpoint)
 }
 
 #ifdef PSYCHIC_REGEX
-  bool PsychicRequest::getRegexMatches(std::smatch& matches, bool use_full_uri)
+bool PsychicRequest::getRegexMatches(std::smatch& matches, bool use_full_uri)
+{
+  if (_endpoint != nullptr)
   {
-    if (_endpoint != nullptr)
-    {
-      std::regex pattern(_endpoint->uri().c_str());
-      std::string s(this->path().c_str());
-      if (use_full_uri)
-        s = this->uri().c_str();
+    std::regex pattern(_endpoint->uri().c_str());
+    std::string s(this->path().c_str());
+    if (use_full_uri)
+      s = this->uri().c_str();
 
-      return std::regex_search(s, matches, pattern);
-    }
-
-    return false;
+    return std::regex_search(s, matches, pattern);
   }
+
+  return false;
+}
 #endif
 
 const String PsychicRequest::getFilename()
@@ -312,19 +313,25 @@ const String PsychicRequest::getCookie(const char* key)
 
 void PsychicRequest::loadParams()
 {
-  //look for our query separator
-  int index = _uri.indexOf('?');
-  if (index)
-  {
-    // parse them.
-    _query.concat(_uri.substring(index+1));
-    _addParams(_query, false);
-  }
-
   // did we get form data as body?
   if (this->method() == HTTP_POST && this->contentType().startsWith("application/x-www-form-urlencoded"))
   {
     _addParams(_body, true);
+  }
+}
+
+void PsychicRequest::_setUri(const char* uri)
+{
+  // save it
+  _uri = String(uri);
+
+  // look for our query separator
+  int index = _uri.indexOf('?', 0);
+  if (index)
+  {
+    // parse them.
+    _query = _uri.substring(index + 1);
+    _addParams(_query, false);
   }
 }
 
@@ -462,11 +469,11 @@ bool PsychicRequest::authenticate(const char* username, const char* password)
       // extracting required parameters for RFC 2069 simpler Digest
       String _realm = _extractParam(authReq, F("realm=\""), '\"');
       String _nonce = _extractParam(authReq, F("nonce=\""), '\"');
-      String _uri = _extractParam(authReq, F("uri=\""), '\"');
+      String _url = _extractParam(authReq, F("uri=\""), '\"');
       String _resp = _extractParam(authReq, F("response=\""), '\"');
       String _opaque = _extractParam(authReq, F("opaque=\""), '\"');
 
-      if ((!_realm.length()) || (!_nonce.length()) || (!_uri.length()) || (!_resp.length()) || (!_opaque.length()))
+      if ((!_realm.length()) || (!_nonce.length()) || (!_url.length()) || (!_resp.length()) || (!_opaque.length()))
       {
         authReq = "";
         return false;
@@ -490,23 +497,23 @@ bool PsychicRequest::authenticate(const char* username, const char* password)
       String _H2 = "";
       if (_method == HTTP_GET)
       {
-        _H2 = md5str(String(F("GET:")) + _uri);
+        _H2 = md5str(String(F("GET:")) + _url);
       }
       else if (_method == HTTP_POST)
       {
-        _H2 = md5str(String(F("POST:")) + _uri);
+        _H2 = md5str(String(F("POST:")) + _url);
       }
       else if (_method == HTTP_PUT)
       {
-        _H2 = md5str(String(F("PUT:")) + _uri);
+        _H2 = md5str(String(F("PUT:")) + _url);
       }
       else if (_method == HTTP_DELETE)
       {
-        _H2 = md5str(String(F("DELETE:")) + _uri);
+        _H2 = md5str(String(F("DELETE:")) + _url);
       }
       else
       {
-        _H2 = md5str(String(F("GET:")) + _uri);
+        _H2 = md5str(String(F("GET:")) + _url);
       }
       // ESP_LOGD(PH_TAG, "Hash of GET:uri=%s", _H2.c_str());
 
