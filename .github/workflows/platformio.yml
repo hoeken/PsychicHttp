@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        feature: ["arduino2", "arduino3", "ssl", "regex"]
+        feature: ["arduino2", "arduino2-ssl", "arduino2-regex", "arduino3", "arduino3-ssl", "arduino3-regex"]
 
     runs-on: ubuntu-latest
     name: Build ${{ matrix.feature }}
