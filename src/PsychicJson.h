@@ -62,6 +62,10 @@ class PsychicJsonResponse : public PsychicResponseDelegate
     size_t getLength();
 
     virtual esp_err_t send() override;
+
+#ifdef PSYCHIC_TO_ESPASYNCWS
+    void setLength() { setContentLength(measureJson(_root)); }
+#endif
 };
 
 class PsychicJsonHandler : public PsychicWebHandler

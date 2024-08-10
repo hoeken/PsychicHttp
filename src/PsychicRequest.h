@@ -148,6 +148,16 @@ class PsychicRequest
     PsychicResponse* beginReply(int code, const char* contentType);
     PsychicResponse* beginReply(int code, const char* contentType, const char* content);
     PsychicResponse* beginReply(int code, const char* contentType, const uint8_t* content, size_t len);
+
+#ifdef PSYCHIC_TO_ESPASYNCWS
+    esp_err_t send(int code) { return reply(code); }
+    esp_err_t send(int code, const char *contentType, const char *content) { return reply(code, contentType, content); }
+    esp_err_t send(int code, const char *contentType, const uint8_t *content, size_t len) { return reply(code, contentType, content, len); }
+    esp_err_t send(PsychicResponse* response) { return reply(response); }
+    PsychicResponse* beginResponse(int code) { return beginReply(code); }
+    PsychicResponse* beginResponse(int code, const char* contentType, const char* content) { return beginReply(code, contentType, content); }
+    PsychicResponse* beginResponse(int code, const char* contentType, const uint8_t* content, size_t len) { return beginReply(code, contentType, content, len); }
+#endif
 };
 
 #endif // PsychicRequest_h
