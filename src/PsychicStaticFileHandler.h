@@ -34,12 +34,12 @@ class PsychicStaticFileHandler : public PsychicWebHandler
     PsychicStaticFileHandler(const char* uri, FS& fs, const char* path, const char* cache_control);
     bool canHandle(PsychicRequest* request) override;
     esp_err_t handleRequest(PsychicRequest* request) override;
-    PsychicStaticFileHandler& setIsDir(bool isDir);
-    PsychicStaticFileHandler& setDefaultFile(const char* filename);
-    PsychicStaticFileHandler& setCacheControl(const char* cache_control);
-    PsychicStaticFileHandler& setLastModified(const char* last_modified);
-    PsychicStaticFileHandler& setLastModified(struct tm* last_modified);
-    // PsychicStaticFileHandler& setTemplateProcessor(AwsTemplateProcessor newCallback) {_callback = newCallback; return *this;}
+    PsychicStaticFileHandler* setIsDir(bool isDir);
+    PsychicStaticFileHandler* setDefaultFile(const char* filename);
+    PsychicStaticFileHandler* setCacheControl(const char* cache_control);
+    PsychicStaticFileHandler* setLastModified(const char* last_modified);
+    PsychicStaticFileHandler* setLastModified(struct tm* last_modified);
+    // PsychicStaticFileHandler* setTemplateProcessor(AwsTemplateProcessor newCallback) {_callback = newCallback; return *this;}
 };
 
 #endif /* PsychicHttp_h */

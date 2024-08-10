@@ -21,9 +21,9 @@
 		
 	}
 
-    PsychicRewrite& PsychicRewrite::setFilter(PsychicRequestFilterFunction fn)
+    PsychicRewrite* PsychicRewrite::setFilter(PsychicRequestFilterFunction fn)
 	{
-		_filter = fn; return *this;
+		_filter = fn; return this;
 	}
     
 	bool PsychicRewrite::filter(PsychicRequest *request) const

@@ -69,11 +69,11 @@ class PsychicHttpServer
     httpd_uri_match_func_t getURIMatchFunction();
     void setURIMatchFunction(httpd_uri_match_func_t match_fn);
 
-    PsychicRewrite& addRewrite(PsychicRewrite* rewrite);
+    PsychicRewrite* addRewrite(PsychicRewrite* rewrite);
     void removeRewrite(PsychicRewrite* rewrite);
-    PsychicRewrite& rewrite(const char* from, const char* to);
+    PsychicRewrite* rewrite(const char* from, const char* to);
 
-    PsychicHandler& addHandler(PsychicHandler* handler);
+    PsychicHandler* addHandler(PsychicHandler* handler);
     void removeHandler(PsychicHandler* handler);
 
     void addClient(PsychicClient* client);

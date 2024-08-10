@@ -19,7 +19,7 @@ class PsychicRewrite {
     PsychicRewrite(const char* from, const char* to);
     virtual ~PsychicRewrite();
 
-    PsychicRewrite& setFilter(PsychicRequestFilterFunction fn);
+    PsychicRewrite* setFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicRequest *request) const;
     const String& from(void) const;
     const String& toUrl(void) const;

@@ -29,31 +29,31 @@ PsychicStaticFileHandler::PsychicStaticFileHandler(const char* uri, FS& fs, cons
   _gzipStats = 0xF8;
 }
 
-PsychicStaticFileHandler& PsychicStaticFileHandler::setIsDir(bool isDir)
+PsychicStaticFileHandler* PsychicStaticFileHandler::setIsDir(bool isDir)
 {
   _isDir = isDir;
-  return *this;
+  return this;
 }
 
-PsychicStaticFileHandler& PsychicStaticFileHandler::setDefaultFile(const char* filename)
+PsychicStaticFileHandler* PsychicStaticFileHandler::setDefaultFile(const char* filename)
 {
   _default_file = String(filename);
-  return *this;
+  return this;
 }
 
-PsychicStaticFileHandler& PsychicStaticFileHandler::setCacheControl(const char* cache_control)
+PsychicStaticFileHandler* PsychicStaticFileHandler::setCacheControl(const char* cache_control)
 {
   _cache_control = String(cache_control);
-  return *this;
+  return this;
 }
 
-PsychicStaticFileHandler& PsychicStaticFileHandler::setLastModified(const char* last_modified)
+PsychicStaticFileHandler* PsychicStaticFileHandler::setLastModified(const char* last_modified)
 {
   _last_modified = String(last_modified);
-  return *this;
+  return this;
 }
 
-PsychicStaticFileHandler& PsychicStaticFileHandler::setLastModified(struct tm* last_modified)
+PsychicStaticFileHandler* PsychicStaticFileHandler::setLastModified(struct tm* last_modified)
 {
   char result[30];
   strftime(result, 30, "%a, %d %b %Y %H:%M:%S %Z", last_modified);
