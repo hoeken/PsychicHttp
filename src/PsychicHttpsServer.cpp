@@ -57,7 +57,12 @@ esp_err_t PsychicHttpsServer::_startServer()
 
 esp_err_t PsychicHttpsServer::_stopServer()
 {
+  #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 2)
   return httpd_ssl_stop(this->server);
+  #else
+  httpd_ssl_stop(this->server);
+  return ESP_OK;
+  #endif
 }
 
 #endif // CONFIG_ESP_HTTPS_SERVER_ENABLE
