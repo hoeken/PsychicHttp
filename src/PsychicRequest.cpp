@@ -619,6 +619,17 @@ esp_err_t PsychicRequest::reply(int code, const char* contentType, const char* c
   return response.send();
 }
 
+esp_err_t PsychicRequest::reply(int code, const char* contentType, const uint8_t* content, size_t len)
+{
+  PsychicResponse response(this);
+
+  response.setCode(code);
+  response.setContentType(contentType);
+  response.setContent(content, len);
+
+  return response.send();
+}
+
 esp_err_t PsychicRequest::reply(PsychicResponse* response)
 {
   esp_err_t err = response->send();
