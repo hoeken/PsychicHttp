@@ -32,6 +32,7 @@ class PsychicEndpoint
 
     bool matches(const char* uri);
 
+    PsychicEndpoint* setFilter(PsychicFilterFunction fn);
     PsychicEndpoint* setFilter(PsychicRequestFilterFunction fn);
     PsychicEndpoint* setAuthentication(const char* username, const char* password, HTTPAuthMethod method = BASIC_AUTH, const char* realm = "", const char* authFailMsg = "");
 

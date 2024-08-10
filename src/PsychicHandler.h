@@ -16,7 +16,8 @@ class PsychicHandler
     friend PsychicEndpoint;
 
   protected:
-    PsychicRequestFilterFunction _filter;
+    PsychicFilterFunction _filter;
+    PsychicRequestFilterFunction _requestFilter;
     PsychicHttpServer* _server;
 
     String _username;
@@ -33,6 +34,7 @@ class PsychicHandler
     PsychicHandler();
     virtual ~PsychicHandler();
 
+    PsychicHandler* setFilter(PsychicFilterFunction fn);
     PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicRequest* request);
 

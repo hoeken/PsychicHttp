@@ -1,6 +1,7 @@
 #include "PsychicHandler.h"
 
 PsychicHandler::PsychicHandler() : _filter(NULL),
+                                   _requestFilter(NULL),
                                    _server(NULL),
                                    _username(""),
                                    _password(""),
@@ -19,15 +20,27 @@ PsychicHandler::~PsychicHandler()
   _clients.clear();
 }
 
-PsychicHandler* PsychicHandler::setFilter(PsychicRequestFilterFunction fn)
+PsychicHandler* PsychicHandler::setFilter(PsychicFilterFunction fn)
 {
   _filter = fn;
   return this;
 }
 
+PsychicHandler* PsychicHandler::setFilter(PsychicRequestFilterFunction fn)
+{
+  _requestFilter = fn;
+  return this;
+}
+
 bool PsychicHandler::filter(PsychicRequest* request)
 {
-  return _filter == NULL || _filter(request);
+  bool ret = _filter == NULL || _filter();
+  if(!ret)
+    return false;
+  if(_requestFilter == NULL)
+    return true;
+  request->loadParams();
+  return _requestFilter(request);
 }
 
 void PsychicHandler::setSubprotocol(const String& subprotocol)

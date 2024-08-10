@@ -125,6 +125,12 @@ void PsychicEndpoint::setURIMatchFunction(httpd_uri_match_func_t match_fn)
   _uri_match_fn = match_fn;
 }
 
+PsychicEndpoint* PsychicEndpoint::setFilter(PsychicFilterFunction fn)
+{
+  _handler->setFilter(fn);
+  return this;
+}
+
 PsychicEndpoint* PsychicEndpoint::setFilter(PsychicRequestFilterFunction fn)
 {
   _handler->setFilter(fn);

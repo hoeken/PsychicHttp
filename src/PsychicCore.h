@@ -56,6 +56,7 @@ class PsychicWebSocketRequest;
 class PsychicClient;
 
 // filter function definition
+typedef std::function<bool()> PsychicFilterFunction;
 typedef std::function<bool(PsychicRequest* request)> PsychicRequestFilterFunction;
 
 // client connect callback

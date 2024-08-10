@@ -21,14 +21,25 @@
 		
 	}
 
-    PsychicRewrite* PsychicRewrite::setFilter(PsychicRequestFilterFunction fn)
+	PsychicRewrite* PsychicRewrite::setFilter(PsychicFilterFunction fn)
 	{
 		_filter = fn; return this;
+	}
+
+	PsychicRewrite* PsychicRewrite::setFilter(PsychicRequestFilterFunction fn)
+	{
+		_requestFilter = fn; return this;
 	}
     
 	bool PsychicRewrite::filter(PsychicRequest *request) const
 	{
-		return _filter == nullptr || _filter(request);
+		bool ret = _filter == NULL || _filter();
+		if(!ret)
+			return false;
+		if(_requestFilter == NULL)
+			return true;
+		request->loadParams();
+		return _requestFilter(request);
 	}
     
 	const String& PsychicRewrite::from(void) const

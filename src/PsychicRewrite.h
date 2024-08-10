@@ -13,12 +13,14 @@ class PsychicRewrite {
     String _toUri;
     String _toPath;
     String _toParams;
-    PsychicRequestFilterFunction _filter;
+    PsychicFilterFunction _filter;
+    PsychicRequestFilterFunction _requestFilter;
 
   public:
     PsychicRewrite(const char* from, const char* to);
     virtual ~PsychicRewrite();
 
+    PsychicRewrite* setFilter(PsychicFilterFunction fn);
     PsychicRewrite* setFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicRequest *request) const;
     const String& from(void) const;
