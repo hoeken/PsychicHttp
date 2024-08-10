@@ -592,10 +592,10 @@ void loop()
 {
   if (millis() - lastUpdate > 2000)
   {
-    sprintf(output, "Millis: %d\n", millis());
+    sprintf(output, "Millis: %lu\n", millis());
     websocketHandler.sendAll(output);
 
-    sprintf(output, "%d", millis());
+    sprintf(output, "%lu", millis());
     eventSource.send(output, "millis", millis(), 0);
 
     lastUpdate = millis();
