@@ -64,6 +64,7 @@ typedef std::function<void(PsychicClient* client)> PsychicClientCallback;
 // callback definitions
 typedef std::function<esp_err_t(PsychicRequest* request)> PsychicHttpRequestCallback;
 typedef std::function<esp_err_t(PsychicRequest* request, JsonVariant& json)> PsychicJsonRequestCallback;
+typedef std::function<esp_err_t(PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool final)> PsychicUploadCallback;
 
 struct HTTPHeader
 {

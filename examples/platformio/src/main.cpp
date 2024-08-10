@@ -481,7 +481,7 @@ void setup()
       Serial.printf("Writing %d/%d bytes to: %s\n", (int)index+(int)len, request->contentLength(), path.c_str());
 
       if (last)
-        Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index+(int)len);
+        Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
 
       //our first call?
       if (!index)
@@ -521,9 +521,9 @@ void setup()
         String path = "/www/" + filename;
 
         // some progress over serial.
-        Serial.printf("Writing %d bytes to: %s\n", (int)len, path.c_str());
+        Serial.printf("Writing %d bytes to: %s @ index %llu\n", (int)len, path.c_str(), index);
         if (last)
-          Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index + (int)len);
+          Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
 
         // our first call?
         if (!index)
