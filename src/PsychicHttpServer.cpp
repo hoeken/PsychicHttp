@@ -167,10 +167,10 @@ void PsychicHttpServer::setURIMatchFunction(httpd_uri_match_func_t match_fn)
   _uri_match_fn = match_fn;
 }
 
-PsychicHandler& PsychicHttpServer::addHandler(PsychicHandler* handler)
+PsychicHandler* PsychicHttpServer::addHandler(PsychicHandler* handler)
 {
   _handlers.push_back(handler);
-  return *handler;
+  return handler;
 }
 
 void PsychicHttpServer::removeHandler(PsychicHandler* handler)
@@ -178,10 +178,10 @@ void PsychicHttpServer::removeHandler(PsychicHandler* handler)
   _handlers.remove(handler);
 }
 
-PsychicRewrite& PsychicHttpServer::addRewrite(PsychicRewrite* rewrite)
+PsychicRewrite* PsychicHttpServer::addRewrite(PsychicRewrite* rewrite)
 {
   _rewrites.push_back(rewrite);
-  return *rewrite;
+  return rewrite;
 }
 
 void PsychicHttpServer::removeRewrite(PsychicRewrite* rewrite)
@@ -189,7 +189,7 @@ void PsychicHttpServer::removeRewrite(PsychicRewrite* rewrite)
   _rewrites.remove(rewrite);
 }
 
-PsychicRewrite& PsychicHttpServer::rewrite(const char* from, const char* to)
+PsychicRewrite* PsychicHttpServer::rewrite(const char* from, const char* to)
 {
   return addRewrite(new PsychicRewrite(from, to));
 }
