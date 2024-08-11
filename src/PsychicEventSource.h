@@ -32,12 +32,24 @@ class PsychicResponse;
 
 typedef std::function<void(PsychicEventSourceClient* client)> PsychicEventSourceClientCallback;
 
+typedef struct {
+    httpd_handle_t handle;
+    int socket;
+    char* event;
+    size_t len;
+    transfer_complete_cb callback;
+    void* arg;
+} async_event_transfer_t;
+
 class PsychicEventSourceClient : public PsychicClient
 {
     friend PsychicEventSource;
 
   protected:
     uint32_t _lastId;
+    esp_err_t _sendEventAsync(httpd_handle_t handle, int socket, const char* event, size_t len);
+    static void _sendEventWorkCallback(void* arg);
+    static void _sendEventSentCallback(esp_err_t err, int socket, void* arg);
 
   public:
     PsychicEventSourceClient(PsychicClient* client);
