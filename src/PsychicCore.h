@@ -64,8 +64,8 @@ typedef std::function<esp_err_t(PsychicRequest* request, const String& filename,
 
 struct HTTPHeader
 {
-    char* field;
-    char* value;
+    String field;
+    String value;
 };
 
 class DefaultHeaders
@@ -77,21 +77,12 @@ class DefaultHeaders
 
     void addHeader(const String& field, const String& value)
     {
-      addHeader(field.c_str(), value.c_str());
+      _headers.push_back({field, value});
     }
 
     void addHeader(const char* field, const char* value)
     {
-      HTTPHeader header;
-
-      // these are just going to stick around forever.
-      header.field = (char*)malloc(strlen(field) + 1);
-      header.value = (char*)malloc(strlen(value) + 1);
-
-      strlcpy(header.field, field, strlen(field) + 1);
-      strlcpy(header.value, value, strlen(value) + 1);
-
-      _headers.push_back(header);
+      _headers.push_back({field, value});
     }
 
     const std::list<HTTPHeader>& getHeaders() { return _headers; }

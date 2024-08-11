@@ -183,7 +183,7 @@ esp_err_t PsychicEventSourceResponse::send()
 
   // get our global headers out of the way first
   for (HTTPHeader header : DefaultHeaders::Instance().getHeaders())
-    out.concat(String(header.field) + ": " + String(header.value) + "\r\n");
+    out.concat(header.field + ": " + header.value + "\r\n");
 
   // separator
   out.concat("\r\n");
