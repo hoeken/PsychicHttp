@@ -13,6 +13,9 @@ typedef std::function<esp_err_t(PsychicWebSocketRequest* request, httpd_ws_frame
 
 class PsychicWebSocketClient : public PsychicClient
 {
+  protected:
+    static void _sendMessageCallback(esp_err_t err, int socket, void* arg);
+
   public:
     PsychicWebSocketClient(PsychicClient* client);
     ~PsychicWebSocketClient();

@@ -53,9 +53,25 @@ PsychicWebSocketClient::~PsychicWebSocketClient()
 {
 }
 
+void PsychicWebSocketClient::_sendMessageCallback(esp_err_t err, int socket, void* arg)
+{
+  // PsychicWebSocketClient* client = (PsychicWebSocketClient*)arg;
+
+  if (err == ESP_OK)
+    return;
+  else if (err == ESP_FAIL)
+    ESP_LOGE(PH_TAG, "Websocket: send - socket error (#%d)", socket);
+  else if (err == ESP_ERR_INVALID_STATE)
+    ESP_LOGE(PH_TAG, "Websocket: Handshake was already done beforehand (#%d)", socket);
+  else if (err == ESP_ERR_INVALID_ARG)
+    ESP_LOGE(PH_TAG, "Websocket: Argument is invalid (null or non-WebSocket) (#%d)", socket);
+  else
+    ESP_LOGE(PH_TAG, "Websocket: Send message unknown error. (#%d)", socket);
+}
+
 esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_frame_t* ws_pkt)
 {
-  return httpd_ws_send_frame_async(this->server(), this->socket(), ws_pkt);
+  return httpd_ws_send_data_async(this->server(), this->socket(), ws_pkt, PsychicWebSocketClient::_sendMessageCallback, this);
 }
 
 esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_type_t op, const void* data, size_t len)
