@@ -444,7 +444,7 @@ void setup()
 
       int counter = 0;
       char cookie[14];
-      size_t size = 14;
+      size_t size = sizeof(cookie);
       if (request->getCookie("counter", cookie, &size) == ESP_OK)
       {
         // value is null-terminated.

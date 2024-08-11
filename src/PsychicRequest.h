@@ -85,7 +85,7 @@ class PsychicRequest
     const String getSessionKey(const String& key);
     void setSessionKey(const String& key, const String& value);
 
-    bool hasCookie(const char* key);
+    bool hasCookie(const char* key, size_t* size = nullptr);
 
     /**
      * @brief   Get the value string of a cookie value from the "Cookie" request headers by cookie name.
@@ -103,6 +103,9 @@ class PsychicRequest
      *  - ESP_ERR_NO_MEM             : Memory allocation failure
      */
     esp_err_t getCookie(const char* key, char* buffer, size_t* size);
+
+    // convenience / lazy function for getting cookies.
+    String getCookie(const char* key);
 
     http_method method();       // returns the HTTP method used as enum value (eg. HTTP_GET)
     const String methodStr();   // returns the HTTP method used as a string (eg. "GET")

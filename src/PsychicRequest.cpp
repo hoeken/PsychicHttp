@@ -295,16 +295,47 @@ esp_err_t PsychicRequest::redirect(const char* url)
   return response.send();
 }
 
-bool PsychicRequest::hasCookie(const char* key)
+bool PsychicRequest::hasCookie(const char* key, size_t* size)
 {
   char buffer;
-  size_t size = 1;
-  return getCookie(key, &buffer, &size) != ESP_ERR_NOT_FOUND;
+
+  // this keeps our size for the user.
+  if (size != nullptr)
+  {
+    *size = 1;
+    return getCookie(key, &buffer, size) != ESP_ERR_NOT_FOUND;
+  }
+  // this just checks that it exists.
+  else
+  {
+    size_t mysize = 1;
+    return getCookie(key, &buffer, &mysize) != ESP_ERR_NOT_FOUND;
+  }
 }
 
 esp_err_t PsychicRequest::getCookie(const char* key, char* buffer, size_t* size)
 {
   return httpd_req_get_cookie_val(this->_req, key, buffer, size);
+}
+
+String PsychicRequest::getCookie(const char* key)
+{
+  String cookie = "";
+
+  // how big is our cookie?
+  size_t size;
+  if (!hasCookie("counter", &size))
+    return cookie;
+
+  // allocate cookie buffer... keep it on the stack
+  char buf[size];
+
+  // load it up.
+  esp_err_t err = getCookie(key, buf, &size);
+  if (err == ESP_OK)
+    cookie.concat(buf);
+
+  return cookie;
 }
 
 void PsychicRequest::loadParams()
