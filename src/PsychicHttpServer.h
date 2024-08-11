@@ -10,8 +10,7 @@
   #include <regex>
 #endif
 
-enum PsychicHttpMethod
-{
+enum PsychicHttpMethod {
   HTTP_ANY = 99
 };
 
@@ -60,6 +59,7 @@ class PsychicHttpServer
 
     virtual void setPort(uint16_t port);
 
+    bool isConnected();
     bool isRunning() { return _running; }
     esp_err_t begin() { return start(); }
     esp_err_t end() { return stop(); }

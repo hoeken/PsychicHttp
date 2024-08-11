@@ -6,6 +6,9 @@
 #include "PsychicWebHandler.h"
 #include "PsychicWebSocket.h"
 #include "WiFi.h"
+#ifdef PSY_ENABLE_ETHERNET
+  #include "ETH.h"
+#endif
 
 PsychicHttpServer::PsychicHttpServer(uint16_t port) : _onOpen(NULL),
                                                       _onClose(NULL)
@@ -72,10 +75,31 @@ void PsychicHttpServer::setPort(uint16_t port)
   this->config.server_port = port;
 }
 
+bool PsychicHttpServer::isConnected()
+{
+  if (WiFi.softAPIP())
+    return true;
+  if (WiFi.localIP())
+    return true;
+
+#ifdef PSY_ENABLE_ETHERNET
+  if (ETH.localIP())
+    return true;
+#endif
+
+  return false;
+}
+
 esp_err_t PsychicHttpServer::start()
 {
   if (_running)
     return ESP_OK;
+
+  // starting without network will crash us.
+  if (!isConnected()) {
+    ESP_LOGE(PH_TAG, "Server start failed - no network.");
+    return ESP_FAIL;
+  }
 
   esp_err_t ret;
 
@@ -139,6 +163,26 @@ esp_err_t PsychicHttpServer::stop()
 {
   if (!_running)
     return ESP_OK;
+
+  // some handlers (aka websockets) need actual endpoints in esp-idf http_server
+  for (auto& endpoint : _esp_idf_endpoints) {
+    ESP_LOGD(PH_TAG, "Removing endpoint %s | %s", endpoint.uri, http_method_str((http_method)endpoint.method));
+
+    // Unregister endpoint with ESP-IDF server
+    esp_err_t ret = httpd_unregister_uri_handler(this->server, endpoint.uri, endpoint.method);
+    if (ret != ESP_OK)
+      ESP_LOGE(PH_TAG, "Removal of endpoint failed (%s)", esp_err_to_name(ret));
+  }
+
+  // Unregister a handler for each http_method method - it will match all requests with that URI/method
+  for (auto& method : supported_methods) {
+    ESP_LOGD(PH_TAG, "Removing %s meta endpoint", http_method_str((http_method)method));
+
+    // Unregister endpoint with ESP-IDF server
+    esp_err_t ret = httpd_unregister_uri_handler(this->server, "*", method);
+    if (ret != ESP_OK)
+      ESP_LOGE(PH_TAG, "Removal of endpoint failed (%s)", esp_err_to_name(ret));
+  }
 
   esp_err_t ret = _stopServer();
   if (ret != ESP_OK) {

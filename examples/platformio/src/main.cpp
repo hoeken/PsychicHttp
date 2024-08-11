@@ -124,10 +124,12 @@ void timeAvailable(struct timeval* t)
 
 bool connectToWifi()
 {
-  // dual client and AP mode
-  WiFi.mode(WIFI_AP_STA);
+  // WiFi.mode(WIFI_AP);     // ap only mode
+  // WiFi.mode(WIFI_STA); // client only mode
+  WiFi.mode(WIFI_AP_STA); // ap and client
 
   // Configure SoftAP
+  // dual client and AP mode
   WiFi.softAPConfig(softap_ip, softap_ip, IPAddress(255, 255, 255, 0)); // subnet FF FF FF 00
   WiFi.softAP(softap_ssid, softap_password);
   IPAddress myIP = WiFi.softAPIP();
@@ -268,12 +270,11 @@ void setup()
 #endif
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
 
-    // set up our esp32 to listen on the local_hostname.local domain
-    if (!MDNS.begin(local_hostname)) {
+    // set up our esp32 to listen on the psychic.local domain
+    if (MDNS.begin(local_hostname))
+      MDNS.addService("http", "tcp", 80);
+    else
       Serial.println("Error starting mDNS");
-      return;
-    }
-    MDNS.addService("http", "tcp", 80);
 
     if (!LittleFS.begin()) {
       Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
@@ -697,4 +698,12 @@ void loop()
 
     lastUpdate = millis();
   }
+
+  // just some dev code to test that starting / stopping the server works okay.
+  // delay(5000);
+  // Serial.println("Stopping Server");
+  // server.stop();
+  // delay(5000);
+  // Serial.println("Starting Server");
+  // server.start();
 }
