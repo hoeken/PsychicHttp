@@ -74,8 +74,7 @@ struct tm timeinfo;
 // Callback function (gets called when time adjusts via NTP)
 void timeAvailable(struct timeval* t)
 {
-  if (!getLocalTime(&timeinfo))
-  {
+  if (!getLocalTime(&timeinfo)) {
     Serial.println("Failed to obtain time");
     return;
   }
@@ -112,10 +111,8 @@ bool connectToWifi()
   int numberOfTries = 20;
 
   // Wait for the WiFi event
-  while (true)
-  {
-    switch (WiFi.status())
-    {
+  while (true) {
+    switch (WiFi.status()) {
       case WL_NO_SSID_AVAIL:
         Serial.println("[WiFi] SSID not found");
         break;
@@ -145,15 +142,12 @@ bool connectToWifi()
     }
     delay(tryDelay);
 
-    if (numberOfTries <= 0)
-    {
+    if (numberOfTries <= 0) {
       Serial.print("[WiFi] Failed to connect to WiFi!");
       // Use disconnect function to force stop trying to connect
       WiFi.disconnect();
       return false;
-    }
-    else
-    {
+    } else {
       numberOfTries--;
     }
   }
@@ -180,8 +174,7 @@ void setup()
 
   // We start by connecting to a WiFi network
   // To debug, please enable Core Debug Level to Verbose
-  if (connectToWifi())
-  {
+  if (connectToWifi()) {
     // Setup our NTP to get the current time.
     sntp_set_time_sync_notification_cb(timeAvailable);
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 2)
@@ -192,48 +185,39 @@ void setup()
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
 
     // set up our esp32 to listen on the local_hostname.local domain
-    if (!MDNS.begin(local_hostname))
-    {
+    if (!MDNS.begin(local_hostname)) {
       Serial.println("Error starting mDNS");
       return;
     }
     MDNS.addService("http", "tcp", 80);
 
-    if (!LittleFS.begin())
-    {
+    if (!LittleFS.begin()) {
       Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
       return;
     }
 
 // look up our keys?
 #ifdef PSY_ENABLE_SSL
-    if (app_enable_ssl)
-    {
+    if (app_enable_ssl) {
       File fp = LittleFS.open("/server.crt");
-      if (fp)
-      {
+      if (fp) {
         server_cert = fp.readString();
 
         // Serial.println("Server Cert:");
         // Serial.println(server_cert);
-      }
-      else
-      {
+      } else {
         Serial.println("server.pem not found, SSL not available");
         app_enable_ssl = false;
       }
       fp.close();
 
       File fp2 = LittleFS.open("/server.key");
-      if (fp2)
-      {
+      if (fp2) {
         server_key = fp2.readString();
 
         // Serial.println("Server Key:");
         // Serial.println(server_key);
-      }
-      else
-      {
+      } else {
         Serial.println("server.key not found, SSL not available");
         app_enable_ssl = false;
       }
@@ -243,15 +227,13 @@ void setup()
 
 #ifdef PSY_ENABLE_SSL
     // do we want secure or not?
-    if (app_enable_ssl)
-    {
+    if (app_enable_ssl) {
       server.setCertificate(server_cert.c_str(), server_key.c_str());
 
       // this creates a 2nd server listening on port 80 and redirects all requests HTTPS
       PsychicHttpServer* redirectServer = new PsychicHttpServer();
       redirectServer->config.ctrl_port = 20424; // just a random port different from the default one
-      redirectServer->onNotFound([](PsychicRequest* request)
-        {
+      redirectServer->onNotFound([](PsychicRequest* request) {
         String url = "https://" + request->host() + request->url();
         return request->redirect(url.c_str()); });
     }
@@ -283,20 +265,17 @@ void setup()
     server.serveStatic("/myfile.txt", LittleFS, "/custom.txt");
 
     // example callback everytime a connection is opened
-    server.onOpen([](PsychicClient* client)
-      { Serial.printf("[http] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
+    server.onOpen([](PsychicClient* client) { Serial.printf("[http] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
 
     // example callback everytime a connection is closed
-    server.onClose([](PsychicClient* client)
-      { Serial.printf("[http] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
+    server.onClose([](PsychicClient* client) { Serial.printf("[http] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
 
     // api - json message passed in as post body
     //  curl -i -X POST -H "Content-Type: application/json" -d '{"foo":"bar"}' http://psychic.local/api
-    server.on("/api", HTTP_POST, [](PsychicRequest* request, JsonVariant& json)
-      {
+    server.on("/api", HTTP_POST, [](PsychicRequest* request, JsonVariant& json) {
       JsonObject input = json.as<JsonObject>();
 
-      //create our response json
+      // create our response json
       PsychicJsonResponse response = PsychicJsonResponse(request);
       JsonObject output = response.getRoot();
 
@@ -305,40 +284,36 @@ void setup()
       output["millis"] = millis();
       output["method"] = request->methodStr();
 
-      //work with some params
-      if (input.containsKey("foo"))
-      {
+      // work with some params
+      if (input.containsKey("foo")) {
         String foo = input["foo"];
         output["foo"] = foo;
       }
-  
-      return response.send(); });
+
+      return response.send();
+    });
 
     // ip - get info about the client
     //  curl -i http://psychic.local/ip
-    server.on("/ip", HTTP_GET, [](PsychicRequest* request)
-      {
+    server.on("/ip", HTTP_GET, [](PsychicRequest* request) {
       String output = "Your IP is: " + request->client()->remoteIP().toString();
-      return request->reply(output.c_str()); });
+      return request->reply(output.c_str());
+    });
 
     // client connect/disconnect to a url
     //  curl -i http://psychic.local/handler
     PsychicWebHandler* connectionHandler = new PsychicWebHandler();
-    connectionHandler->onRequest([](PsychicRequest* request)
-      { return request->reply("OK"); });
-    connectionHandler->onOpen([](PsychicClient* client)
-      { Serial.printf("[handler] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
-    connectionHandler->onClose([](PsychicClient* client)
-      { Serial.printf("[handler] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
+    connectionHandler->onRequest([](PsychicRequest* request) { return request->reply("OK"); });
+    connectionHandler->onOpen([](PsychicClient* client) { Serial.printf("[handler] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
+    connectionHandler->onClose([](PsychicClient* client) { Serial.printf("[handler] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
 
     // add it to our server
     server.on("/handler", connectionHandler);
 
     // api - parameters passed in via query eg. /api?foo=bar
     //  curl -i 'http://psychic.local/api?foo=bar'
-    server.on("/api", HTTP_GET, [](PsychicRequest* request)
-      {
-      //create our response json
+    server.on("/api", HTTP_GET, [](PsychicRequest* request) {
+      // create our response json
       PsychicJsonResponse response = PsychicJsonResponse(request);
       JsonObject output = response.getRoot();
 
@@ -347,20 +322,19 @@ void setup()
       output["millis"] = millis();
       output["method"] = request->methodStr();
 
-      //work with some params
-      if (request->hasParam("foo"))
-      {
+      // work with some params
+      if (request->hasParam("foo")) {
         String foo = request->getParam("foo")->value();
         output["foo"] = foo;
       }
 
-      return response.send(); });
+      return response.send();
+    });
 
     // curl -i -X GET 'http://psychic.local/any'
     // curl -i -X POST 'http://psychic.local/any'
-    server.on("/any", HTTP_ANY, [](PsychicRequest* request)
-      {
-      //create our response json
+    server.on("/any", HTTP_ANY, [](PsychicRequest* request) {
+      // create our response json
       PsychicJsonResponse response = PsychicJsonResponse(request);
       JsonObject output = response.getRoot();
 
@@ -369,84 +343,80 @@ void setup()
       output["millis"] = millis();
       output["method"] = request->methodStr();
 
-      return response.send(); });
+      return response.send();
+    });
 
     // curl -i 'http://psychic.local/simple'
-    server.on("/simple", HTTP_GET, [](PsychicRequest* request)
-            { return request->reply("Simple"); })
+    server.on("/simple", HTTP_GET, [](PsychicRequest* request) {
+            return request->reply("Simple");
+          })
       ->setURIMatchFunction(MATCH_SIMPLE);
 
 #ifdef PSY_ENABLE_REGEX
     // curl -i 'http://psychic.local/regex/23'
     // curl -i 'http://psychic.local/regex/4223'
-    server.on("^/regex/([\\d]+)/?$", HTTP_GET, [](PsychicRequest* request)
-            {
-        //look up our regex matches
-        std::smatch matches;
-        if (request->getRegexMatches(matches))
-        {
-          String output;
-          output += "Matches: " + String(matches.size()) + "<br/>\n";
-          output += "Matched URI: " + String(matches.str(0).c_str()) + "<br/>\n";
-          output += "Match 1: " + String(matches.str(1).c_str()) + "<br/>\n";
+    server.on("^/regex/([\\d]+)/?$", HTTP_GET, [](PsychicRequest* request) {
+            // look up our regex matches
+            std::smatch matches;
+            if (request->getRegexMatches(matches)) {
+              String output;
+              output += "Matches: " + String(matches.size()) + "<br/>\n";
+              output += "Matched URI: " + String(matches.str(0).c_str()) + "<br/>\n";
+              output += "Match 1: " + String(matches.str(1).c_str()) + "<br/>\n";
 
-          return request->reply(output.c_str());
-        }
-        else
-          return request->reply("No regex match."); })
+              return request->reply(output.c_str());
+            } else
+              return request->reply("No regex match.");
+          })
       ->setURIMatchFunction(MATCH_REGEX);
 #endif
 
     // JsonResponse example
     //  curl -i http://psychic.local/json
-    server.on("/json", HTTP_GET, [](PsychicRequest* request)
-      {
+    server.on("/json", HTTP_GET, [](PsychicRequest* request) {
       PsychicJsonResponse response = PsychicJsonResponse(request);
 
       char key[16];
       char value[32];
       JsonObject root = response.getRoot();
-      for (int i=0; i<100; i++)
-      {
+      for (int i = 0; i < 100; i++) {
         sprintf(key, "key%d", i);
         sprintf(value, "value is %d", i);
         root[key] = value;
       }
 
-      return response.send(); });
+      return response.send();
+    });
 
     // how to redirect a request
     //  curl -i  http://psychic.local/redirect
-    server.on("/redirect", HTTP_GET, [](PsychicRequest* request)
-      { return request->redirect("/alien.png"); });
+    server.on("/redirect", HTTP_GET, [](PsychicRequest* request) { return request->redirect("/alien.png"); });
 
     // how to do basic auth
     //  curl -i --user admin:admin http://psychic.local/auth-basic
-    server.on("/auth-basic", HTTP_GET, [](PsychicRequest* request)
-      {
+    server.on("/auth-basic", HTTP_GET, [](PsychicRequest* request) {
       if (!request->authenticate(app_user, app_pass))
         return request->requestAuthentication(BASIC_AUTH, app_name, "You must log in.");
-      return request->reply("Auth Basic Success!"); });
+      return request->reply("Auth Basic Success!");
+    });
 
     // how to do digest auth
     //  curl -i --user admin:admin http://psychic.local/auth-digest
-    server.on("/auth-digest", HTTP_GET, [](PsychicRequest* request)
-      {
+    server.on("/auth-digest", HTTP_GET, [](PsychicRequest* request) {
       if (!request->authenticate(app_user, app_pass))
         return request->requestAuthentication(DIGEST_AUTH, app_name, "You must log in.");
-      return request->reply("Auth Digest Success!"); });
+      return request->reply("Auth Digest Success!");
+    });
 
     // example of getting / setting cookies
     //  curl -i -b cookie.txt -c cookie.txt http://psychic.local/cookies
-    server.on("/cookies", HTTP_GET, [](PsychicRequest* request)
-      {
+    server.on("/cookies", HTTP_GET, [](PsychicRequest* request) {
       PsychicResponse response(request);
 
       int counter = 0;
       char cookie[14];
       size_t size = sizeof(cookie);
-      if (request->getCookie("counter", cookie, &size) == ESP_OK)
-      {
+      if (request->getCookie("counter", cookie, &size) == ESP_OK) {
         // value is null-terminated.
         counter = std::stoi(cookie);
         counter++;
@@ -455,61 +425,61 @@ void setup()
 
       response.setCookie("counter", cookie);
       response.setContent(cookie);
-      return response.send(); });
+      return response.send();
+    });
 
     // example of getting POST variables
     //  curl -i -d "param1=value1&param2=value2" -X POST http://psychic.local/post
     //  curl -F "param1=value1" -F "param2=value2" -X POST http://psychic.local/post
-    server.on("/post", HTTP_POST, [](PsychicRequest* request)
-      {
+    server.on("/post", HTTP_POST, [](PsychicRequest* request) {
       String output;
       output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
       output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
 
-      return request->reply(output.c_str()); });
+      return request->reply(output.c_str());
+    });
 
     // you can set up a custom 404 handler.
     //  curl -i http://psychic.local/404
-    server.onNotFound([](PsychicRequest* request)
-      { return request->reply(404, "text/html", "Custom 404 Handler"); });
+    server.onNotFound([](PsychicRequest* request) { return request->reply(404, "text/html", "Custom 404 Handler"); });
 
     // handle a very basic upload as post body
     PsychicUploadHandler* uploadHandler = new PsychicUploadHandler();
-    uploadHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last)
-      {
+    uploadHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last) {
       File file;
       String path = "/www/" + filename;
 
-      Serial.printf("Writing %d/%d bytes to: %s\n", (int)index+(int)len, request->contentLength(), path.c_str());
+      Serial.printf("Writing %d/%d bytes to: %s\n", (int)index + (int)len, request->contentLength(), path.c_str());
 
       if (last)
         Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
 
-      //our first call?
+      // our first call?
       if (!index)
         file = LittleFS.open(path, FILE_WRITE);
       else
         file = LittleFS.open(path, FILE_APPEND);
-      
-      if(!file) {
+
+      if (!file) {
         Serial.println("Failed to open file");
         return ESP_FAIL;
       }
 
-      if(!file.write(data, len)) {
+      if (!file.write(data, len)) {
         Serial.println("Write failed");
         return ESP_FAIL;
       }
 
-      return ESP_OK; });
+      return ESP_OK;
+    });
 
     // gets called after upload has been handled
-    uploadHandler->onRequest([](PsychicRequest* request)
-      {
+    uploadHandler->onRequest([](PsychicRequest* request) {
       String url = "/" + request->getFilename();
       String output = "<a href=\"" + url + "\">" + url + "</a>";
 
-      return request->reply(output.c_str()); });
+      return request->reply(output.c_str());
+    });
 
     // wildcard basic file upload - POST to /upload/filename.ext
     //  use http://psychic.local/ to test
@@ -517,55 +487,52 @@ void setup()
 
     // a little bit more complicated multipart form
     PsychicUploadHandler* multipartHandler = new PsychicUploadHandler();
-    multipartHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last)
-      {
-        File file;
-        String path = "/www/" + filename;
+    multipartHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last) {
+      File file;
+      String path = "/www/" + filename;
 
-        // some progress over serial.
-        Serial.printf("Writing %d bytes to: %s @ index %llu\n", (int)len, path.c_str(), index);
-        if (last)
-          Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
+      // some progress over serial.
+      Serial.printf("Writing %d bytes to: %s @ index %llu\n", (int)len, path.c_str(), index);
+      if (last)
+        Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
 
-        // our first call?
-        if (!index)
-          file = LittleFS.open(path, FILE_WRITE);
-        else
-          file = LittleFS.open(path, FILE_APPEND);
+      // our first call?
+      if (!index)
+        file = LittleFS.open(path, FILE_WRITE);
+      else
+        file = LittleFS.open(path, FILE_APPEND);
 
-        if (!file)
-        {
-          Serial.println("Failed to open file");
-          return ESP_FAIL;
-        }
+      if (!file) {
+        Serial.println("Failed to open file");
+        return ESP_FAIL;
+      }
 
-        if (!file.write(data, len))
-        {
-          Serial.println("Write failed");
-          return ESP_FAIL;
-        }
+      if (!file.write(data, len)) {
+        Serial.println("Write failed");
+        return ESP_FAIL;
+      }
 
-        return ESP_OK; });
+      return ESP_OK;
+    });
 
     // gets called after upload has been handled
-    multipartHandler->onRequest([](PsychicRequest* request)
-      {
-        String output;
-        if (request->hasParam("file_upload"))
-        {
-          PsychicWebParameter* file = request->getParam("file_upload");
+    multipartHandler->onRequest([](PsychicRequest* request) {
+      String output;
+      if (request->hasParam("file_upload")) {
+        PsychicWebParameter* file = request->getParam("file_upload");
 
-          String url = "/" + file->value();
-          output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
-          output += "Bytes: " + String(file->size()) + "<br/>\n";
-        }
+        String url = "/" + file->value();
+        output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
+        output += "Bytes: " + String(file->size()) + "<br/>\n";
+      }
 
-        if (request->hasParam("param1"))
-          output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
-        if (request->hasParam("param2"))
-          output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+      if (request->hasParam("param1"))
+        output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+      if (request->hasParam("param2"))
+        output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
 
-        return request->reply(output.c_str()); });
+      return request->reply(output.c_str());
+    });
 
     // wildcard basic file upload - POST to /upload/filename.ext
     //  use http://psychic.local/ to test
@@ -575,56 +542,54 @@ void setup()
     // form only multipart handler
     // curl -F "param1=multi" -F "param2=part" http://psychic.local/multipart-data
     PsychicUploadHandler* multipartFormHandler = new PsychicUploadHandler();
-    multipartFormHandler->onRequest([](PsychicRequest* request)
-      {
-        String output;
-        if (request->hasParam("param1"))
-          output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
-        if (request->hasParam("param2"))
-          output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+    multipartFormHandler->onRequest([](PsychicRequest* request) {
+      String output;
+      if (request->hasParam("param1"))
+        output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
+      if (request->hasParam("param2"))
+        output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
 
-        return request->reply(output.c_str()); });
+      return request->reply(output.c_str());
+    });
     server.on("/multipart-data", HTTP_POST, multipartFormHandler);
 
     // a websocket echo server
     //  npm install -g wscat
     // Plaintext: wscat -c ws://psychic.local/ws
     // SSL: wscat -n -c wss://psychic.local/ws
-    websocketHandler.onOpen([](PsychicWebSocketClient* client)
-      {
+    websocketHandler.onOpen([](PsychicWebSocketClient* client) {
       Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
-      client->sendMessage("Hello!"); });
-    websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame)
-      {
-      Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char *)frame->payload);
-      return request->reply(frame); });
-    websocketHandler.onClose([](PsychicWebSocketClient* client)
-      { Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
+      client->sendMessage("Hello!");
+    });
+    websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame) {
+      Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char*)frame->payload);
+      return request->reply(frame);
+    });
+    websocketHandler.onClose([](PsychicWebSocketClient* client) { Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
     server.on("/ws", &websocketHandler);
 
     // EventSource server
     //  curl -i -N http://psychic.local/events
-    eventSource.onOpen([](PsychicEventSourceClient* client)
-      {
+    eventSource.onOpen([](PsychicEventSourceClient* client) {
       Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
-      client->send("Hello user!", NULL, millis(), 1000); });
-    eventSource.onClose([](PsychicEventSourceClient* client)
-      { Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
+      client->send("Hello user!", NULL, millis(), 1000);
+    });
+    eventSource.onClose([](PsychicEventSourceClient* client) { Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
     server.on("/events", &eventSource);
 
-    // example of using POST data inside the
+    // example of using POST data inside the filter
     // works: curl -F "secret=password" http://psychic.local/post-filter
     // 404:   curl -F "foo=bar" http://psychic.local/post-filter
-    server.on("/post-filter", HTTP_POST, [](PsychicRequest* request)
-            {
-      String output;
-      output += "Secret: " + request->getParam("secret")->value() + "<br/>\n";
+    server.on("/post-filter", HTTP_POST, [](PsychicRequest* request) {
+            String output;
+            output += "Secret: " + request->getParam("secret")->value() + "<br/>\n";
 
-      return request->reply(output.c_str()); })
-      ->setFilter([](PsychicRequest* request)
-        {
-      request->loadParams();
-      return request->hasParam("secret"); });
+            return request->reply(output.c_str());
+          })
+      ->setFilter([](PsychicRequest* request) {
+        request->loadParams();
+        return request->hasParam("secret");
+      });
 
     server.begin();
   }
@@ -635,8 +600,7 @@ char output[60];
 
 void loop()
 {
-  if (millis() - lastUpdate > 2000)
-  {
+  if (millis() - lastUpdate > 2000) {
     sprintf(output, "Millis: %lu\n", millis());
     websocketHandler.sendAll(output);
 
