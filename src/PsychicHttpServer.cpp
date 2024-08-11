@@ -89,15 +89,13 @@ esp_err_t PsychicHttpServer::start()
 
   // fire it up.
   ret = _startServer();
-  if (ret != ESP_OK)
-  {
+  if (ret != ESP_OK) {
     ESP_LOGE(PH_TAG, "Server start failed (%s)", esp_err_to_name(ret));
     return ret;
   }
 
   // some handlers (aka websockets) need actual endpoints in esp-idf http_server
-  for (auto& endpoint : _esp_idf_endpoints)
-  {
+  for (auto& endpoint : _esp_idf_endpoints) {
     ESP_LOGD(PH_TAG, "Adding endpoint %s | %s", endpoint.uri, http_method_str((http_method)endpoint.method));
 
     // Register endpoint with ESP-IDF server
@@ -107,14 +105,15 @@ esp_err_t PsychicHttpServer::start()
   }
 
   // Register a handler for each http_method method - it will match all requests with that URI/method
-  for (auto& method : supported_methods)
-  {
+  for (auto& method : supported_methods) {
     ESP_LOGD(PH_TAG, "Adding %s meta endpoint", http_method_str((http_method)method));
 
     httpd_uri_t my_uri;
     my_uri.uri = "*";
     my_uri.method = method;
     my_uri.handler = PsychicHttpServer::requestHandler;
+    my_uri.is_websocket = false;
+    my_uri.supported_subprotocol = "";
 
     // Register endpoint with ESP-IDF server
     esp_err_t ret = httpd_register_uri_handler(this->server, &my_uri);
@@ -142,8 +141,7 @@ esp_err_t PsychicHttpServer::stop()
     return ESP_OK;
 
   esp_err_t ret = _stopServer();
-  if (ret != ESP_OK)
-  {
+  if (ret != ESP_OK) {
     ESP_LOGE(PH_TAG, "Server stop failed (%s)", esp_err_to_name(ret));
     return ret;
   }
@@ -221,8 +219,7 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicHandl
   endpoint->setHandler(handler);
 
   // websockets need a real endpoint in esp-idf
-  if (handler->isWebSocket())
-  {
+  if (handler->isWebSocket()) {
     // URI handler structure
     httpd_uri_t my_uri;
     my_uri.uri = uri;
@@ -280,10 +277,8 @@ void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
 
 bool PsychicHttpServer::_rewriteRequest(PsychicRequest* request)
 {
-  for (auto* r : _rewrites)
-  {
-    if (r->match(request))
-    {
+  for (auto* r : _rewrites) {
+    if (r->match(request)) {
       request->_setUri(r->toUrl().c_str());
       return true;
     }
@@ -301,23 +296,18 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
   server->_rewriteRequest(&request);
 
   // loop through our endpoints and see if anyone wants it.
-  for (auto* endpoint : server->_endpoints)
-  {
+  for (auto* endpoint : server->_endpoints) {
     // check urls first
-    if (endpoint->matches(request.uri().c_str()))
-    {
+    if (endpoint->matches(request.uri().c_str())) {
       // check the http_method next
-      if (endpoint->_method == request.method() || endpoint->_method == HTTP_ANY)
-      {
+      if (endpoint->_method == request.method() || endpoint->_method == HTTP_ANY) {
         request.setEndpoint(endpoint);
 
         // check other filter functions
         PsychicHandler* handler = endpoint->handler();
-        if (handler->filter(&request))
-        {
+        if (handler->filter(&request)) {
           // is the handler ok?
-          if (handler->canHandle(&request))
-          {
+          if (handler->canHandle(&request)) {
             // check our credentials
             if (handler->needsAuthentication(&request))
               return handler->authenticate(&request);
@@ -330,11 +320,9 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
   }
 
   // loop through our global handlers and see if anyone wants it
-  for (auto* handler : server->_handlers)
-  {
+  for (auto* handler : server->_handlers) {
     // are we capable of handling this?
-    if (handler->filter(&request) && handler->canHandle(&request))
-    {
+    if (handler->filter(&request) && handler->canHandle(&request)) {
       // check our credentials
       if (handler->needsAuthentication(&request))
         return handler->authenticate(&request);
@@ -387,8 +375,7 @@ esp_err_t PsychicHttpServer::openCallback(httpd_handle_t hd, int sockfd)
 
   // lookup our client
   PsychicClient* client = server->getClient(sockfd);
-  if (client == NULL)
-  {
+  if (client == NULL) {
     client = new PsychicClient(hd, sockfd);
     server->addClient(client);
   }
@@ -413,11 +400,9 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
 
   // lookup our client
   PsychicClient* client = server->getClient(sockfd);
-  if (client != NULL)
-  {
+  if (client != NULL) {
     // give our handlers a chance to handle a disconnect first
-    for (PsychicEndpoint* endpoint : server->_endpoints)
-    {
+    for (PsychicEndpoint* endpoint : server->_endpoints) {
       PsychicHandler* handler = endpoint->handler();
       handler->checkForClosedClient(client);
     }
@@ -428,8 +413,7 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
 
     // remove it from our list
     server->removeClient(client);
-  }
-  else
+  } else
     ESP_LOGE(PH_TAG, "No client record %d", sockfd);
 
   // finally close it out.
@@ -493,29 +477,22 @@ String urlDecode(const char* encoded)
 {
   size_t length = strlen(encoded);
   char* decoded = (char*)malloc(length + 1);
-  if (!decoded)
-  {
+  if (!decoded) {
     return "";
   }
 
   size_t i, j = 0;
-  for (i = 0; i < length; ++i)
-  {
-    if (encoded[i] == '%' && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2]))
-    {
+  for (i = 0; i < length; ++i) {
+    if (encoded[i] == '%' && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2])) {
       // Valid percent-encoded sequence
       int hex;
       sscanf(encoded + i + 1, "%2x", &hex);
       decoded[j++] = (char)hex;
       i += 2; // Skip the two hexadecimal characters
-    }
-    else if (encoded[i] == '+')
-    {
+    } else if (encoded[i] == '+') {
       // Convert '+' to space
       decoded[j++] = ' ';
-    }
-    else
-    {
+    } else {
       // Copy other characters as they are
       decoded[j++] = encoded[i];
     }
