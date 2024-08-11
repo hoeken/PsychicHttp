@@ -60,6 +60,10 @@
   #include <PsychicHttpsServer.h>
 #endif
 
+#ifdef PSY_DEVMODE
+  #include <ArduinoTrace.h>
+#endif
+
 #ifndef WIFI_SSID
   #error "You need to enter your wifi credentials. Rename secret.h to _secret.h and enter your credentials there."
 #endif

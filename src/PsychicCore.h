@@ -3,11 +3,6 @@
 
 #define PH_TAG "psychic"
 
-// version numbers
-#define PSYCHIC_HTTP_VERSION_MAJOR 1
-#define PSYCHIC_HTTP_VERSION_MINOR 1
-#define PSYCHIC_HTTP_VERSION_PATCH 0
-
 #ifndef FILE_CHUNK_SIZE
   #define FILE_CHUNK_SIZE 8 * 1024
 #endif
@@ -38,8 +33,11 @@
 #include <list>
 #include <map>
 
-enum HTTPAuthMethod
-{
+#ifdef PSY_DEVMODE
+  #include "ArduinoTrace.h"
+#endif
+
+enum HTTPAuthMethod {
   BASIC_AUTH,
   DIGEST_AUTH
 };
@@ -62,8 +60,7 @@ typedef std::function<esp_err_t(PsychicRequest* request)> PsychicHttpRequestCall
 typedef std::function<esp_err_t(PsychicRequest* request, JsonVariant& json)> PsychicJsonRequestCallback;
 typedef std::function<esp_err_t(PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool final)> PsychicUploadCallback;
 
-struct HTTPHeader
-{
+struct HTTPHeader {
     String field;
     String value;
 };
