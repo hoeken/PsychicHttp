@@ -93,6 +93,9 @@ class PsychicHttpServer
     PsychicEndpoint* on(const char* uri, PsychicJsonRequestCallback onRequest);
     PsychicEndpoint* on(const char* uri, int method, PsychicJsonRequestCallback onRequest);
 
+    bool removeEndpoint(const char* uri, int method);
+    bool removeEndpoint(PsychicEndpoint* endpoint);
+
     static esp_err_t requestHandler(httpd_req_t* req);
     static esp_err_t notFoundHandler(httpd_req_t* req, httpd_err_code_t err);
     static esp_err_t defaultNotFoundHandler(PsychicRequest* request);

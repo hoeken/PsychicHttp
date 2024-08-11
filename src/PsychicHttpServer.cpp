@@ -276,9 +276,9 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicHandl
     // save it to our 'real' handlers for later.
     _esp_idf_endpoints.push_back(my_uri);
   }
-
-  // save it for later
-  _endpoints.push_back(endpoint);
+  // add it to our meta endpoints
+  else
+    _endpoints.push_back(endpoint);
 
   return endpoint;
 }
@@ -309,6 +309,35 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicJsonR
   handler->onRequest(fn);
 
   return on(uri, method, handler);
+}
+
+bool PsychicHttpServer::removeEndpoint(const char* uri, int method)
+{
+  // some handlers (aka websockets) need actual endpoints in esp-idf http_server
+  for (auto& endpoint : _esp_idf_endpoints) {
+    if (!strcmp(endpoint.uri, uri) && method == endpoint.method) {
+      ESP_LOGD(PH_TAG, "Unregistering endpoint %s | %s", endpoint.uri, http_method_str((http_method)endpoint.method));
+
+      // Register endpoint with ESP-IDF server
+      esp_err_t ret = httpd_register_uri_handler(this->server, &endpoint);
+      if (ret != ESP_OK)
+        ESP_LOGE(PH_TAG, "Add endpoint failed (%s)", esp_err_to_name(ret));
+
+      return true;
+    }
+  }
+
+  // loop through our endpoints and see if anyone matches
+  for (auto* endpoint : _endpoints) {
+    if (endpoint->uri().equals(uri) && method == endpoint->_method)
+      return removeEndpoint(endpoint);
+  }
+}
+
+bool PsychicHttpServer::removeEndpoint(PsychicEndpoint* endpoint)
+{
+  _endpoints.remove(endpoint);
+  return true;
 }
 
 void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
