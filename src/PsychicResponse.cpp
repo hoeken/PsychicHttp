@@ -104,11 +104,11 @@ esp_err_t PsychicResponse::send()
 void PsychicResponse::sendHeaders()
 {
   // get our global headers out of the way first
-  for (HTTPHeader header : DefaultHeaders::Instance().getHeaders())
+  for (auto& header : DefaultHeaders::Instance().getHeaders())
     httpd_resp_set_hdr(_request->request(), header.field.c_str(), header.value.c_str());
 
   // now do our individual headers
-  for (HTTPHeader header : _headers)
+  for (auto& header : _headers)
     httpd_resp_set_hdr(this->_request->request(), header.field.c_str(), header.value.c_str());
 }
 

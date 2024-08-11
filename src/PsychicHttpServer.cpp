@@ -96,7 +96,7 @@ esp_err_t PsychicHttpServer::start()
   }
 
   // some handlers (aka websockets) need actual endpoints in esp-idf http_server
-  for (auto endpoint : _esp_idf_endpoints)
+  for (auto& endpoint : _esp_idf_endpoints)
   {
     ESP_LOGD(PH_TAG, "Adding endpoint %s | %s", endpoint.uri, http_method_str((http_method)endpoint.method));
 
@@ -107,7 +107,7 @@ esp_err_t PsychicHttpServer::start()
   }
 
   // Register a handler for each http_method method - it will match all requests with that URI/method
-  for (auto method : supported_methods)
+  for (auto& method : supported_methods)
   {
     ESP_LOGD(PH_TAG, "Adding %s meta endpoint", http_method_str((http_method)method));
 

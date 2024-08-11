@@ -182,7 +182,7 @@ esp_err_t PsychicEventSourceResponse::send()
   out.concat("Connection: keep-alive\r\n");
 
   // get our global headers out of the way first
-  for (HTTPHeader header : DefaultHeaders::Instance().getHeaders())
+  for (auto& header : DefaultHeaders::Instance().getHeaders())
     out.concat(header.field + ": " + header.value + "\r\n");
 
   // separator
