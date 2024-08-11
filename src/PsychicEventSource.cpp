@@ -118,7 +118,9 @@ void PsychicEventSource::send(const char *message, const char *event, uint32_t i
 {
   String ev = generateEventMessage(message, event, id, reconnect);
   for(PsychicClient *c : _clients) {
-    ((PsychicEventSourceClient*)c->_friend)->sendEvent(ev.c_str());
+    if (c && c->_friend) {
+      ((PsychicEventSourceClient*)c->_friend)->sendEvent(ev.c_str());
+    }  
   }
 }
 
