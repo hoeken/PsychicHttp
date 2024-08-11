@@ -22,6 +22,39 @@
 #include <WiFi.h>
 #include <esp_sntp.h>
 
+// #define this to enable SD card support
+#ifdef PSY_ENABLE_SDCARD
+
+  #ifdef WAVESHARE_43_TOUCH
+    #include <ESP_IOExpander_Library.h>
+    // Extend IO Pin define
+    #define TP_RST  1
+    #define LCD_BL  2
+    #define LCD_RST 3
+    #define SD_CS   4
+    #define USB_SEL 5
+
+    // I2C Pin define
+    #define I2C_MASTER_NUM    I2C_NUM_0
+    #define I2C_MASTER_SDA_IO 8
+    #define I2C_MASTER_SCL_IO 9
+
+    #define SD_MOSI 11
+    #define SD_CLK  12
+    #define SD_MISO 13
+    #define SD_SS   -1
+  #else
+    #define SD_MOSI 11
+    #define SD_CLK  12
+    #define SD_MISO 13
+    #define SD_SS   5
+  #endif
+
+  #include <FS.h>
+  #include <SD.h>
+  #include <SPI.h>
+#endif
+
 // #define this to enable SSL at build (or switch to the 'ssl' build target in vscode)
 #ifdef PSY_ENABLE_SSL
   #include <PsychicHttpsServer.h>
@@ -155,6 +188,53 @@ bool connectToWifi()
   return false;
 }
 
+#ifdef PSY_ENABLE_SDCARD
+bool setupSDCard()
+{
+  #ifdef WAVESHARE_43_TOUCH
+  ESP_IOExpander* expander = new ESP_IOExpander_CH422G((i2c_port_t)I2C_MASTER_NUM, ESP_IO_EXPANDER_I2C_CH422G_ADDRESS_000, I2C_MASTER_SCL_IO, I2C_MASTER_SDA_IO);
+  expander->init();
+  expander->begin();
+  expander->multiPinMode(TP_RST | LCD_BL | LCD_RST | SD_CS | USB_SEL, OUTPUT);
+  expander->multiDigitalWrite(TP_RST | LCD_BL | LCD_RST, HIGH);
+
+  // use extend GPIO for SD card
+  expander->digitalWrite(SD_CS, LOW);
+  SPI.setHwCs(false);
+  #endif
+
+  SPI.begin(SD_CLK, SD_MISO, SD_MOSI, SD_SS);
+  if (!SD.begin()) {
+    Serial.println("SD Card Mount Failed");
+    return false;
+  }
+  uint8_t cardType = SD.cardType();
+
+  if (cardType == CARD_NONE) {
+    Serial.println("No SD card attached");
+    return false;
+  }
+
+  Serial.print("SD Card Type: ");
+  if (cardType == CARD_MMC) {
+    Serial.println("MMC");
+  } else if (cardType == CARD_SD) {
+    Serial.println("SDSC");
+  } else if (cardType == CARD_SDHC) {
+    Serial.println("SDHC");
+  } else {
+    Serial.println("UNKNOWN");
+  }
+
+  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+  Serial.printf("SD Card Size: %lluMB\n", cardSize);
+  Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
+  Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
+
+  return true;
+}
+#endif
+
 void setup()
 {
   esp_log_level_set(PH_TAG, ESP_LOG_DEBUG);
@@ -196,8 +276,8 @@ void setup()
       return;
     }
 
-// look up our keys?
 #ifdef PSY_ENABLE_SSL
+    // look up our keys?
     if (app_enable_ssl) {
       File fp = LittleFS.open("/server.crt");
       if (fp) {
@@ -223,9 +303,7 @@ void setup()
       }
       fp2.close();
     }
-#endif
 
-#ifdef PSY_ENABLE_SSL
     // do we want secure or not?
     if (app_enable_ssl) {
       server.setCertificate(server_cert.c_str(), server_key.c_str());
@@ -259,6 +337,12 @@ void setup()
     // it's more efficient to serve everything from a single www directory, but this is also possible.
     //  curl -i http://psychic.local/img/request_flow.png
     server.serveStatic("/img", LittleFS, "/img/");
+
+#ifdef PSY_ENABLE_SDCARD
+    // if we detect an SD card, serve all files from sd:/ on http://psychic.local/sd
+    if (setupSDCard())
+      server.serveStatic("/sd", SD, "/");
+#endif
 
     // you can also serve single files
     //  curl -i http://psychic.local/myfile.txt
