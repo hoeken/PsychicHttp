@@ -297,30 +297,14 @@ esp_err_t PsychicRequest::redirect(const char* url)
 
 bool PsychicRequest::hasCookie(const char* key)
 {
-  char cookie[MAX_COOKIE_SIZE];
-  size_t cookieSize = MAX_COOKIE_SIZE;
-  esp_err_t err = httpd_req_get_cookie_val(this->_req, key, cookie, &cookieSize);
-
-  // did we get anything?
-  if (err == ESP_OK)
-    return true;
-  else if (err == ESP_ERR_HTTPD_RESULT_TRUNC)
-    ESP_LOGE(PH_TAG, "cookie too large (%d bytes).\n", cookieSize);
-
-  return false;
+  char buffer;
+  size_t size = 1;
+  return getCookie(key, &buffer, &size) != ESP_ERR_NOT_FOUND;
 }
 
-const String PsychicRequest::getCookie(const char* key)
+esp_err_t PsychicRequest::getCookie(const char* key, char* buffer, size_t* size)
 {
-  char cookie[MAX_COOKIE_SIZE];
-  size_t cookieSize = MAX_COOKIE_SIZE;
-  esp_err_t err = httpd_req_get_cookie_val(this->_req, key, cookie, &cookieSize);
-
-  // did we get anything?
-  if (err == ESP_OK)
-    return String(cookie);
-  else
-    return "";
+  return httpd_req_get_cookie_val(this->_req, key, buffer, size);
 }
 
 void PsychicRequest::loadParams()

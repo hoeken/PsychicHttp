@@ -8,10 +8,6 @@
 #define PSYCHIC_HTTP_VERSION_MINOR 1
 #define PSYCHIC_HTTP_VERSION_PATCH 0
 
-#ifndef MAX_COOKIE_SIZE
-  #define MAX_COOKIE_SIZE 512
-#endif
-
 #ifndef FILE_CHUNK_SIZE
   #define FILE_CHUNK_SIZE 8 * 1024
 #endif
