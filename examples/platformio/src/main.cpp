@@ -458,6 +458,7 @@ void setup()
 
     // example of getting POST variables
     //  curl -i -d "param1=value1&param2=value2" -X POST http://psychic.local/post
+    //  curl -F "param1=value1" -F "param2=value2" -X POST http://psychic.local/post
     server.on("/post", HTTP_POST, [](PsychicRequest* request)
       {
       String output;
@@ -609,6 +610,20 @@ void setup()
     eventSource.onClose([](PsychicEventSourceClient* client)
       { Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
     server.on("/events", &eventSource);
+
+    // example of using POST data inside the
+    // works: curl -F "secret=password" http://psychic.local/post-filter
+    // 404:   curl -F "foo=bar" http://psychic.local/post-filter
+    server.on("/post-filter", HTTP_POST, [](PsychicRequest* request)
+            {
+      String output;
+      output += "Secret: " + request->getParam("secret")->value() + "<br/>\n";
+
+      return request->reply(output.c_str()); })
+      ->setFilter([](PsychicRequest* request)
+        {
+      request->loadParams();
+      return request->hasParam("secret"); });
 
     server.begin();
   }

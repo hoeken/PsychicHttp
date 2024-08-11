@@ -1,5 +1,5 @@
-#ifndef MICRO_HTTP_STATUS_H
-#define MICRO_HTTP_STATUS_H
+#ifndef MULTIPART_PROCESSOR_H
+#define MULTIPART_PROCESSOR_H
 
 #include "PsychicCore.h"
 
@@ -36,6 +36,7 @@ class MultipartProcessor
     ~MultipartProcessor();
 
     esp_err_t process();
+    esp_err_t process(const char* body);
 };
 
 #endif

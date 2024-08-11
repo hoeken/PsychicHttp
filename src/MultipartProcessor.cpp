@@ -100,6 +100,35 @@ esp_err_t MultipartProcessor::process()
   return err;
 }
 
+esp_err_t MultipartProcessor::process(const char* body)
+{
+  esp_err_t err = ESP_OK;
+  _parsedLength = 0;
+
+  String value = _request->header("Content-Type");
+  if (value.startsWith("multipart/"))
+  {
+    _boundary = value.substring(value.indexOf('=') + 1);
+    _boundary.replace("\"", "");
+  }
+  else
+  {
+    ESP_LOGE(PH_TAG, "No multipart boundary found.");
+    return ESP_ERR_HTTPD_INVALID_REQ;
+  }
+
+  // loop over the whole string
+  unsigned int size = strlen(body);
+  for (unsigned i = 0; i < size; i++)
+  {
+    // send it to our parser
+    _parseMultipartPostByte(body[i], i == size - 1);
+    _parsedLength++;
+  }
+
+  return err;
+}
+
 void MultipartProcessor::_handleUploadByte(uint8_t data, bool last)
 {
   _itemBuffer[_itemBufferIndex++] = data;

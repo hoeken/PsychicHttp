@@ -1,4 +1,5 @@
 #include "PsychicRequest.h"
+#include "MultipartProcessor.h"
 #include "PsychicHttpServer.h"
 #include "http_status.h"
 
@@ -157,6 +158,13 @@ esp_err_t PsychicRequest::loadBody()
 {
   if (_bodyParsed != ESP_ERR_NOT_FINISHED)
     return _bodyParsed;
+
+  // quick size check.
+  if (contentLength() > server()->maxRequestBodySize)
+  {
+    ESP_LOGE(PH_TAG, "Body size larger than maxRequestBodySize");
+    return _bodyParsed = ESP_ERR_INVALID_SIZE;
+  }
 
   this->_body = String();
 
@@ -320,10 +328,22 @@ void PsychicRequest::loadParams()
   if (_paramsParsed != ESP_ERR_NOT_FINISHED)
     return;
 
-  // did we get form data as body?
-  if (this->method() == HTTP_POST && this->contentType().startsWith("application/x-www-form-urlencoded"))
+  // convenience shortcut to allow calling loadParams()
+  if (_bodyParsed == ESP_ERR_NOT_FINISHED)
+    loadBody();
+
+  // various form data as parameters
+  if (this->method() == HTTP_POST)
   {
-    _addParams(_body, true);
+    if (this->contentType().startsWith("application/x-www-form-urlencoded"))
+      _addParams(_body, true);
+
+    if (this->isMultipart())
+    {
+      MultipartProcessor mpp(this);
+      _paramsParsed = mpp.process(_body.c_str());
+      return;
+    }
   }
 
   _paramsParsed = ESP_OK;
