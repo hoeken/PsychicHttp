@@ -122,8 +122,10 @@ void PsychicEventSource::closeCallback(PsychicClient* client)
 void PsychicEventSource::send(const char* message, const char* event, uint32_t id, uint32_t reconnect)
 {
   String ev = generateEventMessage(message, event, id, reconnect);
-  for (PsychicClient* c : _clients) {
-    ((PsychicEventSourceClient*)c->_friend)->sendEvent(ev.c_str());
+  for(PsychicClient *c : _clients) {
+    if (c && c->_friend) {
+      ((PsychicEventSourceClient*)c->_friend)->sendEvent(ev.c_str());
+    }  
   }
 }
 
