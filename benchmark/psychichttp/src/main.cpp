@@ -106,10 +106,8 @@ bool connectToWifi()
   int numberOfTries = 20;
 
   // Wait for the WiFi event
-  while (true)
-  {
-    switch (WiFi.status())
-    {
+  while (true) {
+    switch (WiFi.status()) {
       case WL_NO_SSID_AVAIL:
         Serial.println("[WiFi] SSID not found");
         break;
@@ -139,15 +137,12 @@ bool connectToWifi()
     }
     delay(tryDelay);
 
-    if (numberOfTries <= 0)
-    {
+    if (numberOfTries <= 0) {
       Serial.print("[WiFi] Failed to connect to WiFi!");
       // Use disconnect function to force stop trying to connect
       WiFi.disconnect();
       return false;
-    }
-    else
-    {
+    } else {
       numberOfTries--;
     }
   }
@@ -161,48 +156,40 @@ void setup()
   delay(10);
   Serial.println("PsychicHTTP Benchmark");
 
-  if (connectToWifi())
-  {
+  if (connectToWifi()) {
     // set up our esp32 to listen on the local_hostname.local domain
-    if (!MDNS.begin(local_hostname))
-    {
+    if (!MDNS.begin(local_hostname)) {
       Serial.println("Error starting mDNS");
       return;
     }
     MDNS.addService("http", "tcp", 80);
 
-    if (!LittleFS.begin())
-    {
+    if (!LittleFS.begin()) {
       Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
       return;
     }
 
     // our index
-    server.on("/", HTTP_GET, [](PsychicRequest* request)
-              { return request->reply(200, "text/html", htmlContent); });
+    server.on("/", HTTP_GET, [](PsychicRequest* request) { return request->reply(200, "text/html", htmlContent); });
 
     // serve static files from LittleFS/www on /
     server.serveStatic("/", LittleFS, "/www/");
 
     // a websocket echo server
-    websocketHandler.onOpen([](PsychicWebSocketClient* client)
-                            {
-                              // client->sendMessage("Hello!");
-                            });
-    websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame)
-                             {
+    websocketHandler.onOpen([](PsychicWebSocketClient* client) {
+      // client->sendMessage("Hello!");
+    });
+    websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame) {
       request->reply(frame);
       return ESP_OK; });
     server.on("/ws", &websocketHandler);
 
     // EventSource server
-    eventSource.onOpen([](PsychicEventSourceClient* client)
-                       { client->send("Hello", NULL, millis(), 1000); });
+    eventSource.onOpen([](PsychicEventSourceClient* client) { client->send("Hello", NULL, millis(), 1000); });
     server.on("/events", &eventSource);
 
     // api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/api", HTTP_GET, [](PsychicRequest* request)
-              {
+    server.on("/api", HTTP_GET, [](PsychicRequest* request) {
       //create a response object
       JsonDocument output;
       output["msg"] = "status";
@@ -228,8 +215,7 @@ void setup()
 unsigned long last;
 void loop()
 {
-  if (millis() - last > 1000)
-  {
+  if (millis() - last > 1000) {
     Serial.printf("Free Heap: %d\n", esp_get_free_heap_size());
     last = millis();
   }
