@@ -9,6 +9,7 @@
 
 class PsychicClient
 {
+
   protected:
     httpd_handle_t _server;
     int _socket;

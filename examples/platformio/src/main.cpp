@@ -357,7 +357,7 @@ void setup()
     server.onOpen([](PsychicClient* client) { Serial.printf("[http] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
 
     // example callback everytime a connection is closed
-    server.onClose([](PsychicClient* client) { Serial.printf("[http] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
+    server.onClose([](PsychicClient* client) { Serial.printf("[http] connection #%u closed\n", client->socket()); });
 
     // api - json message passed in as post body
     //  curl -i -X POST -H "Content-Type: application/json" -d '{"foo":"bar"}' http://psychic.local/api
@@ -394,7 +394,7 @@ void setup()
     PsychicWebHandler* connectionHandler = new PsychicWebHandler();
     connectionHandler->onRequest([](PsychicRequest* request) { return request->reply("OK"); });
     connectionHandler->onOpen([](PsychicClient* client) { Serial.printf("[handler] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
-    connectionHandler->onClose([](PsychicClient* client) { Serial.printf("[handler] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
+    connectionHandler->onClose([](PsychicClient* client) { Serial.printf("[handler] connection #%u closed\n", client->socket()); });
 
     // add it to our server
     server.on("/handler", connectionHandler);
@@ -651,10 +651,10 @@ void setup()
       client->sendMessage("Hello!");
     });
     websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame) {
-      Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char*)frame->payload);
+      Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), String((char*)frame->payload, frame->len).c_str());
       return request->reply(frame);
     });
-    websocketHandler.onClose([](PsychicWebSocketClient* client) { Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
+    websocketHandler.onClose([](PsychicWebSocketClient* client) { Serial.printf("[socket] connection #%u closed\n", client->socket()); });
     server.on("/ws", &websocketHandler);
 
     // EventSource server
@@ -663,7 +663,7 @@ void setup()
       Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
       client->send("Hello user!", NULL, millis(), 1000);
     });
-    eventSource.onClose([](PsychicEventSourceClient* client) { Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
+    eventSource.onClose([](PsychicEventSourceClient* client) { Serial.printf("[eventsource] connection #%u closed\n", client->socket()); });
     server.on("/events", &eventSource);
 
     // example of using POST data inside the filter
@@ -689,7 +689,7 @@ char output[60];
 
 void loop()
 {
-  if (millis() - lastUpdate > 2000) {
+  if (millis() - lastUpdate > 1000) {
     sprintf(output, "Millis: %lu\n", millis());
     websocketHandler.sendAll(output);
 

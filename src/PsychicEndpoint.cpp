@@ -43,14 +43,10 @@ String PsychicEndpoint::uri()
 esp_err_t PsychicEndpoint::requestCallback(httpd_req_t* req)
 {
 #ifdef ENABLE_ASYNC
-  if (is_on_async_worker_thread() == false)
-  {
-    if (submit_async_req(req, PsychicEndpoint::requestCallback) == ESP_OK)
-    {
+  if (is_on_async_worker_thread() == false) {
+    if (submit_async_req(req, PsychicEndpoint::requestCallback) == ESP_OK) {
       return ESP_OK;
-    }
-    else
-    {
+    } else {
       httpd_resp_set_status(req, "503 Busy");
       httpd_resp_sendstr(req, "No workers available. Server busy.</div>");
       return ESP_OK;
@@ -63,10 +59,8 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t* req)
   PsychicRequest request(self->_server, req);
 
   // make sure we have a handler
-  if (handler != NULL)
-  {
-    if (handler->filter(&request) && handler->canHandle(&request))
-    {
+  if (handler != NULL) {
+    if (handler->filter(&request) && handler->canHandle(&request)) {
       // check our credentials
       if (handler->needsAuthentication(&request))
         return handler->authenticate(&request);
@@ -76,9 +70,8 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t* req)
     }
     // pass it to our generic handlers
     else
-      return PsychicHttpServer::notFoundHandler(req, HTTPD_500_INTERNAL_SERVER_ERROR);
-  }
-  else
+      return PsychicHttpServer::requestHandler(req);
+  } else
     return request.reply(500, "text/html", "No handler registered.");
 }
 
@@ -97,19 +90,15 @@ bool PsychicEndpoint::matches(const char* uri)
     position = strlen(uri);
 
   // do we have a per-endpoint match function
-  if (this->getURIMatchFunction() != NULL)
-  {
+  if (this->getURIMatchFunction() != NULL) {
     // ESP_LOGD(PH_TAG, "Match? %s == %s (%d)", _uri.c_str(), uri, position);
     return this->getURIMatchFunction()(_uri.c_str(), uri, (size_t)position);
   }
   // do we have a global match function
-  if (_server->getURIMatchFunction() != NULL)
-  {
+  if (_server->getURIMatchFunction() != NULL) {
     // ESP_LOGD(PH_TAG, "Match? %s == %s (%d)", _uri.c_str(), uri, position);
     return _server->getURIMatchFunction()(_uri.c_str(), uri, (size_t)position);
-  }
-  else
-  {
+  } else {
     ESP_LOGE(PH_TAG, "No uri matching function set");
     return false;
   }

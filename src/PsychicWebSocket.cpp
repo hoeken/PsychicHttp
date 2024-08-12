@@ -55,7 +55,10 @@ PsychicWebSocketClient::~PsychicWebSocketClient()
 
 void PsychicWebSocketClient::_sendMessageCallback(esp_err_t err, int socket, void* arg)
 {
-  // PsychicWebSocketClient* client = (PsychicWebSocketClient*)arg;
+  // free our frame.
+  httpd_ws_frame_t* ws_pkt = (httpd_ws_frame_t*)arg;
+  free(ws_pkt->payload);
+  free(ws_pkt);
 
   if (err == ESP_OK)
     return;
@@ -71,19 +74,40 @@ void PsychicWebSocketClient::_sendMessageCallback(esp_err_t err, int socket, voi
 
 esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_frame_t* ws_pkt)
 {
-  return httpd_ws_send_data_async(this->server(), this->socket(), ws_pkt, PsychicWebSocketClient::_sendMessageCallback, this);
+  return sendMessage(ws_pkt->type, ws_pkt->payload, ws_pkt->len);
 }
 
 esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_type_t op, const void* data, size_t len)
 {
-  httpd_ws_frame_t ws_pkt;
-  memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+  // init our frame.
+  httpd_ws_frame_t* ws_pkt = (httpd_ws_frame_t*)malloc(sizeof(httpd_ws_frame_t));
+  if (ws_pkt == NULL) {
+    ESP_LOGE(PH_TAG, "Websocket: out of memory");
+    return ESP_ERR_NO_MEM;
+  }
+  memset(ws_pkt, 0, sizeof(httpd_ws_frame_t)); // zero the datastructure out
 
-  ws_pkt.payload = (uint8_t*)data;
-  ws_pkt.len = len;
-  ws_pkt.type = op;
+  // allocate for event text
+  ws_pkt->payload = (uint8_t*)malloc(len);
+  if (ws_pkt->payload == NULL) {
+    ESP_LOGE(PH_TAG, "Websocket: out of memory");
+    free(ws_pkt); // free our other memory
+    return ESP_ERR_NO_MEM;
+  }
+  memcpy(ws_pkt->payload, data, len);
 
-  return this->sendMessage(&ws_pkt);
+  ws_pkt->len = len;
+  ws_pkt->type = op;
+
+  esp_err_t err = httpd_ws_send_data_async(server(), socket(), ws_pkt, PsychicWebSocketClient::_sendMessageCallback, ws_pkt);
+
+  // take care of memory
+  if (err != ESP_OK) {
+    free(ws_pkt->payload);
+    free(ws_pkt);
+  }
+
+  return err;
 }
 
 esp_err_t PsychicWebSocketClient::sendMessage(const char* buf)
@@ -108,8 +132,7 @@ PsychicWebSocketClient* PsychicWebSocketHandler::getClient(int socket)
   if (client == NULL)
     return NULL;
 
-  if (client->_friend == NULL)
-  {
+  if (client->_friend == NULL) {
     return NULL;
   }
 
@@ -137,8 +160,7 @@ void PsychicWebSocketHandler::removeClient(PsychicClient* client)
 void PsychicWebSocketHandler::openCallback(PsychicClient* client)
 {
   PsychicWebSocketClient* buddy = getClient(client);
-  if (buddy == NULL)
-  {
+  if (buddy == NULL) {
     return;
   }
 
@@ -149,8 +171,7 @@ void PsychicWebSocketHandler::openCallback(PsychicClient* client)
 void PsychicWebSocketHandler::closeCallback(PsychicClient* client)
 {
   PsychicWebSocketClient* buddy = getClient(client);
-  if (buddy == NULL)
-  {
+  if (buddy == NULL) {
     return;
   }
 
@@ -166,8 +187,7 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request)
   PsychicClient* client = checkForNewClient(request->client());
 
   // beginning of the ws URI handler and our onConnect hook
-  if (request->method() == HTTP_GET)
-  {
+  if (request->method() == HTTP_GET) {
     if (client->isNew)
       openCallback(client);
 
@@ -185,28 +205,24 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request)
 
   /* Set max_len = 0 to get the frame len */
   esp_err_t ret = httpd_ws_recv_frame(wsRequest.request(), &ws_pkt, 0);
-  if (ret != ESP_OK)
-  {
+  if (ret != ESP_OK) {
     ESP_LOGE(PH_TAG, "httpd_ws_recv_frame failed to get frame len with %s", esp_err_to_name(ret));
     return ret;
   }
 
   // okay, now try to load the packet
   // ESP_LOGD(PH_TAG, "frame len is %d", ws_pkt.len);
-  if (ws_pkt.len)
-  {
+  if (ws_pkt.len) {
     /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
     buf = (uint8_t*)calloc(1, ws_pkt.len + 1);
-    if (buf == NULL)
-    {
+    if (buf == NULL) {
       ESP_LOGE(PH_TAG, "Failed to calloc memory for buf");
       return ESP_ERR_NO_MEM;
     }
     ws_pkt.payload = buf;
     /* Set max_len = ws_pkt.len to get the frame payload */
     ret = httpd_ws_recv_frame(wsRequest.request(), &ws_pkt, ws_pkt.len);
-    if (ret != ESP_OK)
-    {
+    if (ret != ESP_OK) {
       ESP_LOGE(PH_TAG, "httpd_ws_recv_frame failed with %s", esp_err_to_name(ret));
       free(buf);
       return ret;
@@ -215,8 +231,7 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request)
   }
 
   // Text messages are our payload.
-  if (ws_pkt.type == HTTPD_WS_TYPE_TEXT || ws_pkt.type == HTTPD_WS_TYPE_BINARY)
-  {
+  if (ws_pkt.type == HTTPD_WS_TYPE_TEXT || ws_pkt.type == HTTPD_WS_TYPE_BINARY) {
     if (this->_onFrame != NULL)
       ret = this->_onFrame(&wsRequest, &ws_pkt);
   }
@@ -255,12 +270,10 @@ PsychicWebSocketHandler* PsychicWebSocketHandler::onClose(PsychicWebSocketClient
 
 void PsychicWebSocketHandler::sendAll(httpd_ws_frame_t* ws_pkt)
 {
-  for (PsychicClient* client : _clients)
-  {
+  for (PsychicClient* client : _clients) {
     // ESP_LOGD(PH_TAG, "Active client (fd=%d) -> sending async message", client->socket());
 
-    if (client->_friend == NULL)
-    {
+    if (client->_friend == NULL) {
       return;
     }
 

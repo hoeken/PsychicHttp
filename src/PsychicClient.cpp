@@ -40,8 +40,7 @@ IPAddress PsychicClient::localIP()
   struct sockaddr_in6 addr; // esp_http_server uses IPv6 addressing
   socklen_t addr_size = sizeof(addr);
 
-  if (getsockname(_socket, (struct sockaddr*)&addr, &addr_size) < 0)
-  {
+  if (getsockname(_socket, (struct sockaddr*)&addr, &addr_size) < 0) {
     ESP_LOGE(PH_TAG, "Error getting client IP");
     return address;
   }
@@ -62,8 +61,7 @@ IPAddress PsychicClient::remoteIP()
   struct sockaddr_in6 addr; // esp_http_server uses IPv6 addressing
   socklen_t addr_size = sizeof(addr);
 
-  if (getpeername(_socket, (struct sockaddr*)&addr, &addr_size) < 0)
-  {
+  if (getpeername(_socket, (struct sockaddr*)&addr, &addr_size) < 0) {
     ESP_LOGE(PH_TAG, "Error getting client IP");
     return address;
   }
