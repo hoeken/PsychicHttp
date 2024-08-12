@@ -771,12 +771,15 @@ With all due respect to @me-no-dev who has done some amazing work in the open so
 
 ArduinoMongoose is a good alternative, although the latency issues when it gets fully loaded can be very annoying. I believe it is also cross platform to other microcontrollers as well, but I haven't tested that. The other issue here is that it is based on an old version of a modified Mongoose library that will be difficult to update as it is a major revision behind and several security updates behind as well.  Big thanks to @jeremypoulter though as PsychicHttp is a fork of ArduinoMongoose so it's built on strong bones.
 
+# Community / Support
+
+The best way to get support is probably with Github issues.  There is also a [Discord chat](https://discord.gg/CM5abjGG) that is pretty active.
+
 # Roadmap
 
 ## v2.0: ESPAsyncWebserver Parity
 
 * As much ESPAsyncWebServer compatibility as possible
-* fix issue #73
 * Update benchmarks and get new data
   * we should also track program size and memory usage
 
@@ -784,7 +787,6 @@ ArduinoMongoose is a good alternative, although the latency issues when it gets 
 
 * investigate websocket performance gap
 * support for esp-idf framework
-* support for arduino 3.0 framework
 * Enable worker based multithreading with esp-idf v5.x
 * 100-continue support?
      
