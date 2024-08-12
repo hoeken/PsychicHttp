@@ -16,7 +16,7 @@ class PsychicHandler
     friend PsychicEndpoint;
 
   protected:
-    PsychicRequestFilterFunction _filter;
+    std::list<PsychicRequestFilterFunction> _filters;
     PsychicHttpServer* _server;
 
     String _username;
@@ -52,8 +52,8 @@ class PsychicHandler
     virtual void removeClient(PsychicClient* client);
     virtual PsychicClient* getClient(int socket);
     virtual PsychicClient* getClient(PsychicClient* client);
-    virtual void openCallback(PsychicClient* client){};
-    virtual void closeCallback(PsychicClient* client){};
+    virtual void openCallback(PsychicClient* client) {};
+    virtual void closeCallback(PsychicClient* client) {};
 
     bool hasClient(PsychicClient* client);
     int count() { return _clients.size(); };

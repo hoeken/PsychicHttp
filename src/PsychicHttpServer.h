@@ -26,6 +26,7 @@ class PsychicHttpServer
     std::list<PsychicHandler*> _handlers;
     std::list<PsychicClient*> _clients;
     std::list<PsychicRewrite*> _rewrites;
+    std::list<PsychicRequestFilterFunction> _filters;
 
     PsychicClientCallback _onOpen;
     PsychicClientCallback _onClose;
@@ -96,6 +97,9 @@ class PsychicHttpServer
 
     bool removeEndpoint(const char* uri, int method);
     bool removeEndpoint(PsychicEndpoint* endpoint);
+
+    PsychicHttpServer* setFilter(PsychicRequestFilterFunction fn);
+    bool filter(PsychicRequest* request);
 
     static esp_err_t requestHandler(httpd_req_t* req);
     static esp_err_t notFoundHandler(httpd_req_t* req, httpd_err_code_t err);

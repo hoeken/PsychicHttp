@@ -1,7 +1,6 @@
 #include "PsychicHandler.h"
 
-PsychicHandler::PsychicHandler() : _filter(NULL),
-                                   _server(NULL),
+PsychicHandler::PsychicHandler() : _server(NULL),
                                    _username(""),
                                    _password(""),
                                    _method(DIGEST_AUTH),
@@ -21,13 +20,19 @@ PsychicHandler::~PsychicHandler()
 
 PsychicHandler* PsychicHandler::setFilter(PsychicRequestFilterFunction fn)
 {
-  _filter = fn;
+  _filters.push_back(fn);
   return this;
 }
 
 bool PsychicHandler::filter(PsychicRequest* request)
 {
-  return _filter == NULL || _filter(request);
+  // run through our filter chain.
+  for (auto& filter : _filters) {
+    if (!filter(request))
+      return false;
+  }
+
+  return true;
 }
 
 void PsychicHandler::setSubprotocol(const String& subprotocol)
@@ -62,13 +67,11 @@ esp_err_t PsychicHandler::authenticate(PsychicRequest* request)
 PsychicClient* PsychicHandler::checkForNewClient(PsychicClient* client)
 {
   PsychicClient* c = PsychicHandler::getClient(client);
-  if (c == NULL)
-  {
+  if (c == NULL) {
     c = client;
     addClient(c);
     c->isNew = true;
-  }
-  else
+  } else
     c->isNew = false;
 
   return c;
@@ -76,8 +79,7 @@ PsychicClient* PsychicHandler::checkForNewClient(PsychicClient* client)
 
 void PsychicHandler::checkForClosedClient(PsychicClient* client)
 {
-  if (hasClient(client))
-  {
+  if (hasClient(client)) {
     closeCallback(client);
     removeClient(client);
   }

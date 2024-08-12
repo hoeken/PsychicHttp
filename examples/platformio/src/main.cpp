@@ -343,9 +343,8 @@ void setup()
     // this is where our /index.html file lives
     //  curl -i http://psychic.local/
     PsychicStaticFileHandler* handler = server.serveStatic("/", LittleFS, "/www/");
-    handler->setFilter(ON_STA_FILTER);
     handler->setCacheControl("max-age=60");
-    handler->setFilter(PERMISSIVE_CORS);
+    handler->setFilter(ON_STA_FILTER);
 
     // serve static files from LittleFS/www-ap on / only to clients on SoftAP
     // this is where our /index.html file lives
@@ -693,9 +692,11 @@ void setup()
         return request->hasParam("secret");
       });
 
-    // this will send CORS headers on options requests
-    server.on("*", HTTP_OPTIONS, [](PsychicRequest* request) { return request->reply(200); })
-      ->setFilter(PERMISSIVE_CORS);
+    // this will send CORS headers on every request that contains the Origin: header
+    server.setFilter(PERMISSIVE_CORS);
+
+    // this will respond to CORS requests (note: the global server filter will automatically add the CORS headers)
+    server.on("*", HTTP_OPTIONS, [](PsychicRequest* request) { return request->reply(200); });
 
     server.begin();
   }

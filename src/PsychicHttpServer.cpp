@@ -379,6 +379,24 @@ bool PsychicHttpServer::removeEndpoint(PsychicEndpoint* endpoint)
   return true;
 }
 
+PsychicHttpServer* PsychicHttpServer::setFilter(PsychicRequestFilterFunction fn)
+{
+  _filters.push_back(fn);
+
+  return this;
+}
+
+bool PsychicHttpServer::filter(PsychicRequest* request)
+{
+  // run through our filter chain.
+  for (auto& filter : _filters) {
+    if (!filter(request))
+      return false;
+  }
+
+  return true;
+}
+
 void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
 {
   PsychicWebHandler* handler = new PsychicWebHandler();
@@ -404,10 +422,15 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
   PsychicHttpServer* server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicRequest request(server, req);
 
-  //ESP_LOGD(PH_TAG, "%s %s", request.methodStr().c_str(), request.uri().c_str());
+  // ESP_LOGD(PH_TAG, "%s %s", request.methodStr().c_str(), request.uri().c_str());
 
   // check our rewrites
   server->_rewriteRequest(&request);
+
+  // run it through our global server filters.
+  if (!server->filter(&request)) {
+    return request.reply(400);
+  }
 
   // loop through our endpoints and see if anyone wants it.
   for (auto* endpoint : server->_endpoints) {
