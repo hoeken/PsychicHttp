@@ -8,6 +8,9 @@ PsychicResponse::PsychicResponse(PsychicRequest* request) : _request(request),
                                                             _contentLength(0),
                                                             _body("")
 {
+  // get our global headers out of the way
+  for (auto& header : DefaultHeaders::Instance().getHeaders())
+    addHeader(header.field.c_str(), header.value.c_str());
 }
 
 PsychicResponse::~PsychicResponse()
@@ -17,6 +20,15 @@ PsychicResponse::~PsychicResponse()
 
 void PsychicResponse::addHeader(const char* field, const char* value)
 {
+  // erase any existing ones.
+  for (auto itr = _headers.begin(); itr != _headers.end();) {
+    if (itr->field.equals(field))
+      itr = _headers.erase(itr);
+    else
+      itr++;
+  }
+
+  // now add it.
   _headers.push_back({field, value});
 }
 
@@ -31,8 +43,7 @@ void PsychicResponse::setCookie(const char* name, const char* value, unsigned lo
   if (now < 1700000000)
     output += "; Max-Age=" + String(secondsFromNow);
   // otherwise, set an expiration date
-  else
-  {
+  else {
     time_t expirationTimestamp = now + secondsFromNow;
 
     // Convert the expiration timestamp to a formatted string for the "expires" attribute
@@ -103,10 +114,6 @@ esp_err_t PsychicResponse::send()
 
 void PsychicResponse::sendHeaders()
 {
-  // get our global headers out of the way first
-  for (auto& header : DefaultHeaders::Instance().getHeaders())
-    httpd_resp_set_hdr(_request->request(), header.field.c_str(), header.value.c_str());
-
   // now do our individual headers
   for (auto& header : _headers)
     httpd_resp_set_hdr(this->_request->request(), header.field.c_str(), header.value.c_str());
@@ -116,8 +123,7 @@ esp_err_t PsychicResponse::sendChunk(uint8_t* chunk, size_t chunksize)
 {
   /* Send the buffer contents as HTTP response chunk */
   esp_err_t err = httpd_resp_send_chunk(this->_request->request(), (char*)chunk, chunksize);
-  if (err != ESP_OK)
-  {
+  if (err != ESP_OK) {
     ESP_LOGE(PH_TAG, "File sending failed (%s)", esp_err_to_name(err));
 
     /* Abort sending file */
