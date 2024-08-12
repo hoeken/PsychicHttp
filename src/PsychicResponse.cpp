@@ -11,6 +11,10 @@ PsychicResponse::PsychicResponse(PsychicRequest* request) : _request(request),
   // get our global headers out of the way
   for (auto& header : DefaultHeaders::Instance().getHeaders())
     addHeader(header.field.c_str(), header.value.c_str());
+
+  // pull in any response headers we've stored.
+  for (auto& header : request->getResponseHeaders())
+    addHeader(header.field.c_str(), header.value.c_str());
 }
 
 PsychicResponse::~PsychicResponse()

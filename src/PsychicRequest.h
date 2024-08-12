@@ -14,16 +14,14 @@
 
 typedef std::map<String, String> SessionData;
 
-enum Disposition
-{
+enum Disposition {
   NONE,
   INLINE,
   ATTACHMENT,
   FORM_DATA
 };
 
-struct ContentDisposition
-{
+struct ContentDisposition {
     Disposition disposition;
     String filename;
     String name;
@@ -32,6 +30,7 @@ struct ContentDisposition
 class PsychicRequest
 {
     friend PsychicHttpServer;
+    friend PsychicResponse;
 
   protected:
     PsychicHttpServer* _server;
@@ -48,6 +47,8 @@ class PsychicRequest
     esp_err_t _paramsParsed = ESP_ERR_NOT_FINISHED;
 
     std::list<PsychicWebParameter*> _params;
+
+    std::list<HTTPHeader> _responseHeaders;
 
     void _setUri(const char* uri);
     void _addParams(const String& params, bool post);
@@ -86,6 +87,9 @@ class PsychicRequest
     void setSessionKey(const String& key, const String& value);
 
     bool hasCookie(const char* key, size_t* size = nullptr);
+
+    void addResponseHeader(const char* key, const char* value);
+    const std::list<HTTPHeader>& getResponseHeaders() { return _responseHeaders; }
 
     /**
      * @brief   Get the value string of a cookie value from the "Cookie" request headers by cookie name.

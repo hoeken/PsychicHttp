@@ -241,6 +241,18 @@ bool setupSDCard()
 }
 #endif
 
+bool PERMISSIVE_CORS(PsychicRequest* request)
+{
+  if (request->hasHeader("Origin")) {
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
+    DefaultHeaders::Instance().addHeader("Access-Control-Max-Age", "86400");
+  }
+
+  return true;
+}
+
 void setup()
 {
   esp_log_level_set(PH_TAG, ESP_LOG_DEBUG);
@@ -333,6 +345,7 @@ void setup()
     PsychicStaticFileHandler* handler = server.serveStatic("/", LittleFS, "/www/");
     handler->setFilter(ON_STA_FILTER);
     handler->setCacheControl("max-age=60");
+    handler->setFilter(PERMISSIVE_CORS);
 
     // serve static files from LittleFS/www-ap on / only to clients on SoftAP
     // this is where our /index.html file lives
@@ -679,6 +692,10 @@ void setup()
         request->loadParams();
         return request->hasParam("secret");
       });
+
+    // this will send CORS headers on options requests
+    server.on("*", HTTP_OPTIONS, [](PsychicRequest* request) { return request->reply(200); })
+      ->setFilter(PERMISSIVE_CORS);
 
     server.begin();
   }
