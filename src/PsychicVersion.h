@@ -14,11 +14,6 @@
 
 #pragma once
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 /** Major version number (X.x.x) */
 #define PSYCHIC_VERSION_MAJOR 2
 /** Minor version number (x.X.x) */
@@ -43,14 +38,10 @@ extern "C"
 /**
  * Current PsychicHttp version, as string
  */
-#ifndef df2xstr
-#define df2xstr(s)          #s
+#ifndef PSYCHIC_df2xstr
+#define PSYCHIC_df2xstr(s)          #s
 #endif
-#ifndef df2str
-#define df2str(s)           df2xstr(s)
+#ifndef PSYCHIC_df2str
+#define PSYCHIC_df2str(s)           PSYCHIC_df2xstr(s)
 #endif
-#define PSYCHIC_VERSION_STR df2str(PSYCHIC_VERSION_MAJOR) "." df2str(PSYCHIC_VERSION_MINOR) "." df2str(PSYCHIC_VERSION_PATCH)
-
-#ifdef __cplusplus
-}
-#endif
+#define PSYCHIC_VERSION_STR PSYCHIC_df2str(PSYCHIC_VERSION_MAJOR) "." PSYCHIC_df2str(PSYCHIC_VERSION_MINOR) "." PSYCHIC_df2str(PSYCHIC_VERSION_PATCH)
