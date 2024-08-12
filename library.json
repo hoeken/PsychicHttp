@@ -3,20 +3,18 @@
   "version": "1.2.0",
   "description": "Arduino style wrapper around ESP-IDF HTTP library. HTTP server with SSL + websockets. Works on esp32 and probably esp8266",
   "keywords": "network,http,https,tcp,ssl,tls,websocket,espasyncwebserver",
-  "repository":
-  {
+  "repository": {
     "type": "git",
     "url": "https://github.com/hoeken/PsychicHttp"
   },
-  "authors":
-  [
+  "authors": [
     {
       "name": "Zach Hoeken",
       "email": "hoeken@gmail.com",
       "maintainer": true
     }
   ],
-  "license" : "LGPL-3.0-or-later",
+  "license": "LGPL-3.0-or-later",
   "examples": [
     {
       "name": "platformio",
@@ -35,9 +33,14 @@
       "version": "^7.0.4"
     },
     {
+      "owner": "bblanchon",
+      "name": "ArduinoTrace",
+      "version": "^1.2.0"
+    },
+    {
       "owner": "plageoj",
-      "name" : "UrlEncode",
-      "version" : "^1.0.1"
+      "name": "UrlEncode",
+      "version": "^1.0.1"
     }
   ],
   "export": {

@@ -206,21 +206,16 @@ void setup()
       //do we want secure or not?
       if (app_enable_ssl)
       {
-        server.listen(443, server_cert.c_str(), server_key.c_str());
+        server.setCertificate(server_cert.c_str(), server_key.c_str());
         
         //this creates a 2nd server listening on port 80 and redirects all requests HTTPS
         PsychicHttpServer *redirectServer = new PsychicHttpServer();
         redirectServer->config.ctrl_port = 20424; // just a random port different from the default one
-        redirectServer->listen(80);
         redirectServer->onNotFound([](PsychicRequest *request) {
           String url = "https://" + request->host() + request->url();
           return request->redirect(url.c_str());
         });
       }
-      else
-        server.listen(80);
-    #else
-      server.listen(80);
     #endif
 
     //serve static files from LittleFS/www on / only to clients on same wifi network
@@ -332,14 +327,15 @@ void setup()
       PsychicResponse response(request);
 
       int counter = 0;
-      if (request->hasCookie("counter"))
+      char cookie[10];
+      size_t size = 10;
+      if (request->getCookie("counter", cookie, &size) == ESP_OK)
       {
-        counter = std::stoi(request->getCookie("counter").c_str());
+        // value is null-terminated.
+        counter = std::stoi(cookie);
         counter++;
       }
-
-      char cookie[10];
-      sprintf(cookie, "%i", counter);
+      sprintf(cookie, "%d", counter);
 
       response.setCookie("counter", cookie);
       response.setContent(cookie);

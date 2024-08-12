@@ -58,3 +58,4 @@ src/cookie.txt
 examples/websockets/lib/PsychicHttp
 examples/websockets/src/_secret.h
 /build
+benchmark/psychic-websocket-loadtest.log

@@ -2,7 +2,7 @@
 #Command to install the testers:
 # npm install -g loadtest
 
-TEST_IP="192.168.2.131"
+TEST_IP="psychic.local"
 TEST_TIME=60
 LOG_FILE=psychic-websocket-loadtest.log
 PROTOCOL=ws
@@ -16,7 +16,7 @@ for CONCURRENCY in 1 2 3 4 5 6 7
 do
   printf "\n\nCLIENTS: *** $CONCURRENCY ***\n\n" >> $LOG_FILE
   echo "Testing $CONCURRENCY clients on $PROTOCOL://$TEST_IP/ws"
-  loadtest -c $CONCURRENCY --cores 1 -t $TEST_TIME --insecure $PROTOCOL://$TEST_IP/ws --quiet  2> /dev/null >> $LOG_FILE
+  loadtest -c $CONCURRENCY -t $TEST_TIME --insecure $PROTOCOL://$TEST_IP/ws --quiet  2> /dev/null >> $LOG_FILE
   sleep 1
 done
 
@@ -26,6 +26,6 @@ do
   CONCURRENCY=$((CONNECTIONS / 2))
   printf "\n\nCLIENTS: *** $CONNECTIONS ***\n\n" >> $LOG_FILE
   echo "Testing $CONNECTIONS clients on $PROTOCOL://$TEST_IP/ws"
-  loadtest -c $CONCURRENCY --cores 2 -t $TEST_TIME --insecure $PROTOCOL://$TEST_IP/ws --quiet 2> /dev/null >> $LOG_FILE
+  loadtest -c $CONCURRENCY -t $TEST_TIME --insecure $PROTOCOL://$TEST_IP/ws --quiet 2> /dev/null >> $LOG_FILE
   sleep 1
 done

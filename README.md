@@ -120,7 +120,7 @@ If you have existing code using ESPAsyncWebserver, you will feel right at home w
 
 ## setup() Stuff
 
-* no more server.begin(), call server.listen(80), before you add your handlers
+* add your handlers and call server.begin()
 * server has a configurable limit on .on() endpoints. change it with ```server.config.max_uri_handlers = 20;``` as needed.
 * check your callback function definitions:
    * AsyncWebServerRequest -> PsychicRequest
@@ -163,9 +163,6 @@ void setup()
    server.config.max_uri_handlers = 20; 
 
    //connect to wifi
-
-   //start the server listening on port 80 (standard HTTP port)
-   server.listen(80);
 
    //call server methods to attach endpoints and handlers
    server.on(...);
@@ -426,7 +423,7 @@ Here is a basic example of using WebSockets:
  PsychicWebSocketHandler websocketHandler();
 
  websocketHandler.onOpen([](PsychicWebSocketClient *client) {
-   Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
+   Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
    client->sendMessage("Hello!");
  });
 
@@ -436,7 +433,7 @@ Here is a basic example of using WebSockets:
  });
 
  websocketHandler.onClose([](PsychicWebSocketClient *client) {
-   Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
+   Serial.printf("[socket] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str());
  });
 
  //attach the handler to /ws.  You can then connect to ws://ip.address/ws
@@ -488,12 +485,12 @@ Here is a basic example of using PsychicEventSource:
  PsychicEventSource eventSource;
 
  eventSource.onOpen([](PsychicEventSourceClient *client) {
-   Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString());
+   Serial.printf("[eventsource] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
    client->send("Hello user!", NULL, millis(), 1000);
  });
 
  eventSource.onClose([](PsychicEventSourceClient *client) {
-   Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString());
+   Serial.printf("[eventsource] connection #%u closed from %s\n", client->socket(), client->remoteIP().toString().c_str());
  });
 
  //attach the handler to /events
@@ -524,7 +521,7 @@ PsychicHttp supports HTTPS / SSL out of the box, however there are some limitati
 #include <PsychicHttp.h>
 #include <PsychicHttpsServer.h>
 PsychicHttpsServer server;
-server.listen(443, server_cert, server_key);
+server.setCertificate(server_cert, server_key);
 ```
 
 ```server_cert``` and ```server_key``` are both ```const char *``` parameters which contain the server certificate and private key, respectively.
@@ -552,7 +549,6 @@ Last, but not least, you can create a separate HTTP server on port 80 that redir
 //this creates a 2nd server listening on port 80 and redirects all requests HTTPS
 PsychicHttpServer *redirectServer = new PsychicHttpServer();
 redirectServer->config.ctrl_port = 20420; // just a random port different from the default one
-redirectServer->listen(80);
 redirectServer->onNotFound([](PsychicRequest *request) {
    String url = "https://" + request->host() + request->url();
    return request->redirect(url.c_str());
@@ -777,43 +773,12 @@ ArduinoMongoose is a good alternative, although the latency issues when it gets 
 
 # Roadmap
 
-## v1.2: ESPAsyncWebserver Parity
+## v2.0: ESPAsyncWebserver Parity
 
-
-Change:
-Modify the request handling to bring initail url matching and filtering into PsychicHttpServer itself.
-
-Benefits: 
-* Fix a bug with filter() where endpoint is matched, but filter fails and it doesn't continue matching further endpoints (checks are in different codebases)
-* HTTP_ANY support
-* unlimited endpoints
-  * we would use a List to store endpoints
-  * dont have to pre-declare config.max_uri_handlers;
-* much more flexibility for future
-
-Issues
-* it would log a warning on every request as if its a 404. (httpd_uri.c:298)
-* req->user_ctx is not passed in. (httpd_uri.c:309)
-    * but... user_ctx is something we could store in the psychicendpoint data
-  * Websocket support assumes an endpoint with matching url / method (httpd_uri.c:312)
-    * we could copy and bring this code into our own internal request processor
-  * would need to manually maintain more code (~100 lines?) and be more prone to esp-idf http_server updates causing problems.
-
-How to implement
-* set config.max_uri_handlers = 1;
-* possibly do not register any uri_handlers (looks like it would be fastest way to exit httpd_find_uri_handler (httpd_uri.c:94))
-  * looks like 404 is set by default, so should work.
-* modify PsychicEndpoint to store the stuff we would pass to http_server
-* create a new function handleRequest() before PsychicHttpServer::defaultNotFoundHandler to process incoming requests.
-  * bring in code from PsychicHttpServer::notFoundHandler
-  * add new code to loop over endpoints to call match and filter
-* bring code from esp-idf library
-
-* templating system
-* regex url matching
-* rewrite urls?
-* What else are we missing?
-
+* As much ESPAsyncWebServer compatibility as possible
+* fix issue #73
+* Update benchmarks and get new data
+  * we should also track program size and memory usage
 
 ## Longterm Wants
 

@@ -2,7 +2,7 @@
 #Command to install the testers:
 # npm install -g autocannon
 
-TEST_IP="192.168.2.131"
+TEST_IP="psychic.local"
 TEST_TIME=60
 LOG_FILE=psychic-http-loadtest.log
 TIMEOUT=10000
