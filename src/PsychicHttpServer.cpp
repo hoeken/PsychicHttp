@@ -46,6 +46,8 @@ PsychicHttpServer::PsychicHttpServer(uint16_t port) : _onOpen(NULL),
 
 PsychicHttpServer::~PsychicHttpServer()
 {
+  _esp_idf_endpoints.clear();
+
   for (auto* client : _clients)
     delete (client);
   _clients.clear();
@@ -198,6 +200,34 @@ esp_err_t PsychicHttpServer::stop()
 esp_err_t PsychicHttpServer::_stopServer()
 {
   return httpd_stop(this->server);
+}
+
+void PsychicHttpServer::reset()
+{
+  if (_running)
+    stop();
+
+  for (auto* client : _clients)
+    delete (client);
+  _clients.clear();
+
+  for (auto* endpoint : _endpoints)
+    delete (endpoint);
+  _endpoints.clear();
+
+  for (auto* handler : _handlers)
+    delete (handler);
+  _handlers.clear();
+
+  for (auto* rewrite : _rewrites)
+    delete (rewrite);
+  _rewrites.clear();
+
+  _esp_idf_endpoints.clear();
+
+  onNotFound(PsychicHttpServer::defaultNotFoundHandler);
+  _onOpen = nullptr;
+  _onClose = nullptr;
 }
 
 httpd_uri_match_func_t PsychicHttpServer::getURIMatchFunction()

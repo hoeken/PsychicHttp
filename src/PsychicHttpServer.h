@@ -65,6 +65,7 @@ class PsychicHttpServer
     esp_err_t end() { return stop(); }
     esp_err_t start();
     esp_err_t stop();
+    void reset();
 
     httpd_uri_match_func_t getURIMatchFunction();
     void setURIMatchFunction(httpd_uri_match_func_t match_fn);
@@ -99,12 +100,12 @@ class PsychicHttpServer
     static esp_err_t requestHandler(httpd_req_t* req);
     static esp_err_t notFoundHandler(httpd_req_t* req, httpd_err_code_t err);
     static esp_err_t defaultNotFoundHandler(PsychicRequest* request);
-    void onNotFound(PsychicHttpRequestCallback fn);
-
-    void onOpen(PsychicClientCallback handler);
-    void onClose(PsychicClientCallback handler);
     static esp_err_t openCallback(httpd_handle_t hd, int sockfd);
     static void closeCallback(httpd_handle_t hd, int sockfd);
+
+    void onNotFound(PsychicHttpRequestCallback fn);
+    void onOpen(PsychicClientCallback handler);
+    void onClose(PsychicClientCallback handler);
 
     PsychicStaticFileHandler* serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
 };
