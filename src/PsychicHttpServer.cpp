@@ -307,6 +307,14 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicHandl
     _esp_idf_endpoints.push_back(my_uri);
   }
 
+  // if this is a method we haven't added yet, do it.
+  if (method != HTTP_ANY) {
+    if (!(std::find(supported_methods.begin(), supported_methods.end(), (http_method)method) != supported_methods.end())) {
+      ESP_LOGD(PH_TAG, "Adding %s to server.supported_methods", http_method_str((http_method)method));
+      supported_methods.push_back((http_method)method);
+    }
+  }
+
   // add it to our meta endpoints
   _endpoints.push_back(endpoint);
 
@@ -395,6 +403,8 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
 {
   PsychicHttpServer* server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicRequest request(server, req);
+
+  //ESP_LOGD(PH_TAG, "%s %s", request.methodStr().c_str(), request.uri().c_str());
 
   // check our rewrites
   server->_rewriteRequest(&request);
