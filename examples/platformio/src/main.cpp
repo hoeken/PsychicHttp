@@ -244,10 +244,10 @@ bool setupSDCard()
 bool PERMISSIVE_CORS(PsychicRequest* request)
 {
   if (request->hasHeader("Origin")) {
-    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
-    DefaultHeaders::Instance().addHeader("Access-Control-Max-Age", "86400");
+    request->addResponseHeader("Access-Control-Allow-Origin", "*");
+    request->addResponseHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    request->addResponseHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
+    request->addResponseHeader("Access-Control-Max-Age", "86400");
   }
 
   return true;
