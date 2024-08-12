@@ -7,14 +7,24 @@
    CONDITIONS OF ANY KIND, either express or implied.
 
 */
+#include "_secret.h"
 #include <Arduino.h>
-#include <ArduinoJSON.h>
+#include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
+#include <ESPmDNS.h>
 #include <LittleFS.h>
 #include <WiFi.h>
 
-const char* ssid = "";
-const char* password = "";
+#ifndef WIFI_SSID
+  #error "You need to enter your wifi credentials.  Copy secret.h to _secret.h and enter your credentials there."
+#endif
+
+// Enter your WIFI credentials in secret.h
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASS;
+
+// hostname for mdns (psychic.local)
+const char* local_hostname = "psychic";
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
@@ -85,8 +95,8 @@ bool connectToWifi()
   Serial.print("[WiFi] Connecting to ");
   Serial.println(ssid);
 
-  WiFi.setSleep(false);
-  WiFi.useStaticBuffers(true);
+  // WiFi.setSleep(false);
+  // WiFi.useStaticBuffers(true);
 
   WiFi.begin(ssid, password);
 
@@ -95,10 +105,8 @@ bool connectToWifi()
   int numberOfTries = 20;
 
   // Wait for the WiFi event
-  while (true)
-  {
-    switch (WiFi.status())
-    {
+  while (true) {
+    switch (WiFi.status()) {
       case WL_NO_SSID_AVAIL:
         Serial.println("[WiFi] SSID not found");
         break;
@@ -128,15 +136,12 @@ bool connectToWifi()
     }
     delay(tryDelay);
 
-    if (numberOfTries <= 0)
-    {
+    if (numberOfTries <= 0) {
       Serial.print("[WiFi] Failed to connect to WiFi!");
       // Use disconnect function to force stop trying to connect
       WiFi.disconnect();
       return false;
-    }
-    else
-    {
+    } else {
       numberOfTries--;
     }
   }
@@ -146,87 +151,64 @@ bool connectToWifi()
 
 void onEvent(AsyncWebSocket* server, AsyncWebSocketClient* client, AwsEventType type, void* arg, uint8_t* data, size_t len)
 {
-  if (type == WS_EVT_CONNECT)
-  {
+  if (type == WS_EVT_CONNECT) {
     // client connected
     //  Serial.printf("ws[%s][%u] connect\n", server->url(), client->id());
     //  client->printf("Hello Client %u :)", client->id());
     //  client->ping();
-  }
-  else if (type == WS_EVT_DISCONNECT)
-  {
+  } else if (type == WS_EVT_DISCONNECT) {
     // client disconnected
     //  Serial.printf("ws[%s][%u] disconnect: %u\n", server->url(), client->id());
-  }
-  else if (type == WS_EVT_ERROR)
-  {
+  } else if (type == WS_EVT_ERROR) {
     // error was received from the other end
     //  Serial.printf("ws[%s][%u] error(%u): %s\n", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
-  }
-  else if (type == WS_EVT_PONG)
-  {
+  } else if (type == WS_EVT_PONG) {
     // pong message was received (in response to a ping request maybe)
     //  Serial.printf("ws[%s][%u] pong[%u]: %s\n", server->url(), client->id(), len, (len)?(char*)data:"");
-  }
-  else if (type == WS_EVT_DATA)
-  {
+  } else if (type == WS_EVT_DATA) {
     // data packet
     AwsFrameInfo* info = (AwsFrameInfo*)arg;
-    if (info->final && info->index == 0 && info->len == len)
-    {
+    if (info->final && info->index == 0 && info->len == len) {
       // the whole message is in a single frame and we got all of it's data
       //  Serial.printf("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT)?"text":"binary", info->len);
-      if (info->opcode == WS_TEXT)
-      {
+      if (info->opcode == WS_TEXT) {
         data[len] = 0;
         // Serial.printf("%s\n", (char*)data);
-      }
-      else
-      {
+      } else {
         // for(size_t i=0; i < info->len; i++){
         //   Serial.printf("%02x ", data[i]);
         // }
         // Serial.printf("\n");
       }
-      if (info->opcode == WS_TEXT)
-      {
+      if (info->opcode == WS_TEXT) {
         client->text((char*)data, len);
       }
       // else
       //   client->binary("I got your binary message");
-    }
-    else
-    {
+    } else {
       // message is comprised of multiple frames or the frame is split into multiple packets
-      if (info->index == 0)
-      {
+      if (info->index == 0) {
         // if(info->num == 0)
         //   Serial.printf("ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
         // Serial.printf("ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
       }
 
       Serial.printf("ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
-      if (info->message_opcode == WS_TEXT)
-      {
+      if (info->message_opcode == WS_TEXT) {
         data[len] = 0;
         // Serial.printf("%s\n", (char*)data);
-      }
-      else
-      {
+      } else {
         // for(size_t i=0; i < len; i++){
         //   Serial.printf("%02x ", data[i]);
         // }
         // Serial.printf("\n");
       }
 
-      if ((info->index + len) == info->len)
-      {
+      if ((info->index + len) == info->len) {
         // Serial.printf("ws[%s][%u] frame[%u] end[%llu]\n", server->url(), client->id(), info->num, info->len);
-        if (info->final)
-        {
+        if (info->final) {
           // Serial.printf("ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
-          if (info->message_opcode == WS_TEXT)
-          {
+          if (info->message_opcode == WS_TEXT) {
             client->text((char*)data, info->len);
           }
           // else
@@ -245,44 +227,48 @@ void setup()
 
   // We start by connecting to a WiFi network
   // To debug, please enable Core Debug Level to Verbose
-  if (connectToWifi())
-  {
-    if (!LittleFS.begin())
-    {
+  if (connectToWifi()) {
+    // set up our esp32 to listen on the local_hostname.local domain
+    if (!MDNS.begin(local_hostname)) {
+      Serial.println("Error starting mDNS");
+      return;
+    }
+    MDNS.addService("http", "tcp", 80);
+
+    if (!LittleFS.begin()) {
       Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
       return;
     }
 
     // api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request)
-              { request->send(200, "text/html", htmlContent); });
-
-    // serve static files from LittleFS/www on /
-    server.serveStatic("/", LittleFS, "/www/");
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { request->send(200, "text/html", htmlContent); });
 
     // api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/api", HTTP_GET, [](AsyncWebServerRequest* request)
-              {
-      //create a response object
-      StaticJsonDocument<128> output;
+    server.on("/api", HTTP_GET, [](AsyncWebServerRequest* request) {
+      // create a response object
+      JsonDocument output;
       output["msg"] = "status";
       output["status"] = "success";
       output["millis"] = millis();
 
-      //work with some params
-      if (request->hasParam("foo"))
-      {
-        AsyncWebParameter* foo = request->getParam("foo");
+      // work with some params
+      if (request->hasParam("foo")) {
+        const AsyncWebParameter* foo = request->getParam("foo");
         output["foo"] = foo->value();
       }
 
-      //serialize and return
+      // serialize and return
       String jsonBuffer;
       serializeJson(output, jsonBuffer);
-      request->send(200, "application/json", jsonBuffer.c_str()); });
+      request->send(200, "application/json", jsonBuffer.c_str());
+    });
 
     ws.onEvent(onEvent);
     server.addHandler(&ws);
+
+    // put this last, otherwise it clogs the other requests
+    // serve static files from LittleFS/www on /
+    server.serveStatic("/", LittleFS, "/www/");
 
     server.begin();
   }
@@ -291,5 +277,6 @@ void setup()
 void loop()
 {
   ws.cleanupClients();
+  Serial.printf("Free Heap: %d\n", esp_get_free_heap_size());
   delay(1000);
 }

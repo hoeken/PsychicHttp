@@ -3,7 +3,7 @@
 # npm install
 
 TEST_IP="psychic.local"
-TEST_TIME=60
+TEST_TIME=10
 #LOG_FILE=psychic-http-loadtest.log
 LOG_FILE=_psychic-http-loadtest.json
 RESULTS_FILE=http-loadtest-results.csv

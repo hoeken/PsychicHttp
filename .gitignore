@@ -63,3 +63,4 @@ benchmark/_psychic-http-loadtest.json
 benchmark/http-loadtest-results.csv
 benchmark/psychic-websocket-loadtest.json
 benchmark/websocket-loadtest-results.csv
+benchmark/espasyncwebserver/src/_secret.h

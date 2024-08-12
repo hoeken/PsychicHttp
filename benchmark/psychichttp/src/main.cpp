@@ -96,8 +96,8 @@ bool connectToWifi()
   Serial.print("[WiFi] Connecting to ");
   Serial.println(ssid);
 
-  WiFi.setSleep(false);
-  WiFi.useStaticBuffers(true);
+  // WiFi.setSleep(false);
+  // WiFi.useStaticBuffers(true);
 
   WiFi.begin(ssid, password);
 
