@@ -3,16 +3,16 @@
 # npm install
 
 TEST_IP="psychic.local"
-TEST_TIME=10
+TEST_TIME=60
 #LOG_FILE=psychic-http-loadtest.log
 LOG_FILE=_psychic-http-loadtest.json
 RESULTS_FILE=http-loadtest-results.csv
 TIMEOUT=10000
-WORKERS=10
+WORKERS=1
 PROTOCOL=http
 #PROTOCOL=https
 
-echo "url,connections,requests,latency,errors" > $RESULTS_FILE
+echo "url,connections,rps,latency,errors" > $RESULTS_FILE
 
 for CONCURRENCY in 1 2 3 4 5 6 7 8 9 10 15 20
 do

@@ -61,3 +61,5 @@ examples/websockets/src/_secret.h
 benchmark/psychic-websocket-loadtest.log
 benchmark/_psychic-http-loadtest.json
 benchmark/http-loadtest-results.csv
+benchmark/psychic-websocket-loadtest.json
+benchmark/websocket-loadtest-results.csv
