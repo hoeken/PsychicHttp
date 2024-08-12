@@ -680,22 +680,6 @@ void setup()
         return request->hasParam("secret");
       });
 
-    // this is for SUPER ULTRA PERMISSIVE CORS requests
-    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
-    DefaultHeaders::Instance().addHeader("Access-Control-Max-Age", "86400");
-    server.on("/*", HTTP_OPTIONS, [](PsychicRequest* request) {
-      PsychicResponse response(request);
-      response.addHeader("Access-Control-Allow-Origin", "*");
-      response.addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-      response.addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
-      response.addHeader("Access-Control-Max-Age", "86400");
-      response.setCode(200);
-
-      return response.send();
-    });
-
     server.begin();
   }
 }
