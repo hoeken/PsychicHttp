@@ -4,10 +4,8 @@
   * name field for identification / debug
   * old callback pointer
   * old callback format: bool (*request)
-    * wrap old callback in a function that returns CONTINUE or STOP on true/false?
   * new callback pointer
   * new callback: enum (*request, *response)
-  * flow control enum for return: STOP, CONTINUE???
 
 # PsychicHandler
 
