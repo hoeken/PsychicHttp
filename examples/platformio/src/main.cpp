@@ -663,7 +663,7 @@ void setup()
       client->sendMessage("Hello!");
     });
     websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame) {
-      Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), String((char*)frame->payload, frame->len).c_str());
+      // Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), String((char*)frame->payload, frame->len).c_str());
       return request->reply(frame);
     });
     websocketHandler.onClose([](PsychicWebSocketClient* client) { Serial.printf("[socket] connection #%u closed\n", client->socket()); });
