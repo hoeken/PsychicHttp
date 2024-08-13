@@ -1,7 +1,7 @@
 
 #include "ChunkPrinter.h"
 
-ChunkPrinter::ChunkPrinter(PsychicResponse* response, uint8_t* buffer, size_t len) : _response(response),
+ChunkPrinter::ChunkPrinter(PsychicResponseDelegate* response, uint8_t* buffer, size_t len) : _response(response),
                                                                                      _buffer(buffer),
                                                                                      _length(len),
                                                                                      _pos(0)

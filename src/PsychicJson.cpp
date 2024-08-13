@@ -11,7 +11,7 @@ PsychicJsonResponse::PsychicJsonResponse(PsychicRequest* request, bool isArray, 
     _root = _jsonBuffer.createNestedObject();
 }
 #else
-PsychicJsonResponse::PsychicJsonResponse(PsychicRequest* request, bool isArray) : PsychicResponse(request)
+PsychicJsonResponse::PsychicJsonResponse(PsychicRequest* request, bool isArray) : PsychicResponseDelegate(request)
 {
   setContentType(JSON_MIMETYPE);
   if (isArray)
@@ -47,7 +47,7 @@ esp_err_t PsychicJsonResponse::send()
   buffer = (char*)malloc(buffer_size);
   if (buffer == NULL)
   {
-    httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
+    httpd_resp_send_err(request()->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
     return ESP_FAIL;
   }
 
@@ -59,7 +59,7 @@ esp_err_t PsychicJsonResponse::send()
     this->setContent((uint8_t*)buffer, length);
     this->setContentType(JSON_MIMETYPE);
 
-    err = PsychicResponse::send();
+    err = PsychicResponseDelegate::send();
   }
   else
   {
@@ -105,10 +105,10 @@ void PsychicJsonHandler::onRequest(PsychicJsonRequestCallback fn)
   _onRequest = fn;
 }
 
-esp_err_t PsychicJsonHandler::handleRequest(PsychicRequest* request)
+esp_err_t PsychicJsonHandler::handleRequest(PsychicRequest* request, PsychicResponse* resp)
 {
   // process basic stuff
-  PsychicWebHandler::handleRequest(request);
+  PsychicWebHandler::handleRequest(request, resp);
 
   if (_onRequest)
   {

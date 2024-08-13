@@ -3,7 +3,7 @@
 #include "PsychicResponse.h"
 
 PsychicFileResponse::PsychicFileResponse(PsychicRequest* request, FS& fs, const String& path, const String& contentType, bool download)
-    : PsychicResponse(request)
+    : PsychicResponseDelegate(request)
 {
   //_code = 200;
   String _path(path);
@@ -15,7 +15,7 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest* request, FS& fs, const 
   }
 
   _content = fs.open(_path, "r");
-  _contentLength = _content.size();
+  setContentLength(_content.size());
 
   if (contentType == "")
     _setContentType(path);
@@ -40,7 +40,7 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest* request, FS& fs, const 
 }
 
 PsychicFileResponse::PsychicFileResponse(PsychicRequest* request, File content, const String& path, const String& contentType, bool download)
-    : PsychicResponse(request)
+    : PsychicResponseDelegate(request)
 {
   String _path(path);
 
@@ -50,7 +50,7 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest* request, File content, 
   }
 
   _content = content;
-  _contentLength = _content.size();
+  setContentLength(_content.size());
 
   if (contentType == "")
     _setContentType(path);
@@ -136,14 +136,14 @@ esp_err_t PsychicFileResponse::send()
     if (buffer == NULL)
     {
       /* Respond with 500 Internal Server Error */
-      httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
+      httpd_resp_send_err(request()->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
       return ESP_FAIL;
     }
 
     size_t readSize = _content.readBytes((char*)buffer, size);
 
     this->setContent(buffer, readSize);
-    err = PsychicResponse::send();
+    err = PsychicResponseDelegate::send();
 
     free(buffer);
   }
@@ -154,7 +154,7 @@ esp_err_t PsychicFileResponse::send()
     if (chunk == NULL)
     {
       /* Respond with 500 Internal Server Error */
-      httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
+      httpd_resp_send_err(request()->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
       return ESP_FAIL;
     }
 

@@ -5,6 +5,7 @@
 #include "PsychicCore.h"
 #include "PsychicHandler.h"
 #include "PsychicRewrite.h"
+#include "PsychicMiddleware.h"
 
 #ifdef PSY_ENABLE_REGEX
   #include <regex>
@@ -17,6 +18,7 @@ enum PsychicHttpMethod {
 class PsychicEndpoint;
 class PsychicHandler;
 class PsychicStaticFileHandler;
+class PsychicMiddleware;
 
 class PsychicHttpServer
 {
@@ -26,7 +28,7 @@ class PsychicHttpServer
     std::list<PsychicHandler*> _handlers;
     std::list<PsychicClient*> _clients;
     std::list<PsychicRewrite*> _rewrites;
-    std::list<PsychicRequestFilterFunction> _filters;
+    std::list<PsychicMiddleware*> _middleware;
 
     PsychicClientCallback _onOpen;
     PsychicClientCallback _onClose;
@@ -98,8 +100,11 @@ class PsychicHttpServer
     bool removeEndpoint(const char* uri, int method);
     bool removeEndpoint(PsychicEndpoint* endpoint);
 
+    //bool filter(PsychicRequest* request);
     PsychicHttpServer* setFilter(PsychicRequestFilterFunction fn);
-    bool filter(PsychicRequest* request);
+    PsychicHttpServer* addMiddleware(PsychicMiddleware *middleware);
+    PsychicHttpServer* addMiddleware(PsychicMiddlewareFunction fn);
+    bool runMiddleware(PsychicRequest* request, PsychicResponse* response);
 
     static esp_err_t requestHandler(httpd_req_t* req);
     static esp_err_t notFoundHandler(httpd_req_t* req, httpd_err_code_t err);

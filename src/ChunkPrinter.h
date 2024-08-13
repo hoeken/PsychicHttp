@@ -2,18 +2,19 @@
 #define ChunkPrinter_h
 
 #include "PsychicResponse.h"
+#include "PsychicResponseDelegate.h"
 #include <Print.h>
 
 class ChunkPrinter : public Print
 {
   private:
-    PsychicResponse* _response;
+    PsychicResponseDelegate* _response;
     uint8_t* _buffer;
     size_t _length;
     size_t _pos;
 
   public:
-    ChunkPrinter(PsychicResponse* response, uint8_t* buffer, size_t len);
+    ChunkPrinter(PsychicResponseDelegate* response, uint8_t* buffer, size_t len);
     ~ChunkPrinter();
 
     size_t write(uint8_t c) override;

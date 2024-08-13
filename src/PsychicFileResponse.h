@@ -3,10 +3,11 @@
 
 #include "PsychicCore.h"
 #include "PsychicResponse.h"
+#include "PsychicResponseDelegate.h"
 
 class PsychicRequest;
 
-class PsychicFileResponse : public PsychicResponse
+class PsychicFileResponse : public PsychicResponseDelegate
 {
     using File = fs::File;
     using FS = fs::FS;

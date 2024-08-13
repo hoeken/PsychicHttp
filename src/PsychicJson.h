@@ -10,6 +10,7 @@
 
 #include "ChunkPrinter.h"
 #include "PsychicRequest.h"
+#include "PsychicResponseDelegate.h"
 #include "PsychicWebHandler.h"
 #include <ArduinoJson.h>
 
@@ -30,7 +31,7 @@ constexpr const char* JSON_MIMETYPE = "application/json";
  * Json Response
  * */
 
-class PsychicJsonResponse : public PsychicResponse
+class PsychicJsonResponse : public PsychicResponseDelegate
 {
   protected:
 #ifdef ARDUINOJSON_5_COMPATIBILITY
@@ -84,7 +85,7 @@ class PsychicJsonHandler : public PsychicWebHandler
 #endif
 
     void onRequest(PsychicJsonRequestCallback fn);
-    virtual esp_err_t handleRequest(PsychicRequest* request) override;
+    virtual esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* resp) override;
 };
 
 #endif

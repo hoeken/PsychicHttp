@@ -5,12 +5,7 @@ PsychicUploadHandler::PsychicUploadHandler() : PsychicWebHandler(), _uploadCallb
 }
 PsychicUploadHandler::~PsychicUploadHandler() {}
 
-bool PsychicUploadHandler::canHandle(PsychicRequest* request)
-{
-  return true;
-}
-
-esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest* request)
+esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest* request, PsychicResponse* resp)
 {
   esp_err_t err = ESP_OK;
 

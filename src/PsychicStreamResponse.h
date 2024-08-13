@@ -4,10 +4,11 @@
 #include "ChunkPrinter.h"
 #include "PsychicCore.h"
 #include "PsychicResponse.h"
+#include "PsychicResponseDelegate.h"
 
 class PsychicRequest;
 
-class PsychicStreamResponse : public PsychicResponse, public Print
+class PsychicStreamResponse : public PsychicResponseDelegate, public Print
 {
   private:
     ChunkPrinter* _printer;

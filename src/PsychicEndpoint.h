@@ -4,6 +4,7 @@
 #include "PsychicCore.h"
 
 class PsychicHandler;
+class PsychicMiddleware;
 
 #ifdef ENABLE_ASYNC
   #include "async_worker.h"
@@ -34,6 +35,8 @@ class PsychicEndpoint
 
     PsychicEndpoint* setFilter(PsychicRequestFilterFunction fn);
     PsychicEndpoint* setAuthentication(const char* username, const char* password, HTTPAuthMethod method = BASIC_AUTH, const char* realm = "", const char* authFailMsg = "");
+    PsychicEndpoint* addMiddleware(PsychicMiddleware *middleware);
+    PsychicEndpoint* addMiddleware(PsychicMiddlewareFunction fn);
 
     String uri();
 

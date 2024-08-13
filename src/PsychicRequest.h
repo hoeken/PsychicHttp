@@ -38,6 +38,7 @@ class PsychicRequest
     SessionData* _session;
     PsychicClient* _client;
     PsychicEndpoint* _endpoint;
+    PsychicResponse* _response;
 
     http_method _method;
     String _uri;
@@ -87,9 +88,6 @@ class PsychicRequest
     void setSessionKey(const String& key, const String& value);
 
     bool hasCookie(const char* key, size_t* size = nullptr);
-
-    void addResponseHeader(const char* key, const char* value);
-    const std::list<HTTPHeader>& getResponseHeaders() { return _responseHeaders; }
 
     /**
      * @brief   Get the value string of a cookie value from the "Cookie" request headers by cookie name.
@@ -145,6 +143,7 @@ class PsychicRequest
     esp_err_t reply(int code, const char* contentType, const uint8_t* content, size_t len);
     esp_err_t reply(PsychicResponse* response);
 
+    PsychicResponse* getResponse();
     PsychicResponse* beginReply(int code);
     PsychicResponse* beginReply(int code, const char* contentType);
     PsychicResponse* beginReply(int code, const char* contentType, const char* content);

@@ -3,7 +3,7 @@
 #include "PsychicResponse.h"
 
 PsychicStreamResponse::PsychicStreamResponse(PsychicRequest* request, const String& contentType)
-    : PsychicResponse(request), _buffer(NULL)
+    : PsychicResponseDelegate(request), _buffer(NULL)
 {
 
   setContentType(contentType.c_str());
@@ -11,7 +11,7 @@ PsychicStreamResponse::PsychicStreamResponse(PsychicRequest* request, const Stri
 }
 
 PsychicStreamResponse::PsychicStreamResponse(PsychicRequest* request, const String& contentType, const String& name)
-    : PsychicResponse(request), _buffer(NULL)
+    : PsychicResponseDelegate(request), _buffer(NULL)
 {
 
   setContentType(contentType.c_str());
@@ -37,7 +37,7 @@ esp_err_t PsychicStreamResponse::beginSend()
   if (!_buffer)
   {
     /* Respond with 500 Internal Server Error */
-    httpd_resp_send_err(_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
+    httpd_resp_send_err(request()->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
     return ESP_FAIL;
   }
 
