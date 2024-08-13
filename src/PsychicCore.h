@@ -46,11 +46,15 @@ String urlDecode(const char* encoded);
 
 class PsychicHttpServer;
 class PsychicRequest;
+class PsychicResponse;
 class PsychicWebSocketRequest;
 class PsychicClient;
 
 // filter function definition
 typedef std::function<bool(PsychicRequest* request)> PsychicRequestFilterFunction;
+
+// middleware function definition
+typedef std::function<bool(PsychicRequest* request, PsychicResponse* response)> PsychicMiddlewareFunction;
 
 // client connect callback
 typedef std::function<void(PsychicClient* client)> PsychicClientCallback;
