@@ -18,13 +18,14 @@ class PsychicMiddlewareChain {
     std::list<PsychicMiddleware*>::iterator _iterator;
     PsychicRequest* _request;
     PsychicResponse* _response;
+    boolean _finished = false;
 
   public:
     PsychicMiddlewareChain();
     virtual ~PsychicMiddlewareChain();
 
     void add(PsychicMiddleware* middleware);
-    void run(PsychicRequest *request, PsychicResponse *response);
+    bool run(PsychicRequest *request, PsychicResponse *response);
     void next();
 };
 

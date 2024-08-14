@@ -397,6 +397,24 @@ bool PsychicHttpServer::filter(PsychicRequest* request)
   return true;
 }
 
+PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddleware *middleware)
+{
+  _chain->add(middleware);
+  return this;
+}
+
+PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddlewareFunction fn)
+{
+  PsychicMiddleware *mw = new PsychicMiddleware(fn);
+  _chain->add(mw);
+  return this;
+}
+
+bool PsychicHttpServer::runMiddleware(PsychicRequest* request, PsychicResponse* response)
+{
+  return _chain->run(request, response);
+}
+
 void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
 {
   PsychicWebHandler* handler = new PsychicWebHandler();
@@ -421,36 +439,32 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
 {
   PsychicHttpServer* server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicRequest request(server, req);
+  PsychicResponse response(&request);
 
-  // ESP_LOGD(PH_TAG, "%s %s", request.methodStr().c_str(), request.uri().c_str());
-
-  // check our rewrites
+  // process any URL rewrites
   server->_rewriteRequest(&request);
 
-  // run it through our global server filters.
-  if (!server->filter(&request)) {
+  // run it through our global server filter list
+  if (!server->filter(&request))
     return request.reply(400);
-  }
+
+  // run it through our global server middleware.
+  // false means the chain didnt complete and a response was sent.
+  if (!server->runMiddleware(&request, &response))
+    return ESP_OK;
 
   // loop through our endpoints and see if anyone wants it.
   for (auto* endpoint : server->_endpoints) {
-    // check urls first
     if (endpoint->matches(request.uri().c_str())) {
-      // check the http_method next
       if (endpoint->_method == request.method() || endpoint->_method == HTTP_ANY) {
         request.setEndpoint(endpoint);
 
-        // check other filter functions
         PsychicHandler* handler = endpoint->handler();
         if (handler->filter(&request)) {
-          // is the handler ok?
-          if (handler->canHandle(&request)) {
-            // check our credentials
-            if (handler->needsAuthentication(&request))
-              return handler->authenticate(&request);
-            else
-              return handler->handleRequest(&request);
-          }
+          if (handler->runMiddleware(&request, &response))
+            return handler->handleRequest(&request);
+          else
+            return ESP_OK;
         }
       }
     }
@@ -458,16 +472,15 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
 
   // loop through our global handlers and see if anyone wants it
   for (auto* handler : server->_handlers) {
-    // are we capable of handling this?
-    if (handler->filter(&request) && handler->canHandle(&request)) {
-      // check our credentials
-      if (handler->needsAuthentication(&request))
-        return handler->authenticate(&request);
-      else
+    if (handler->filter(&request)) {
+      if (handler->runMiddleware(&request, &response))
         return handler->handleRequest(&request);
+      else
+        return ESP_OK;
     }
   }
 
+  //if nothing hits, then try our 404 handler.
   return PsychicHttpServer::notFoundHandler(req, HTTPD_404_NOT_FOUND);
 }
 

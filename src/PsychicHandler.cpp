@@ -124,3 +124,21 @@ const std::list<PsychicClient*>& PsychicHandler::getClientList()
 {
   return _clients;
 }
+
+PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddleware *middleware)
+{
+  _chain->add(middleware);
+  return this;
+}
+
+PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddlewareFunction fn)
+{
+  PsychicMiddleware *mw = new PsychicMiddleware(fn);
+  _chain->add(mw);
+  return this;
+}
+
+bool PsychicHandler::runMiddleware(PsychicRequest* request, PsychicResponse* response)
+{
+  return _chain->run(request, response);
+}

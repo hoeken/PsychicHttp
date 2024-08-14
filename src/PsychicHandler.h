@@ -3,6 +3,8 @@
 
 #include "PsychicCore.h"
 #include "PsychicRequest.h"
+#include "PsychicMiddleware.h"
+#include "PsychicMiddlewareChain.h"
 
 class PsychicEndpoint;
 class PsychicHttpServer;
@@ -17,6 +19,7 @@ class PsychicHandler
 
   protected:
     std::list<PsychicRequestFilterFunction> _filters;
+    PsychicMiddlewareChain* _chain;
     PsychicHttpServer* _server;
 
     String _username;
@@ -32,9 +35,6 @@ class PsychicHandler
   public:
     PsychicHandler();
     virtual ~PsychicHandler();
-
-    PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
-    bool filter(PsychicRequest* request);
 
     PsychicHandler* setAuthentication(const char* username, const char* password, HTTPAuthMethod method = BASIC_AUTH, const char* realm = "", const char* authFailMsg = "");
     bool needsAuthentication(PsychicRequest* request);
@@ -58,6 +58,13 @@ class PsychicHandler
     bool hasClient(PsychicClient* client);
     int count() { return _clients.size(); };
     const std::list<PsychicClient*>& getClientList();
+
+    PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
+    bool filter(PsychicRequest* request);
+
+    PsychicHandler* addMiddleware(PsychicMiddleware* middleware);
+    PsychicHandler* addMiddleware(PsychicMiddlewareFunction fn);
+    bool runMiddleware(PsychicRequest* request, PsychicResponse* response);
 
     // derived classes must implement these functions
     virtual bool canHandle(PsychicRequest* request) { return true; };
