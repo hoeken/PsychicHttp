@@ -57,27 +57,22 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t* req)
   PsychicEndpoint* self = (PsychicEndpoint*)req->user_ctx;
   PsychicHandler* handler = self->handler();
   PsychicRequest request(self->_server, req);
-  PsychicResponse response(&request);
 
   // make sure we have a handler
   if (handler != NULL) {
-    if (handler->canHandle(&request)) {
-      if (handler->runMiddleware(&request, &response)) {
-        // check our credentials
-        if (handler->needsAuthentication(&request))
-          return handler->authenticate(&request);
+    if (handler->filter(&request) && handler->canHandle(&request)) {
+      // check our credentials
+      if (handler->needsAuthentication(&request))
+        return handler->authenticate(&request);
 
-        // pass it to our handler
-        return handler->handleRequest(&request, &response);
-      }
+      // pass it to our handler
+      return handler->handleRequest(&request);
     }
     // pass it to our generic handlers
     else
       return PsychicHttpServer::requestHandler(req);
   } else
     return request.reply(500, "text/html", "No handler registered.");
-
-  return ESP_ERR_HTTPD_INVALID_REQ;
 }
 
 bool PsychicEndpoint::matches(const char* uri)
@@ -130,15 +125,3 @@ PsychicEndpoint* PsychicEndpoint::setAuthentication(const char* username, const 
   _handler->setAuthentication(username, password, method, realm, authFailMsg);
   return this;
 };
-
-PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddleware *middleware)
-{
-  _handler->addMiddleware(middleware);
-  return this;
-}
-
-PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddlewareFunction fn)
-{
-  _handler->addMiddleware(fn);
-  return this;
-}

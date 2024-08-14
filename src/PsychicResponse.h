@@ -6,10 +6,11 @@
 
 class PsychicRequest;
 
-class PsychicResponse final
+class PsychicResponse
 {
-  private:
+  protected:
     PsychicRequest* _request;
+
     int _code;
     char _status[60];
     std::list<HTTPHeader> _headers;
@@ -19,8 +20,6 @@ class PsychicResponse final
   public:
     PsychicResponse(PsychicRequest* request);
     virtual ~PsychicResponse();
-
-    PsychicRequest* request() { return _request; }
 
     void setCode(int code);
 

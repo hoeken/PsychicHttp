@@ -8,7 +8,12 @@ PsychicWebHandler::PsychicWebHandler() : PsychicHandler(),
 }
 PsychicWebHandler::~PsychicWebHandler() {}
 
-esp_err_t PsychicWebHandler::handleRequest(PsychicRequest* request, PsychicResponse* resp)
+bool PsychicWebHandler::canHandle(PsychicRequest* request)
+{
+  return true;
+}
+
+esp_err_t PsychicWebHandler::handleRequest(PsychicRequest* request)
 {
   // lookup our client
   PsychicClient* client = checkForNewClient(request->client());

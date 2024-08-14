@@ -12,9 +12,6 @@ PsychicRequest::PsychicRequest(PsychicHttpServer* server, httpd_req_t* req) : _s
                                                                               _body(""),
                                                                               _tempObject(nullptr)
 {
-  // start a basic response
-  this->_response = new PsychicResponse(this);
-
   // load up our client.
   this->_client = server->getClient(req);
 
@@ -35,9 +32,6 @@ PsychicRequest::PsychicRequest(PsychicHttpServer* server, httpd_req_t* req) : _s
 
 PsychicRequest::~PsychicRequest()
 {
-  //manage our response
-  delete _response;
-
   // temorary user object
   if (_tempObject != NULL)
     free(_tempObject);
@@ -328,6 +322,20 @@ String PsychicRequest::getCookie(const char* key)
   return cookie;
 }
 
+void PsychicRequest::addResponseHeader(const char* key, const char* value)
+{
+  // erase any existing ones.
+  for (auto itr = _responseHeaders.begin(); itr != _responseHeaders.end();) {
+    if (itr->field.equals(key))
+      itr = _responseHeaders.erase(itr);
+    else
+      itr++;
+  }
+
+  // now add it.
+  _responseHeaders.push_back({key, value});
+}
+
 void PsychicRequest::loadParams()
 {
   if (_paramsParsed != ESP_ERR_NOT_FINISHED)
@@ -571,12 +579,13 @@ esp_err_t PsychicRequest::requestAuthentication(HTTPAuthMethod mode, const char*
   else
     this->setSessionKey("realm", realm);
 
+  PsychicResponse response(this);
   String authStr;
 
   // what kind of auth?
   if (mode == BASIC_AUTH) {
     authStr = "Basic realm=\"" + this->getSessionKey("realm") + "\"";
-    _response->addHeader("WWW-Authenticate", authStr.c_str());
+    response.addHeader("WWW-Authenticate", authStr.c_str());
   } else {
     // only make new ones if we havent sent them yet
     if (this->getSessionKey("nonce").isEmpty())
@@ -585,49 +594,57 @@ esp_err_t PsychicRequest::requestAuthentication(HTTPAuthMethod mode, const char*
       this->setSessionKey("opaque", _getRandomHexString());
 
     authStr = "Digest realm=\"" + this->getSessionKey("realm") + "\", qop=\"auth\", nonce=\"" + this->getSessionKey("nonce") + "\", opaque=\"" + this->getSessionKey("opaque") + "\"";
-    _response->addHeader("WWW-Authenticate", authStr.c_str());
+    response.addHeader("WWW-Authenticate", authStr.c_str());
   }
 
-  _response->setCode(401);
-  _response->setContentType("text/html");
-  _response->setContent(authStr.c_str());
-  return _response->send();
+  response.setCode(401);
+  response.setContentType("text/html");
+  response.setContent(authStr.c_str());
+  return response.send();
 }
 
 esp_err_t PsychicRequest::reply(int code)
 {
-  _response->setCode(code);
-  _response->setContentType("text/plain");
-  _response->setContent(http_status_reason(code));
+  PsychicResponse response(this);
 
-  return _response->send();
+  response.setCode(code);
+  response.setContentType("text/plain");
+  response.setContent(http_status_reason(code));
+
+  return response.send();
 }
 
 esp_err_t PsychicRequest::reply(const char* content)
 {
-  _response->setCode(200);
-  _response->setContentType("text/html");
-  _response->setContent(content);
+  PsychicResponse response(this);
 
-  return _response->send();
+  response.setCode(200);
+  response.setContentType("text/html");
+  response.setContent(content);
+
+  return response.send();
 }
 
 esp_err_t PsychicRequest::reply(int code, const char* contentType, const char* content)
 {
-  _response->setCode(code);
-  _response->setContentType(contentType);
-  _response->setContent(content);
+  PsychicResponse response(this);
 
-  return _response->send();
+  response.setCode(code);
+  response.setContentType(contentType);
+  response.setContent(content);
+
+  return response.send();
 }
 
 esp_err_t PsychicRequest::reply(int code, const char* contentType, const uint8_t* content, size_t len)
 {
-  _response->setCode(code);
-  _response->setContentType(contentType);
-  _response->setContent(content, len);
+  PsychicResponse response(this);
 
-  return _response->send();
+  response.setCode(code);
+  response.setContentType(contentType);
+  response.setContent(content, len);
+
+  return response.send();
 }
 
 esp_err_t PsychicRequest::reply(PsychicResponse* response)
@@ -637,38 +654,35 @@ esp_err_t PsychicRequest::reply(PsychicResponse* response)
   return err;
 }
 
-PsychicResponse* PsychicRequest::getResponse()
-{
-  return _response;
-}
-
-
 PsychicResponse* PsychicRequest::beginReply(int code)
 {
-  _response->setCode(code);
-  return _response;
+  PsychicResponse* response = new PsychicResponse(this);
+  response->setCode(code);
+  return response;
 }
 
 PsychicResponse* PsychicRequest::beginReply(int code, const char* contentType)
 {
-  _response->setCode(code);
-  _response->setContentType(contentType);
-  return _response;
+  PsychicResponse* response = new PsychicResponse(this);
+  response->setCode(code);
+  response->setContentType(contentType);
+  return response;
 }
 
 PsychicResponse* PsychicRequest::beginReply(int code, const char* contentType, const char* content)
 {
-  _response->setCode(code);
-  _response->setContentType(contentType);
-  _response->setContent(content);
-  return _response;
+  PsychicResponse* response = new PsychicResponse(this);
+  response->setCode(code);
+  response->setContentType(contentType);
+  response->setContent(content);
+  return response;
 }
 
 PsychicResponse* PsychicRequest::beginReply(int code, const char* contentType, const uint8_t* content, size_t len)
 {
-  PsychicResponse* _response = new PsychicResponse(this);
-  _response->setCode(code);
-  _response->setContentType(contentType);
-  _response->setContent(content, len);
-  return _response;
+  PsychicResponse* response = new PsychicResponse(this);
+  response->setCode(code);
+  response->setContentType(contentType);
+  response->setContent(content, len);
+  return response;
 }

@@ -24,7 +24,6 @@
 #include "PsychicCore.h"
 #include "PsychicHandler.h"
 #include "PsychicResponse.h"
-#include "PsychicResponseDelegate.h"
 
 class PsychicEventSource;
 class PsychicEventSourceResponse;
@@ -81,12 +80,12 @@ class PsychicEventSource : public PsychicHandler
     PsychicEventSource* onOpen(PsychicEventSourceClientCallback fn);
     PsychicEventSource* onClose(PsychicEventSourceClientCallback fn);
 
-    esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* response) override final;
+    esp_err_t handleRequest(PsychicRequest* request) override final;
 
     void send(const char* message, const char* event = NULL, uint32_t id = 0, uint32_t reconnect = 0);
 };
 
-class PsychicEventSourceResponse : public PsychicResponseDelegate
+class PsychicEventSourceResponse : public PsychicResponse
 {
   public:
     PsychicEventSourceResponse(PsychicRequest* request);

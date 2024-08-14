@@ -12,7 +12,6 @@
 #include "PsychicJson.h"
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
-#include "PsychicResponseDelegate.h"
 #include "PsychicStaticFileHandler.h"
 #include "PsychicStreamResponse.h"
 #include "PsychicUploadHandler.h"

@@ -155,7 +155,7 @@ uint8_t PsychicStaticFileHandler::_countBits(const uint8_t value) const
   return n;
 }
 
-esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest* request, PsychicResponse* resp)
+esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest* request)
 {
   if (_file == true)
   {

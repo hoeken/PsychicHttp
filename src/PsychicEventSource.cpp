@@ -50,10 +50,10 @@ PsychicEventSourceClient* PsychicEventSource::getClient(PsychicClient* client)
   return getClient(client->socket());
 }
 
-esp_err_t PsychicEventSource::handleRequest(PsychicRequest* request, PsychicResponse* resp)
+esp_err_t PsychicEventSource::handleRequest(PsychicRequest* request)
 {
   // start our open ended HTTP response
-  PsychicEventSourceResponse response(response);
+  PsychicEventSourceResponse response(request);
   esp_err_t err = response.send();
 
   // lookup our client
@@ -235,7 +235,7 @@ void PsychicEventSourceClient::_sendEventSentCallback(esp_err_t err, int socket,
 /*****************************************/
 
 PsychicEventSourceResponse::PsychicEventSourceResponse(PsychicRequest* request)
-    : PsychicResponseDelegate(request)
+    : PsychicResponse(request)
 {
 }
 
@@ -258,7 +258,7 @@ esp_err_t PsychicEventSourceResponse::send()
 
   int result;
   do {
-    result = httpd_send(request()->request(), out.c_str(), out.length());
+    result = httpd_send(_request->request(), out.c_str(), out.length());
   } while (result == HTTPD_SOCK_ERR_TIMEOUT);
 
   if (result < 0)

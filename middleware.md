@@ -9,49 +9,49 @@
 
 # PsychicHandler
 
-- [x] _filters -> _middleware
-- [x] create addMiddleware()
+- [ ] create addMiddleware()
 - [ ] create removeMiddleware(name)
-- [ ] create removeMiddleware(pointer)
-- [x] create runMiddleware()
-- [x] convert handler.setFilter() to call addMiddleware with a wrapper
-- [ ] depreciate handler.filter() - preprocessor? how?
+- [ ] create runMiddleware()
+- [ ] convert handler.setFilter() to call addMiddleware with a wrapper
+- [ ] depreciate handler.filter(), change to runMiddleware()
 - [ ] what about canHandle()?
-  * we should probably keep this - middleware is not context aware, and there are probably situations where we want to check handler variables
-- [x] handleRequest() -> handleRequest(*request, *response);
-  - [ ] depreciate old style
-  - [x] add new style (*request, *response) call
-- [x] destructor memory management
-- [ ] convert auth to middleware, remove handler->needsAuthentication calls
+  - [ ] depreciate and convert to middleware that gets added internally on construction.
+  - [ ] remove canHandle() calls
+- [ ] handleRequest() -> handleRequest(*request, *response);
+  - [ ] depreciate and add new style (*request, *response) call
+- [ ] _filters -> _middleware
 
 # PsychicEndpoint
 
-- [x] convert endpoint.setFilter(), change to addMiddleware()
+- [ ] depreciate endpoint.setFilter(), change to addMiddleware()
 - [ ] convert setAuthentication() to add AuthMiddleware instead.
-- [x] create addMiddleware()
-  - [x] pass to PsychicHandler
-- [x] create runMiddleware()
-  - [x] pass to PsychicHandler
+- [ ] create addMiddleware()
+  - [ ] pass to PsychicHandler
+- [ ] create runMiddleware()
+  - [ ] pass to PsychicHandler
 
 ## PsychicHttpServer
 
-- [x] _filters -> _middleware
-- [x] convert server.setFilter()
-  - [x] change to addMiddleware() with wrapper
+- [ ] convert server.setFilter()
+  - [ ] change to addMiddleware() with wrapper
 - [ ] create additional calls to server.on() with new callback format
-- [x] create addMiddleware()
-- [x] create runMiddleware()
+- [ ] create addMiddleware()
+- [ ] create runMiddleware()
 - [ ] create removeMiddleware(name)
+- [ ] _filters -> _middleware
 
 # PsychicRequest
 
-- [x] add _response pointer to PsychicRequest
-- [x] request->beginReply() should return existing _response pointer
+- [ ] add _response pointer to PsychicRequest
+- [ ] request->beginReply() should return existing _response pointer
+- [ ] depreciate authenticate() -> middleware function
 - [ ] requestAuthentication() -> should add middleware?
 
 # PsychicResponse
 
-- [x] make class final
-- [x] refactor existing custom Response objects to Delegation style
-  - [x] store root response pointer internally
-  - [x] pass on all calls to root object
+- [ ] add new constructor request(*response)
+  - [ ] refactor existing custom Response objects to Delegation style
+    - [ ] store root response pointer internally
+    - [ ] pass on 'standard' calls to root object
+      - [ ] code, contentType, headers, cookies, content, send, etc.
+  - [ ] existing constructors that pass in *request pointer can instead call constructor with new *request->_response style

@@ -23,7 +23,8 @@ class PsychicUploadHandler : public PsychicWebHandler
     PsychicUploadHandler();
     ~PsychicUploadHandler();
 
-    esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* resp) override;
+    bool canHandle(PsychicRequest* request) override;
+    esp_err_t handleRequest(PsychicRequest* request) override;
 
     PsychicUploadHandler* onUpload(PsychicUploadCallback fn);
 };

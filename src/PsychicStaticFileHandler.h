@@ -33,7 +33,7 @@ class PsychicStaticFileHandler : public PsychicWebHandler
   public:
     PsychicStaticFileHandler(const char* uri, FS& fs, const char* path, const char* cache_control);
     bool canHandle(PsychicRequest* request) override;
-    esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* resp) override;
+    esp_err_t handleRequest(PsychicRequest* request) override;
     PsychicStaticFileHandler* setIsDir(bool isDir);
     PsychicStaticFileHandler* setDefaultFile(const char* filename);
     PsychicStaticFileHandler* setCacheControl(const char* cache_control);

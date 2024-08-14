@@ -181,7 +181,7 @@ void PsychicWebSocketHandler::closeCallback(PsychicClient* client)
 
 bool PsychicWebSocketHandler::isWebSocket() { return true; }
 
-esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request, PsychicResponse* resp)
+esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request)
 {
   // lookup our client
   PsychicClient* client = checkForNewClient(request->client());

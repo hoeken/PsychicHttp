@@ -16,11 +16,23 @@ PsychicHandler::~PsychicHandler()
   // for (PsychicClient *client : _clients)
   //   delete(client);
   _clients.clear();
+}
 
-  // how do we do this while allowing people to pass in middleware objects?
-  // for (auto * mw : _middleware)
-  //   delete(mw);
-  _middleware.clear();
+PsychicHandler* PsychicHandler::setFilter(PsychicRequestFilterFunction fn)
+{
+  _filters.push_back(fn);
+  return this;
+}
+
+bool PsychicHandler::filter(PsychicRequest* request)
+{
+  // run through our filter chain.
+  for (auto& filter : _filters) {
+    if (!filter(request))
+      return false;
+  }
+
+  return true;
 }
 
 void PsychicHandler::setSubprotocol(const String& subprotocol)
@@ -111,35 +123,4 @@ bool PsychicHandler::hasClient(PsychicClient* socket)
 const std::list<PsychicClient*>& PsychicHandler::getClientList()
 {
   return _clients;
-}
-
-PsychicHandler* PsychicHandler::setFilter(PsychicRequestFilterFunction fn)
-{
-  PsychicMiddleware *mw = new PsychicMiddleware(fn);
-  _middleware.push_back(mw);
-  return this;
-}
-
-PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddleware *middleware)
-{
-  _middleware.push_back(middleware);
-  return this;
-}
-
-PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddlewareFunction fn)
-{
-  PsychicMiddleware *mw = new PsychicMiddleware(fn);
-  _middleware.push_back(mw);
-  return this;
-}
-
-bool PsychicHandler::runMiddleware(PsychicRequest* request, PsychicResponse* response)
-{
-  // run through our filter chain.
-  for (auto mw : _middleware) {
-    if (!mw->run(request, response))
-      return false;
-  }
-
-  return true;
 }

@@ -3,11 +3,9 @@
 
 #include "PsychicCore.h"
 #include "PsychicRequest.h"
-#include "PsychicMiddleware.h"
 
 class PsychicEndpoint;
 class PsychicHttpServer;
-class PsychicMiddleware;
 
 /*
  * HANDLER :: Can be attached to any endpoint or as a generic request handler.
@@ -18,7 +16,7 @@ class PsychicHandler
     friend PsychicEndpoint;
 
   protected:
-    std::list<PsychicMiddleware*> _middleware;
+    std::list<PsychicRequestFilterFunction> _filters;
     PsychicHttpServer* _server;
 
     String _username;
@@ -34,6 +32,9 @@ class PsychicHandler
   public:
     PsychicHandler();
     virtual ~PsychicHandler();
+
+    PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
+    bool filter(PsychicRequest* request);
 
     PsychicHandler* setAuthentication(const char* username, const char* password, HTTPAuthMethod method = BASIC_AUTH, const char* realm = "", const char* authFailMsg = "");
     bool needsAuthentication(PsychicRequest* request);
@@ -60,14 +61,7 @@ class PsychicHandler
 
     // derived classes must implement these functions
     virtual bool canHandle(PsychicRequest* request) { return true; };
-//    virtual esp_err_t handleRequest(PsychicRequest* request);
-    virtual esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* response) = 0;
-
-    //bool filter(PsychicRequest* request);
-    PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
-    PsychicHandler* addMiddleware(PsychicMiddleware *middleware);
-    PsychicHandler* addMiddleware(PsychicMiddlewareFunction fn);
-    bool runMiddleware(PsychicRequest* request, PsychicResponse* response);
+    virtual esp_err_t handleRequest(PsychicRequest* request) = 0;
 };
 
 #endif
