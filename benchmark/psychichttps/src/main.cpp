@@ -196,7 +196,7 @@ void setup()
 
     // our index
     server.on("/", HTTP_GET, [](PsychicRequest* request)
-              { return request->reply(200, "text/html", htmlContent); });
+              { return response->send(200, "text/html", htmlContent); });
 
     // serve static files from LittleFS/www on /
     server.serveStatic("/", LittleFS, "/www/");
@@ -204,7 +204,7 @@ void setup()
     // a websocket echo server
     websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame)
                              {
-      request->reply(frame);
+      response->send(frame);
       return ESP_OK; });
     server.on("/ws", &websocketHandler);
 
@@ -227,7 +227,7 @@ void setup()
       //serialize and return
       String jsonBuffer;
       serializeJson(output, jsonBuffer);
-      return request->reply(200, "application/json", jsonBuffer.c_str()); });
+      return response->send(200, "application/json", jsonBuffer.c_str()); });
   }
 }
 

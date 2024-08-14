@@ -55,24 +55,18 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t* req)
 #endif
 
   PsychicEndpoint* self = (PsychicEndpoint*)req->user_ctx;
-  PsychicHandler* handler = self->handler();
   PsychicRequest request(self->_server, req);
+  PsychicResponse response(&request);
 
-  // make sure we have a handler
-  if (handler != NULL) {
-    if (handler->filter(&request) && handler->canHandle(&request)) {
-      // check our credentials
-      if (handler->needsAuthentication(&request))
-        return handler->authenticate(&request);
+  esp_err_t err = self->process(&request, &response);
 
-      // pass it to our handler
-      return handler->handleRequest(&request);
-    }
-    // pass it to our generic handlers
-    else
-      return PsychicHttpServer::requestHandler(req);
-  } else
-    return request.reply(500, "text/html", "No handler registered.");
+  if (err == HTTPD_404_NOT_FOUND)
+    return PsychicHttpServer::requestHandler(req);
+
+  if (err == ESP_ERR_HTTPD_INVALID_REQ)
+    return response.error(HTTPD_500_INTERNAL_SERVER_ERROR, "No handler registered.");
+
+  return err;
 }
 
 bool PsychicEndpoint::matches(const char* uri)
@@ -114,14 +108,34 @@ void PsychicEndpoint::setURIMatchFunction(httpd_uri_match_func_t match_fn)
   _uri_match_fn = match_fn;
 }
 
-PsychicEndpoint* PsychicEndpoint::setFilter(PsychicRequestFilterFunction fn)
+PsychicEndpoint* PsychicEndpoint::addFilter(PsychicRequestFilterFunction fn)
 {
-  _handler->setFilter(fn);
+  _handler->addFilter(fn);
   return this;
 }
 
-PsychicEndpoint* PsychicEndpoint::setAuthentication(const char* username, const char* password, HTTPAuthMethod method, const char* realm, const char* authFailMsg)
+PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddleware* middleware)
 {
-  _handler->setAuthentication(username, password, method, realm, authFailMsg);
+  _handler->addMiddleware(middleware);
   return this;
-};
+}
+
+PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddlewareFunction fn)
+{
+  _handler->addMiddleware(fn);
+  return this;
+}
+
+bool PsychicEndpoint::removeMiddleware(PsychicMiddleware* middleware)
+{
+  return _handler->removeMiddleware(middleware);
+}
+
+esp_err_t PsychicEndpoint::process(PsychicRequest* request, PsychicResponse* response)
+{
+  esp_err_t ret = ESP_ERR_HTTPD_INVALID_REQ;
+  if (_handler != NULL)
+    ret = _handler->process(request, response);
+  ESP_LOGD(PH_TAG, "Endpoint %s processed %s: %s", _uri.c_str(), request->uri().c_str(), esp_err_to_name(ret));
+  return ret;
+}

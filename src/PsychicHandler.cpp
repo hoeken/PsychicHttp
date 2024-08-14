@@ -1,24 +1,21 @@
 #include "PsychicHandler.h"
 
 PsychicHandler::PsychicHandler() : _server(NULL),
-                                   _username(""),
-                                   _password(""),
-                                   _method(DIGEST_AUTH),
-                                   _realm(""),
-                                   _authFailMsg(""),
+                                   _chain(new PsychicMiddlewareChain()),
                                    _subprotocol("")
 {
 }
 
 PsychicHandler::~PsychicHandler()
 {
+  delete _chain;
   // actual PsychicClient deletion handled by PsychicServer
   // for (PsychicClient *client : _clients)
   //   delete(client);
   _clients.clear();
 }
 
-PsychicHandler* PsychicHandler::setFilter(PsychicRequestFilterFunction fn)
+PsychicHandler* PsychicHandler::addFilter(PsychicRequestFilterFunction fn)
 {
   _filters.push_back(fn);
   return this;
@@ -28,10 +25,11 @@ bool PsychicHandler::filter(PsychicRequest* request)
 {
   // run through our filter chain.
   for (auto& filter : _filters) {
-    if (!filter(request))
+    if (!filter(request)) {
+      ESP_LOGD(PH_TAG, "Request %s refused by filter from handler %s", request->uri().c_str(), typeid(*this).name());
       return false;
+    }
   }
-
   return true;
 }
 
@@ -42,26 +40,6 @@ void PsychicHandler::setSubprotocol(const String& subprotocol)
 const char* PsychicHandler::getSubprotocol() const
 {
   return _subprotocol.c_str();
-}
-
-PsychicHandler* PsychicHandler::setAuthentication(const char* username, const char* password, HTTPAuthMethod method, const char* realm, const char* authFailMsg)
-{
-  _username = String(username);
-  _password = String(password);
-  _method = method;
-  _realm = String(realm);
-  _authFailMsg = String(authFailMsg);
-  return this;
-};
-
-bool PsychicHandler::needsAuthentication(PsychicRequest* request)
-{
-  return (_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str());
-}
-
-esp_err_t PsychicHandler::authenticate(PsychicRequest* request)
-{
-  return request->requestAuthentication(_method, _realm.c_str(), _authFailMsg.c_str());
 }
 
 PsychicClient* PsychicHandler::checkForNewClient(PsychicClient* client)
@@ -125,7 +103,7 @@ const std::list<PsychicClient*>& PsychicHandler::getClientList()
   return _clients;
 }
 
-PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddleware *middleware)
+PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddleware* middleware)
 {
   _chain->add(middleware);
   return this;
@@ -133,12 +111,25 @@ PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddleware *middleware)
 
 PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddlewareFunction fn)
 {
-  PsychicMiddleware *mw = new PsychicMiddleware(fn);
-  _chain->add(mw);
+  _chain->add(fn);
   return this;
 }
 
-bool PsychicHandler::runMiddleware(PsychicRequest* request, PsychicResponse* response)
+bool PsychicHandler::removeMiddleware(PsychicMiddleware* middleware)
 {
-  return _chain->run(request, response);
+  return _chain->remove(middleware);
+}
+
+esp_err_t PsychicHandler::process(PsychicRequest* request, PsychicResponse* response)
+{
+  if (!filter(request)) {
+    return HTTPD_404_NOT_FOUND;
+  }
+
+  if (!canHandle(request)) {
+    ESP_LOGD(PH_TAG, "Request %s refused by handler %s", request->uri().c_str(), typeid(*this).name());
+    return HTTPD_404_NOT_FOUND;
+  }
+
+  return _chain->run(request, response, std::bind(&PsychicHandler::handleRequest, this, std::placeholders::_1, std::placeholders::_2));
 }

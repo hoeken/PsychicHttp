@@ -5,7 +5,6 @@
 #include "PsychicCore.h"
 #include "PsychicEndpoint.h"
 #include "PsychicHttpServer.h"
-#include "PsychicResponse.h"
 #include "PsychicWebParameter.h"
 
 #ifdef PSY_ENABLE_REGEX
@@ -137,18 +136,6 @@ class PsychicRequest
 
     bool authenticate(const char* username, const char* password);
     esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const char* authFailMsg);
-
-    esp_err_t redirect(const char* url);
-    esp_err_t reply(int code);
-    esp_err_t reply(const char* content);
-    esp_err_t reply(int code, const char* contentType, const char* content);
-    esp_err_t reply(int code, const char* contentType, const uint8_t* content, size_t len);
-    esp_err_t reply(PsychicResponse* response);
-
-    PsychicResponse* beginReply(int code);
-    PsychicResponse* beginReply(int code, const char* contentType);
-    PsychicResponse* beginReply(int code, const char* contentType, const char* content);
-    PsychicResponse* beginReply(int code, const char* contentType, const uint8_t* content, size_t len);
 };
 
 #endif // PsychicRequest_h

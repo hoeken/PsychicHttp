@@ -7,15 +7,15 @@
 
 class PsychicRequest;
 
-class PsychicStreamResponse : public PsychicResponse, public Print
+class PsychicStreamResponse : public PsychicResponseDelegate, public Print
 {
   private:
     ChunkPrinter* _printer;
     uint8_t* _buffer;
 
   public:
-    PsychicStreamResponse(PsychicRequest* request, const String& contentType);
-    PsychicStreamResponse(PsychicRequest* request, const String& contentType, const String& name); // Download
+    PsychicStreamResponse(PsychicResponse* response, const String& contentType);
+    PsychicStreamResponse(PsychicResponse* response, const String& contentType, const String& name); // Download
 
     ~PsychicStreamResponse();
 

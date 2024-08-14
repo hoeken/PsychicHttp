@@ -2,16 +2,16 @@
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
 
-PsychicStreamResponse::PsychicStreamResponse(PsychicRequest* request, const String& contentType)
-    : PsychicResponse(request), _buffer(NULL)
+PsychicStreamResponse::PsychicStreamResponse(PsychicResponse* response, const String& contentType)
+    : PsychicResponseDelegate(response), _buffer(NULL)
 {
 
   setContentType(contentType.c_str());
   addHeader("Content-Disposition", "inline");
 }
 
-PsychicStreamResponse::PsychicStreamResponse(PsychicRequest* request, const String& contentType, const String& name)
-    : PsychicResponse(request), _buffer(NULL)
+PsychicStreamResponse::PsychicStreamResponse(PsychicResponse* response, const String& contentType, const String& name)
+    : PsychicResponseDelegate(response), _buffer(NULL)
 {
 
   setContentType(contentType.c_str());
@@ -37,11 +37,12 @@ esp_err_t PsychicStreamResponse::beginSend()
   if (!_buffer)
   {
     /* Respond with 500 Internal Server Error */
-    httpd_resp_send_err(_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
+    ESP_LOGE(PH_TAG, "Unable to allocate %" PRIu32 " bytes to send chunk", STREAM_CHUNK_SIZE + sizeof(ChunkPrinter));
+    httpd_resp_send_err(request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
     return ESP_FAIL;
   }
 
-  _printer = new (_buffer) ChunkPrinter(this, _buffer + sizeof(ChunkPrinter), STREAM_CHUNK_SIZE);
+  _printer = new (_buffer) ChunkPrinter(_response, _buffer + sizeof(ChunkPrinter), STREAM_CHUNK_SIZE);
 
   sendHeaders();
   return ESP_OK;

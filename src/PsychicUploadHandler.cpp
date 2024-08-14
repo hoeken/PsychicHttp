@@ -10,7 +10,7 @@ bool PsychicUploadHandler::canHandle(PsychicRequest* request)
   return true;
 }
 
-esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest* request)
+esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest* request, PsychicResponse* response)
 {
   esp_err_t err = ESP_OK;
 
@@ -22,10 +22,7 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest* request)
     /* Respond with 400 Bad Request */
     char error[50];
     sprintf(error, "File size must be less than %lu bytes!", request->server()->maxUploadSize);
-    httpd_resp_send_err(request->request(), HTTPD_400_BAD_REQUEST, error);
-
-    /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
-    return ESP_FAIL;
+    return httpd_resp_send_err(request->request(), HTTPD_400_BAD_REQUEST, error);
   }
 
   // TODO: support for the 100 header.  not sure if we can do it.
@@ -45,14 +42,14 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest* request)
   if (err == ESP_OK)
   {
     if (_requestCallback != NULL)
-      err = _requestCallback(request);
+      err = _requestCallback(request, response);
     else
-      err = request->reply("Upload Successful.");
+      err = response->send("Upload Successful.");
   }
   else if (err == ESP_ERR_HTTPD_INVALID_REQ)
-    request->reply(400, "text/html", "No multipart boundary found.");
+    response->send(400, "text/html", "No multipart boundary found.");
   else
-    request->reply(500, "text/html", "Error processing upload.");
+    response->send(500, "text/html", "Error processing upload.");
 
   return err;
 }

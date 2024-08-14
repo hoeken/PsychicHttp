@@ -4,6 +4,8 @@
 #include "PsychicClient.h"
 #include "PsychicCore.h"
 #include "PsychicHandler.h"
+#include "PsychicMiddleware.h"
+#include "PsychicMiddlewareChain.h"
 #include "PsychicRewrite.h"
 
 #ifdef PSY_ENABLE_REGEX
@@ -17,8 +19,6 @@ enum PsychicHttpMethod {
 class PsychicEndpoint;
 class PsychicHandler;
 class PsychicStaticFileHandler;
-class PsychicMiddleware;
-class PsychicMiddlewareChain;
 
 class PsychicHttpServer
 {
@@ -29,10 +29,10 @@ class PsychicHttpServer
     std::list<PsychicClient*> _clients;
     std::list<PsychicRewrite*> _rewrites;
     std::list<PsychicRequestFilterFunction> _filters;
-    PsychicMiddlewareChain* _chain;
 
     PsychicClientCallback _onOpen;
     PsychicClientCallback _onClose;
+    PsychicMiddlewareChain* _chain;
 
     esp_err_t _start();
     virtual esp_err_t _startServer();
@@ -41,6 +41,8 @@ class PsychicHttpServer
     httpd_uri_match_func_t _uri_match_fn = nullptr;
 
     bool _rewriteRequest(PsychicRequest* request);
+    esp_err_t _process(PsychicRequest* request, PsychicResponse* response);
+    bool _filter(PsychicRequest* request);
 
   public:
     PsychicHttpServer(uint16_t port = 80);
@@ -101,16 +103,15 @@ class PsychicHttpServer
     bool removeEndpoint(const char* uri, int method);
     bool removeEndpoint(PsychicEndpoint* endpoint);
 
-    PsychicHttpServer* setFilter(PsychicRequestFilterFunction fn);
-    bool filter(PsychicRequest* request);
+    PsychicHttpServer* addFilter(PsychicRequestFilterFunction fn);
 
     PsychicHttpServer* addMiddleware(PsychicMiddleware* middleware);
     PsychicHttpServer* addMiddleware(PsychicMiddlewareFunction fn);
-    bool runMiddleware(PsychicRequest* request, PsychicResponse* response);
+    bool removeMiddleware(PsychicMiddleware *middleware);
 
     static esp_err_t requestHandler(httpd_req_t* req);
     static esp_err_t notFoundHandler(httpd_req_t* req, httpd_err_code_t err);
-    static esp_err_t defaultNotFoundHandler(PsychicRequest* request);
+    static esp_err_t defaultNotFoundHandler(PsychicRequest* request, PsychicResponse* response);
     static esp_err_t openCallback(httpd_handle_t hd, int sockfd);
     static void closeCallback(httpd_handle_t hd, int sockfd);
 

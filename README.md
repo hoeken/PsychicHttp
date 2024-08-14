@@ -23,7 +23,7 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 ## Differences from ESPAsyncWebserver
 
 * No templating system (anyone actually use this?)
-* No url rewriting (but you can use request->redirect)
+* No url rewriting (but you can use response->redirect)
 
 # Usage
 
@@ -136,7 +136,7 @@ If you have existing code using ESPAsyncWebserver, you will feel right at home w
 
 ## Requests / Responses
 
-* request->send is now request->reply()
+* request->send is now response->send()
 * if you create a response, call response->send() directly, not request->send(reply)
 * request->headers() is not supported by ESP-IDF, you have to just check for the header you need.
 * No AsyncCallbackJsonWebHandler (for now... can add if needed)
@@ -195,7 +195,7 @@ The ```server.on(...)``` returns a pointer to the endpoint, which can be used to
 
 ```cpp
 //respond to /url only from requests to the AP
-server.on("/url", HTTP_GET, request_callback)->setFilter(ON_AP_FILTER);
+server.on("/url", HTTP_GET, request_callback)->addFilter(ON_AP_FILTER);
 
 //require authentication on /url
 server.on("/url", HTTP_GET, request_callback)->setAuthentication("user", "pass");
@@ -209,7 +209,7 @@ server.on("/ws")->attachHandler(&websocketHandler);
 
 The ```PsychicWebHandler``` class is for handling standard web requests.  It provides a single callback: ```onRequest()```.  This callback is called when the handler receives a valid HTTP request.
 
-One major difference from ESPAsyncWebserver is that this callback needs to return an esp_err_t variable to let the server know the result of processing the request.  The ```response->reply()``` and ```request->send()``` functions will return this.  It is a good habit to return the result of these functions as sending the response will close the connection.
+One major difference from ESPAsyncWebserver is that this callback needs to return an esp_err_t variable to let the server know the result of processing the request.  The ```response->send()``` and ```request->send()``` functions will return this.  It is a good habit to return the result of these functions as sending the response will close the connection.
 
 The function definition for the onRequest callback is:
 
@@ -223,7 +223,7 @@ Here is a simple example that sends back the client's IP on the URL /ip
 server.on("/ip", [](PsychicRequest *request)
 {
    String output = "Your IP is: " + request->client()->remoteIP().toString();
-   return request->reply(output.c_str());
+   return response->send(output.c_str());
 });
 ```
 
@@ -291,7 +291,7 @@ It's worth noting that there is no standard way of passing in a filename for thi
    String url = "/" + request->getFilename();
    String output = "<a href=\"" + url + "\">" + url + "</a>";
 
-   return request->reply(output.c_str());
+   return response->send(output.c_str());
  });
 
  //wildcard basic file upload - POST to /upload/filename.ext
@@ -349,7 +349,7 @@ Very similar to the basic upload, with 2 key differences:
    output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
    output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
    
-   return request->reply(output.c_str());
+   return response->send(output.c_str());
  });
 
  //upload to /multipart url
@@ -371,11 +371,11 @@ The ```server.serveStatic()``` function handles creating the handler and assigni
 ```cpp
 //serve static files from LittleFS/www on / only to clients on same wifi network
 //this is where our /index.html file lives
-server.serveStatic("/", LittleFS, "/www/")->setFilter(ON_STA_FILTER);
+server.serveStatic("/", LittleFS, "/www/")->addFilter(ON_STA_FILTER);
 
 //serve static files from LittleFS/www-ap on / only to clients on SoftAP
 //this is where our /index.html file lives
-server.serveStatic("/", LittleFS, "/www-ap/")->setFilter(ON_AP_FILTER);
+server.serveStatic("/", LittleFS, "/www-ap/")->addFilter(ON_AP_FILTER);
 
 //serve static files from LittleFS/img on /img
 //it's more efficient to serve everything from a single www directory, but this is also possible.
@@ -429,7 +429,7 @@ Here is a basic example of using WebSockets:
 
  websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
      Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char *)frame->payload);
-     return request->reply(frame);
+     return response->send(frame);
  });
 
  websocketHandler.onClose([](PsychicWebSocketClient *client) {
@@ -449,7 +449,7 @@ The onFrame() callback has 2 parameters:
  
 For sending data on the websocket connection, there are 3 methods:
 
-* ```request->reply()``` - only available in the onFrame() callback context.
+* ```response->send()``` - only available in the onFrame() callback context.
 * ```webSocketHandler.sendAll()``` - can be used anywhere to send websocket messages to all connected clients.
 * ```client->send()``` - can be used anywhere* to send a websocket message to a specific client
 
@@ -551,7 +551,7 @@ PsychicHttpServer *redirectServer = new PsychicHttpServer();
 redirectServer->config.ctrl_port = 20420; // just a random port different from the default one
 redirectServer->onNotFound([](PsychicRequest *request) {
    String url = "https://" + request->host() + request->url();
-   return request->redirect(url.c_str());
+   return response->redirect(url.c_str());
 });
 ```
 

@@ -22,7 +22,7 @@ class PsychicWebHandler : public PsychicHandler
     ~PsychicWebHandler();
 
     virtual bool canHandle(PsychicRequest* request) override;
-    virtual esp_err_t handleRequest(PsychicRequest* request) override;
+    virtual esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* response) override;
     PsychicWebHandler* onRequest(PsychicHttpRequestCallback fn);
 
     virtual void openCallback(PsychicClient* client);

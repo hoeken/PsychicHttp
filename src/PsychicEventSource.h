@@ -80,16 +80,16 @@ class PsychicEventSource : public PsychicHandler
     PsychicEventSource* onOpen(PsychicEventSourceClientCallback fn);
     PsychicEventSource* onClose(PsychicEventSourceClientCallback fn);
 
-    esp_err_t handleRequest(PsychicRequest* request) override final;
+    esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* response) override final;
 
     void send(const char* message, const char* event = NULL, uint32_t id = 0, uint32_t reconnect = 0);
 };
 
-class PsychicEventSourceResponse : public PsychicResponse
+class PsychicEventSourceResponse : public PsychicResponseDelegate
 {
   public:
-    PsychicEventSourceResponse(PsychicRequest* request);
-    virtual esp_err_t send() override;
+    PsychicEventSourceResponse(PsychicResponse* response);
+    esp_err_t send();
 };
 
 String generateEventMessage(const char* message, const char* event, uint32_t id, uint32_t reconnect);

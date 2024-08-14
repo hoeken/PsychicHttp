@@ -3,15 +3,11 @@
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
 
-PsychicMiddleware::PsychicMiddleware(PsychicMiddlewareFunction callback) :
-  _callback(callback)
-  {
-  }
-
-PsychicMiddleware::~PsychicMiddleware() {}
-
-void PsychicMiddleware::run(PsychicMiddlewareChain *chain, PsychicRequest *request, PsychicResponse *response)
+PsychicMiddlewareClosure::PsychicMiddlewareClosure(PsychicMiddlewareFunction fn) : _fn(fn)
 {
-  if (_callback)
-    _callback(chain, request, response);
+  assert(_fn);
+}
+esp_err_t PsychicMiddlewareClosure::run(PsychicMiddlewareCallback next, PsychicRequest* request, PsychicResponse* response)
+{
+  return _fn(next, request, response);
 }

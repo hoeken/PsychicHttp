@@ -37,13 +37,13 @@ PsychicStaticFileHandler* PsychicStaticFileHandler::setIsDir(bool isDir)
 
 PsychicStaticFileHandler* PsychicStaticFileHandler::setDefaultFile(const char* filename)
 {
-  _default_file = String(filename);
+  _default_file = filename;
   return this;
 }
 
 PsychicStaticFileHandler* PsychicStaticFileHandler::setCacheControl(const char* cache_control)
 {
-  _cache_control = String(cache_control);
+  _cache_control = cache_control;
   return this;
 }
 
@@ -62,12 +62,21 @@ PsychicStaticFileHandler* PsychicStaticFileHandler::setLastModified(struct tm* l
 
 bool PsychicStaticFileHandler::canHandle(PsychicRequest* request)
 {
-  if (request->method() != HTTP_GET || !request->uri().startsWith(_uri))
+  if (request->method() != HTTP_GET) {
+    ESP_LOGD(PH_TAG, "Request %s refused by PsychicStaticFileHandler: %s", request->uri().c_str(), request->methodStr().c_str());
     return false;
+  }
 
-  if (_getFile(request))
+  if (!request->uri().startsWith(_uri)) {
+    ESP_LOGD(PH_TAG, "Request %s refused by PsychicStaticFileHandler: does not start with %s", request->uri().c_str(), _uri.c_str());
+    return false;
+  }
+
+  if (_getFile(request)) {
     return true;
+  }
 
+  ESP_LOGD(PH_TAG, "Request %s refused by PsychicStaticFileHandler: file not found", request->uri().c_str());
   return false;
 }
 
@@ -106,22 +115,17 @@ bool PsychicStaticFileHandler::_fileExists(const String& path)
 
   String gzip = path + ".gz";
 
-  if (_gzipFirst)
-  {
+  if (_gzipFirst) {
     _file = _fs.open(gzip, "r");
     gzipFound = FILE_IS_REAL(_file);
-    if (!gzipFound)
-    {
+    if (!gzipFound) {
       _file = _fs.open(path, "r");
       fileFound = FILE_IS_REAL(_file);
     }
-  }
-  else
-  {
+  } else {
     _file = _fs.open(path, "r");
     fileFound = FILE_IS_REAL(_file);
-    if (!fileFound)
-    {
+    if (!fileFound) {
       _file = _fs.open(gzip, "r");
       gzipFound = FILE_IS_REAL(_file);
     }
@@ -129,8 +133,7 @@ bool PsychicStaticFileHandler::_fileExists(const String& path)
 
   bool found = fileFound || gzipFound;
 
-  if (found)
-  {
+  if (found) {
     _filename = path;
 
     // Calculate gzip statistic
@@ -142,6 +145,8 @@ bool PsychicStaticFileHandler::_fileExists(const String& path)
     else
       _gzipFirst = _countBits(_gzipStats) > 4; // IF we have more gzip files - try gzip first
   }
+
+  ESP_LOGD(PH_TAG, "PsychicStaticFileHandler _fileExists(%s): %d", path.c_str(), found);
 
   return found;
 }
@@ -155,47 +160,39 @@ uint8_t PsychicStaticFileHandler::_countBits(const uint8_t value) const
   return n;
 }
 
-esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest* request)
+esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest* request, PsychicResponse* res)
 {
-  if (_file == true)
-  {
+  if (_file == true) {
     // is it not modified?
     String etag = String(_file.size());
-    if (_last_modified.length() && _last_modified == request->header("If-Modified-Since"))
-    {
+    if (_last_modified.length() && _last_modified == request->header("If-Modified-Since")) {
       _file.close();
-      request->reply(304); // Not modified
+      res->send(304); // Not modified
     }
     // does our Etag match?
-    else if (_cache_control.length() && request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag))
-    {
+    else if (_cache_control.length() && request->hasHeader("If-None-Match") && request->header("If-None-Match").equals(etag)) {
       _file.close();
 
-      PsychicResponse response(request);
-      response.addHeader("Cache-Control", _cache_control.c_str());
-      response.addHeader("ETag", etag.c_str());
-      response.setCode(304);
-      response.send();
+      res->addHeader("Cache-Control", _cache_control.c_str());
+      res->addHeader("ETag", etag.c_str());
+      res->setCode(304);
+      res->send();
     }
     // nope, send them the full file.
-    else
-    {
-      PsychicFileResponse response(request, _fs, _filename);
+    else {
+      PsychicFileResponse response(res, _fs, _filename);
 
       if (_last_modified.length())
         response.addHeader("Last-Modified", _last_modified.c_str());
-      if (_cache_control.length())
-      {
+      if (_cache_control.length()) {
         response.addHeader("Cache-Control", _cache_control.c_str());
         response.addHeader("ETag", etag.c_str());
       }
 
       return response.send();
     }
-  }
-  else
-  {
-    return request->reply(404);
+  } else {
+    return res->send(404);
   }
 
   return ESP_OK;

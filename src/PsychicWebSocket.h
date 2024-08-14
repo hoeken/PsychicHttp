@@ -60,7 +60,7 @@ class PsychicWebSocketHandler : public PsychicHandler
     void closeCallback(PsychicClient* client) override;
 
     bool isWebSocket() override final;
-    esp_err_t handleRequest(PsychicRequest* request) override;
+    esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* response) override;
 
     PsychicWebSocketHandler* onOpen(PsychicWebSocketClientCallback fn);
     PsychicWebSocketHandler* onFrame(PsychicWebSocketFrameCallback fn);

@@ -170,7 +170,7 @@ void setup()
     }
 
     // our index
-    server.on("/", HTTP_GET, [](PsychicRequest* request) { return request->reply(200, "text/html", htmlContent); });
+    server.on("/", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) { return response->send(200, "text/html", htmlContent); });
 
     // serve static files from LittleFS/www on /
     server.serveStatic("/", LittleFS, "/www/");
@@ -180,7 +180,7 @@ void setup()
       // client->sendMessage("Hello!");
     });
     websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame) {
-      request->reply(frame);
+      response->send(frame);
       return ESP_OK; });
     server.on("/ws", &websocketHandler);
 
@@ -189,7 +189,7 @@ void setup()
     server.on("/events", &eventSource);
 
     // api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/api", HTTP_GET, [](PsychicRequest* request) {
+    server.on("/api", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
       //create a response object
       JsonDocument output;
       output["msg"] = "status";
@@ -206,7 +206,7 @@ void setup()
       //serialize and return
       String jsonBuffer;
       serializeJson(output, jsonBuffer);
-      return request->reply(200, "application/json", jsonBuffer.c_str()); });
+      return response->send(200, "application/json", jsonBuffer.c_str()); });
 
     server.begin();
   }

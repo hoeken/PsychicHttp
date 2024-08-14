@@ -13,7 +13,7 @@ bool PsychicWebHandler::canHandle(PsychicRequest* request)
   return true;
 }
 
-esp_err_t PsychicWebHandler::handleRequest(PsychicRequest* request)
+esp_err_t PsychicWebHandler::handleRequest(PsychicRequest* request, PsychicResponse* response)
 {
   // lookup our client
   PsychicClient* client = checkForNewClient(request->client());
@@ -28,7 +28,7 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest* request)
     /* Respond with 400 Bad Request */
     char error[60];
     sprintf(error, "Request body must be less than %lu bytes!", request->server()->maxRequestBodySize);
-    request->reply(400, "text/html", error);
+    response->send(400, "text/html", error);
 
     /* Return failure to close underlying connection else the incoming file content will keep the socket busy */
     return ESP_FAIL;
@@ -37,14 +37,14 @@ esp_err_t PsychicWebHandler::handleRequest(PsychicRequest* request)
   // get our body loaded up.
   esp_err_t err = request->loadBody();
   if (err != ESP_OK)
-    return request->reply(400, "text/html", "Error loading request body.");
+    return response->send(400, "text/html", "Error loading request body.");
 
   // load our params in.
   request->loadParams();
 
   // okay, pass on to our callback.
   if (this->_requestCallback != NULL)
-    err = this->_requestCallback(request);
+    err = this->_requestCallback(request, response);
 
   return err;
 }
