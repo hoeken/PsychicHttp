@@ -18,14 +18,9 @@ class PsychicHandler
     friend PsychicEndpoint;
 
   protected:
-    std::list<PsychicMiddleware*> _middleware;
+    PsychicMiddlewareChain _middlewareChain;
+    PsychicRequestFilterFunction _filter;
     PsychicHttpServer* _server;
-
-    String _username;
-    String _password;
-    HTTPAuthMethod _method;
-    String _realm;
-    String _authFailMsg;
 
     String _subprotocol;
 
@@ -34,10 +29,6 @@ class PsychicHandler
   public:
     PsychicHandler();
     virtual ~PsychicHandler();
-
-    PsychicHandler* setAuthentication(const char* username, const char* password, HTTPAuthMethod method = BASIC_AUTH, const char* realm = "", const char* authFailMsg = "");
-    bool needsAuthentication(PsychicRequest* request);
-    esp_err_t authenticate(PsychicRequest* request);
 
     virtual bool isWebSocket() { return false; };
 
@@ -58,16 +49,19 @@ class PsychicHandler
     int count() { return _clients.size(); };
     const std::list<PsychicClient*>& getClientList();
 
+    // called to process this handler with its middleware chain
+    esp_err_t process(PsychicRequest* request, PsychicResponse* response);
+
     // derived classes must implement these functions
     virtual bool canHandle(PsychicRequest* request) { return true; };
-//    virtual esp_err_t handleRequest(PsychicRequest* request);
+    // derived classes must implement these functions
     virtual esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* response) = 0;
 
     //bool filter(PsychicRequest* request);
     PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
     PsychicHandler* addMiddleware(PsychicMiddleware *middleware);
     PsychicHandler* addMiddleware(PsychicMiddlewareFunction fn);
-    bool runMiddleware(PsychicRequest* request, PsychicResponse* response);
+    bool removeMiddleware(PsychicMiddleware *middleware);
 };
 
 #endif

@@ -241,18 +241,6 @@ bool setupSDCard()
 }
 #endif
 
-bool PERMISSIVE_CORS(PsychicRequest* request, PsychicResponse* response)
-{
-  if (request->hasHeader("Origin")) {
-    response->addHeader("Access-Control-Allow-Origin", "*");
-    response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    response->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
-    response->addHeader("Access-Control-Max-Age", "86400");
-  }
-
-  return true;
-}
-
 void setup()
 {
   esp_log_level_set(PH_TAG, ESP_LOG_DEBUG);
@@ -693,7 +681,7 @@ void setup()
       });
 
     // this will send CORS headers on every request that contains the Origin: header
-    server.addMiddleware(PERMISSIVE_CORS);
+    server.addMiddleware(new PermissiveCorsMiddleware());
 
     // this will respond to CORS requests (note: the global server filter will automatically add the CORS headers)
     server.on("*", HTTP_OPTIONS, [](PsychicRequest* request) { return request->reply(200); });

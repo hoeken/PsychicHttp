@@ -1,11 +1,6 @@
 #include "PsychicHandler.h"
 
 PsychicHandler::PsychicHandler() : _server(NULL),
-                                   _username(""),
-                                   _password(""),
-                                   _method(DIGEST_AUTH),
-                                   _realm(""),
-                                   _authFailMsg(""),
                                    _subprotocol("")
 {
 }
@@ -16,11 +11,6 @@ PsychicHandler::~PsychicHandler()
   // for (PsychicClient *client : _clients)
   //   delete(client);
   _clients.clear();
-
-  // how do we do this while allowing people to pass in middleware objects?
-  // for (auto * mw : _middleware)
-  //   delete(mw);
-  _middleware.clear();
 }
 
 void PsychicHandler::setSubprotocol(const String& subprotocol)
@@ -30,26 +20,6 @@ void PsychicHandler::setSubprotocol(const String& subprotocol)
 const char* PsychicHandler::getSubprotocol() const
 {
   return _subprotocol.c_str();
-}
-
-PsychicHandler* PsychicHandler::setAuthentication(const char* username, const char* password, HTTPAuthMethod method, const char* realm, const char* authFailMsg)
-{
-  _username = String(username);
-  _password = String(password);
-  _method = method;
-  _realm = String(realm);
-  _authFailMsg = String(authFailMsg);
-  return this;
-};
-
-bool PsychicHandler::needsAuthentication(PsychicRequest* request)
-{
-  return (_username != "" && _password != "") && !request->authenticate(_username.c_str(), _password.c_str());
-}
-
-esp_err_t PsychicHandler::authenticate(PsychicRequest* request)
-{
-  return request->requestAuthentication(_method, _realm.c_str(), _authFailMsg.c_str());
 }
 
 PsychicClient* PsychicHandler::checkForNewClient(PsychicClient* client)
@@ -115,31 +85,28 @@ const std::list<PsychicClient*>& PsychicHandler::getClientList()
 
 PsychicHandler* PsychicHandler::setFilter(PsychicRequestFilterFunction fn)
 {
-  PsychicMiddleware *mw = new PsychicMiddleware(fn);
-  _middleware.push_back(mw);
+  _filter = fn;
   return this;
 }
 
-PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddleware *middleware)
+PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddleware* middleware)
 {
-  _middleware.push_back(middleware);
+  _middlewareChain.add(middleware);
   return this;
 }
 
 PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddlewareFunction fn)
 {
-  PsychicMiddleware *mw = new PsychicMiddleware(fn);
-  _middleware.push_back(mw);
+  _middlewareChain.add(fn);
   return this;
 }
 
-bool PsychicHandler::runMiddleware(PsychicRequest* request, PsychicResponse* response)
+bool PsychicHandler::removeMiddleware(PsychicMiddleware* middleware)
 {
-  // run through our filter chain.
-  for (auto mw : _middleware) {
-    if (!mw->run(request, response))
-      return false;
-  }
+  return _middlewareChain.remove(middleware);
+}
 
-  return true;
+esp_err_t PsychicHandler::process(PsychicRequest* request, PsychicResponse* response)
+{
+  return _middlewareChain.run(request, response, std::bind(&PsychicHandler::handleRequest, this, std::placeholders::_1, std::placeholders::_2));
 }

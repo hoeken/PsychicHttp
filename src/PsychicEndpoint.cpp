@@ -59,25 +59,13 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t* req)
   PsychicRequest request(self->_server, req);
   PsychicResponse response(&request);
 
-  // make sure we have a handler
-  if (handler != NULL) {
-    if (handler->canHandle(&request)) {
-      if (handler->runMiddleware(&request, &response)) {
-        // check our credentials
-        if (handler->needsAuthentication(&request))
-          return handler->authenticate(&request);
+  esp_err_t err = self->process(&request, &response);
 
-        // pass it to our handler
-        return handler->handleRequest(&request, &response);
-      }
-    }
-    // pass it to our generic handlers
-    else
-      return PsychicHttpServer::requestHandler(req);
-  } else
-    return request.reply(500, "text/html", "No handler registered.");
+  if (err == ESP_ERR_NOT_SUPPORTED) {
+    return PsychicHttpServer::requestHandler(req);
+  }
 
-  return ESP_ERR_HTTPD_INVALID_REQ;
+  return err;
 }
 
 bool PsychicEndpoint::matches(const char* uri)
@@ -125,13 +113,7 @@ PsychicEndpoint* PsychicEndpoint::setFilter(PsychicRequestFilterFunction fn)
   return this;
 }
 
-PsychicEndpoint* PsychicEndpoint::setAuthentication(const char* username, const char* password, HTTPAuthMethod method, const char* realm, const char* authFailMsg)
-{
-  _handler->setAuthentication(username, password, method, realm, authFailMsg);
-  return this;
-};
-
-PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddleware *middleware)
+PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddleware* middleware)
 {
   _handler->addMiddleware(middleware);
   return this;
@@ -141,4 +123,25 @@ PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddlewareFunction fn)
 {
   _handler->addMiddleware(fn);
   return this;
+}
+
+bool PsychicEndpoint::removeMiddleware(PsychicMiddleware* middleware)
+{
+  return _handler->removeMiddleware(middleware);
+}
+
+esp_err_t PsychicEndpoint::process(PsychicRequest* request, PsychicResponse* response)
+{
+  // make sure we have a handler
+  if (_handler != NULL) {
+    if (_handler->canHandle(request)) {
+      return _handler->process(request, response);
+    }
+    // pass it to our generic handlers
+    else
+      return ESP_ERR_NOT_SUPPORTED;
+  } else
+    return request->reply(500, "text/html", "No handler registered.");
+
+  return ESP_ERR_HTTPD_INVALID_REQ;
 }

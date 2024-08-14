@@ -18,7 +18,6 @@ enum PsychicHttpMethod {
 class PsychicEndpoint;
 class PsychicHandler;
 class PsychicStaticFileHandler;
-class PsychicMiddleware;
 
 class PsychicHttpServer
 {
@@ -28,7 +27,8 @@ class PsychicHttpServer
     std::list<PsychicHandler*> _handlers;
     std::list<PsychicClient*> _clients;
     std::list<PsychicRewrite*> _rewrites;
-    std::list<PsychicMiddleware*> _middleware;
+    PsychicMiddlewareChain _middlewareChain;
+    PsychicRequestFilterFunction _filter;
 
     PsychicClientCallback _onOpen;
     PsychicClientCallback _onClose;
@@ -40,6 +40,7 @@ class PsychicHttpServer
     httpd_uri_match_func_t _uri_match_fn = nullptr;
 
     bool _rewriteRequest(PsychicRequest* request);
+    esp_err_t _process(PsychicRequest* request, PsychicResponse* response);
 
   public:
     PsychicHttpServer(uint16_t port = 80);
@@ -100,11 +101,10 @@ class PsychicHttpServer
     bool removeEndpoint(const char* uri, int method);
     bool removeEndpoint(PsychicEndpoint* endpoint);
 
-    //bool filter(PsychicRequest* request);
     PsychicHttpServer* setFilter(PsychicRequestFilterFunction fn);
     PsychicHttpServer* addMiddleware(PsychicMiddleware *middleware);
     PsychicHttpServer* addMiddleware(PsychicMiddlewareFunction fn);
-    bool runMiddleware(PsychicRequest* request, PsychicResponse* response);
+    bool removeMiddleware(PsychicMiddleware *middleware);
 
     static esp_err_t requestHandler(httpd_req_t* req);
     static esp_err_t notFoundHandler(httpd_req_t* req, httpd_err_code_t err);

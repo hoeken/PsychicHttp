@@ -33,10 +33,13 @@ class PsychicEndpoint
 
     bool matches(const char* uri);
 
+    // called to process this endpoint with its middleware chain
+    esp_err_t process(PsychicRequest* request, PsychicResponse* response);
+
     PsychicEndpoint* setFilter(PsychicRequestFilterFunction fn);
-    PsychicEndpoint* setAuthentication(const char* username, const char* password, HTTPAuthMethod method = BASIC_AUTH, const char* realm = "", const char* authFailMsg = "");
     PsychicEndpoint* addMiddleware(PsychicMiddleware *middleware);
     PsychicEndpoint* addMiddleware(PsychicMiddlewareFunction fn);
+    bool removeMiddleware(PsychicMiddleware *middleware);
 
     String uri();
 

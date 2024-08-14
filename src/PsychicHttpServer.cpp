@@ -2,6 +2,7 @@
 #include "PsychicEndpoint.h"
 #include "PsychicHandler.h"
 #include "PsychicJson.h"
+#include "PsychicMiddleware.h"
 #include "PsychicStaticFileHandler.h"
 #include "PsychicWebHandler.h"
 #include "PsychicWebSocket.h"
@@ -381,33 +382,25 @@ bool PsychicHttpServer::removeEndpoint(PsychicEndpoint* endpoint)
 
 PsychicHttpServer* PsychicHttpServer::setFilter(PsychicRequestFilterFunction fn)
 {
-  PsychicMiddleware *mw = new PsychicMiddleware(fn);
-  _middleware.push_back(mw);
+  _filter = fn;
   return this;
 }
 
-PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddleware *middleware)
+PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddleware* middleware)
 {
-  _middleware.push_back(middleware);
+  _middlewareChain.add(middleware);
   return this;
 }
 
 PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddlewareFunction fn)
 {
-  PsychicMiddleware *mw = new PsychicMiddleware(fn);
-  _middleware.push_back(mw);
+  _middlewareChain.add(fn);
   return this;
 }
 
-bool PsychicHttpServer::runMiddleware(PsychicRequest* request, PsychicResponse* response)
+bool PsychicHttpServer::removeMiddleware(PsychicMiddleware* middleware)
 {
-  // run through our filter chain.
-  for (auto* mw : _middleware) {
-    if (!mw->run(request, response))
-      return false;
-  }
-
-  return true;
+  return _middlewareChain.remove(middleware);
 }
 
 void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
@@ -441,51 +434,51 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
   // check our rewrites
   server->_rewriteRequest(&request);
 
-  // run it through our global server filters.
-  if (!server->runMiddleware(&request, &response)) {
+  // first check if we have a filter function denying this request
+  if (server->_filter && !server->_filter(&request)) {
     return request.reply(400);
   }
 
+  // then runs the request through the filter chain
+  esp_err_t ret = server->_middlewareChain.run(&request, &response, std::bind(&PsychicHttpServer::_process, server, std::placeholders::_1, std::placeholders::_2));
+
+  if (ret == HTTPD_404_NOT_FOUND) {
+    return PsychicHttpServer::notFoundHandler(req, HTTPD_404_NOT_FOUND);
+  }
+
+  return ret;
+}
+
+esp_err_t PsychicHttpServer::_process(PsychicRequest* request, PsychicResponse* response)
+{
   // loop through our endpoints and see if anyone wants it.
-  for (auto* endpoint : server->_endpoints) {
+  for (auto* endpoint : _endpoints) {
     // check urls first
-    if (endpoint->matches(request.uri().c_str())) {
+    if (endpoint->matches(request->uri().c_str())) {
       // check the http_method next
-      if (endpoint->_method == request.method() || endpoint->_method == HTTP_ANY) {
-        request.setEndpoint(endpoint);
+      if (endpoint->_method == request->method() || endpoint->_method == HTTP_ANY) {
+        request->setEndpoint(endpoint);
 
         // check other filter functions
         PsychicHandler* handler = endpoint->handler();
 
         // is the handler ok?
-        if (handler->canHandle(&request)) {
-          if (handler->runMiddleware(&request, &response)) {
-            // check our credentials
-            if (handler->needsAuthentication(&request))
-              return handler->authenticate(&request);
-            else
-              return handler->handleRequest(&request, &response);
-          }
+        if (handler->canHandle(request)) {
+          return handler->process(request, response);
         }
       }
     }
   }
 
   // loop through our global handlers and see if anyone wants it
-  for (auto* handler : server->_handlers) {
+  for (auto* handler : _handlers) {
     // are we capable of handling this?
-    if (handler->canHandle(&request)) {
-      if (handler->runMiddleware(&request, &response)) {
-        // check our credentials
-        if (handler->needsAuthentication(&request))
-          return handler->authenticate(&request);
-        else
-          return handler->handleRequest(&request, &response);
-      }
+    if (handler->canHandle(request)) {
+      return handler->process(request, response);
     }
   }
 
-  return PsychicHttpServer::notFoundHandler(req, HTTPD_404_NOT_FOUND);
+  return HTTPD_404_NOT_FOUND;
 }
 
 esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t* req, httpd_err_code_t err)
@@ -497,8 +490,7 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t* req, httpd_err_code_t 
   // pull up our default handler / endpoint
   PsychicHandler* handler = server->defaultEndpoint->handler();
   if (handler->canHandle(&request)) {
-    if (handler->runMiddleware(&request, &response))
-      return handler->handleRequest(&request, &response);      
+    return handler->process(&request, &response);
   }
 
   // not sure how we got this far.
