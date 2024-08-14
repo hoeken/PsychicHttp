@@ -1,3 +1,7 @@
+# v1.2.1
+
+* Fix bug with missing include preventing the HTTPS server from compiling.
+
 # v1.2
 
 * Added TemplatePrinter from https://github.com/Chris--A/PsychicHttp/tree/templatePrint
