@@ -49,12 +49,13 @@ class PsychicRequest;
 class PsychicResponse;
 class PsychicWebSocketRequest;
 class PsychicClient;
+class PsychicMiddlewareChain;
 
 // filter function definition
 typedef std::function<bool(PsychicRequest* request)> PsychicRequestFilterFunction;
 
 // middleware function definition
-typedef std::function<bool(PsychicRequest* request, PsychicResponse* response)> PsychicMiddlewareFunction;
+typedef std::function<bool(PsychicMiddlewareChain *chain, PsychicRequest* request, PsychicResponse* response)> PsychicMiddlewareFunction;
 
 // client connect callback
 typedef std::function<void(PsychicClient* client)> PsychicClientCallback;

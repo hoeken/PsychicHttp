@@ -49,9 +49,7 @@
 
 # PsychicResponse
 
-- [ ] add new constructor request(*response)
-  - [ ] refactor existing custom Response objects to Delegation style
-    - [ ] store root response pointer internally
-    - [ ] pass on 'standard' calls to root object
-      - [ ] code, contentType, headers, cookies, content, send, etc.
-  - [ ] existing constructors that pass in *request pointer can instead call constructor with new *request->_response style
+- [x] make class final
+- [x] refactor existing custom Response objects to Delegation style
+  - [x] store root response pointer internally
+  - [x] pass on all calls to root object

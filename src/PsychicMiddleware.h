@@ -4,26 +4,22 @@
 #include "PsychicCore.h"
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
+#include "PsychicMiddlewareChain.h"
 
 /*
- * REWRITE :: One instance can be handle any Request (done by the Server)
+ * PsychicMiddleware :: fancy callback wrapper for handling requests and responses.
  * */
 
 class PsychicMiddleware {
-  protected:
-    String _name;
-    PsychicRequestFilterFunction _filter;
-    PsychicMiddlewareFunction _middleware;
-
   public:
-    PsychicMiddleware(PsychicRequestFilterFunction filter);
+    //void *_context;
+    String _name;
+    PsychicMiddlewareFunction _callback;
+
     PsychicMiddleware(PsychicMiddlewareFunction middleware);
     virtual ~PsychicMiddleware();
 
-    bool run(PsychicRequest *request, PsychicResponse *response);
-
-    void setName(const char *name);
-    const String& getName();
+    void run(PsychicMiddlewareChain *chain, PsychicRequest *request, PsychicResponse *response);
 };
 
 #endif
