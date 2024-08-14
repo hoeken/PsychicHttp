@@ -35,4 +35,6 @@ class PsychicHttpsServer : public PsychicHttpServer
 
 #endif // PsychicHttpsServer_h
 
+#else
+  #error ESP-IDF https server support not enabled.
 #endif // CONFIG_ESP_HTTPS_SERVER_ENABLE

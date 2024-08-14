@@ -18,6 +18,10 @@
 * remove any calls to ```config.max_uri_handlers```
 * if you are using a custom ```server.config.uri_match_fn``` to match uris, change it to ```server.setURIMatchFunction()```
 
+# v1.2.1
+
+* Fix bug with missing include preventing the HTTPS server from compiling.
+
 # v1.2
 
 * Added TemplatePrinter from https://github.com/Chris--A/PsychicHttp/tree/templatePrint
