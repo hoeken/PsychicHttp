@@ -272,15 +272,6 @@ bool PsychicRequest::isMultipart()
   return (this->contentType().indexOf("multipart/form-data") >= 0);
 }
 
-esp_err_t PsychicRequest::redirect(const char* url)
-{
-  PsychicResponse response(this);
-  response.setCode(301);
-  response.addHeader("Location", url);
-
-  return response.send();
-}
-
 bool PsychicRequest::hasCookie(const char* key, size_t* size)
 {
   char buffer;
@@ -601,88 +592,4 @@ esp_err_t PsychicRequest::requestAuthentication(HTTPAuthMethod mode, const char*
   response.setContentType("text/html");
   response.setContent(authStr.c_str());
   return response.send();
-}
-
-esp_err_t PsychicRequest::reply(int code)
-{
-  PsychicResponse response(this);
-
-  response.setCode(code);
-  response.setContentType("text/plain");
-  response.setContent(http_status_reason(code));
-
-  return response.send();
-}
-
-esp_err_t PsychicRequest::reply(const char* content)
-{
-  PsychicResponse response(this);
-
-  response.setCode(200);
-  response.setContentType("text/html");
-  response.setContent(content);
-
-  return response.send();
-}
-
-esp_err_t PsychicRequest::reply(int code, const char* contentType, const char* content)
-{
-  PsychicResponse response(this);
-
-  response.setCode(code);
-  response.setContentType(contentType);
-  response.setContent(content);
-
-  return response.send();
-}
-
-esp_err_t PsychicRequest::reply(int code, const char* contentType, const uint8_t* content, size_t len)
-{
-  PsychicResponse response(this);
-
-  response.setCode(code);
-  response.setContentType(contentType);
-  response.setContent(content, len);
-
-  return response.send();
-}
-
-esp_err_t PsychicRequest::reply(PsychicResponse* response)
-{
-  esp_err_t err = response->send();
-  delete response;
-  return err;
-}
-
-PsychicResponse* PsychicRequest::beginReply(int code)
-{
-  PsychicResponse* response = new PsychicResponse(this);
-  response->setCode(code);
-  return response;
-}
-
-PsychicResponse* PsychicRequest::beginReply(int code, const char* contentType)
-{
-  PsychicResponse* response = new PsychicResponse(this);
-  response->setCode(code);
-  response->setContentType(contentType);
-  return response;
-}
-
-PsychicResponse* PsychicRequest::beginReply(int code, const char* contentType, const char* content)
-{
-  PsychicResponse* response = new PsychicResponse(this);
-  response->setCode(code);
-  response->setContentType(contentType);
-  response->setContent(content);
-  return response;
-}
-
-PsychicResponse* PsychicRequest::beginReply(int code, const char* contentType, const uint8_t* content, size_t len)
-{
-  PsychicResponse* response = new PsychicResponse(this);
-  response->setCode(code);
-  response->setContentType(contentType);
-  response->setContent(content, len);
-  return response;
 }

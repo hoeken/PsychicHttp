@@ -3,11 +3,11 @@
 
 #include "PsychicCore.h"
 #include "PsychicRequest.h"
-#include "PsychicMiddleware.h"
-#include "PsychicMiddlewareChain.h"
 
 class PsychicEndpoint;
 class PsychicHttpServer;
+class PsychicMiddleware;
+class PsychicMiddlewareChain;
 
 /*
  * HANDLER :: Can be attached to any endpoint or as a generic request handler.
@@ -18,15 +18,9 @@ class PsychicHandler
     friend PsychicEndpoint;
 
   protected:
-    std::list<PsychicRequestFilterFunction> _filters;
-    PsychicMiddlewareChain* _chain;
     PsychicHttpServer* _server;
-
-    String _username;
-    String _password;
-    HTTPAuthMethod _method;
-    String _realm;
-    String _authFailMsg;
+    PsychicMiddlewareChain* _chain;
+    std::list<PsychicRequestFilterFunction> _filters;
 
     String _subprotocol;
 
@@ -35,10 +29,6 @@ class PsychicHandler
   public:
     PsychicHandler();
     virtual ~PsychicHandler();
-
-    PsychicHandler* setAuthentication(const char* username, const char* password, HTTPAuthMethod method = BASIC_AUTH, const char* realm = "", const char* authFailMsg = "");
-    bool needsAuthentication(PsychicRequest* request);
-    esp_err_t authenticate(PsychicRequest* request);
 
     virtual bool isWebSocket() { return false; };
 
@@ -59,16 +49,20 @@ class PsychicHandler
     int count() { return _clients.size(); };
     const std::list<PsychicClient*>& getClientList();
 
-    PsychicHandler* setFilter(PsychicRequestFilterFunction fn);
+    // called to process this handler with its middleware chain and filers
+    esp_err_t process(PsychicRequest* request, PsychicResponse* response);
+
+    //bool filter(PsychicRequest* request);
+    PsychicHandler* addFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicRequest* request);
 
     PsychicHandler* addMiddleware(PsychicMiddleware* middleware);
     PsychicHandler* addMiddleware(PsychicMiddlewareFunction fn);
-    bool runMiddleware(PsychicRequest* request, PsychicResponse* response);
+    bool removeMiddleware(PsychicMiddleware *middleware);
 
     // derived classes must implement these functions
     virtual bool canHandle(PsychicRequest* request) { return true; };
-    virtual esp_err_t handleRequest(PsychicRequest* request) = 0;
+    virtual esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* response) { return HTTPD_404_NOT_FOUND; };
 };
 
 #endif

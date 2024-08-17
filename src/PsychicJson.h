@@ -30,7 +30,7 @@ constexpr const char* JSON_MIMETYPE = "application/json";
  * Json Response
  * */
 
-class PsychicJsonResponse : public PsychicResponse
+class PsychicJsonResponse : public PsychicResponseDelegate
 {
   protected:
 #ifdef ARDUINOJSON_5_COMPATIBILITY
@@ -46,11 +46,11 @@ class PsychicJsonResponse : public PsychicResponse
 
   public:
 #ifdef ARDUINOJSON_5_COMPATIBILITY
-    PsychicJsonResponse(PsychicRequest* request, bool isArray = false);
+    PsychicJsonResponse(PsychicResponse* response, bool isArray = false);
 #elif ARDUINOJSON_VERSION_MAJOR == 6
-    PsychicJsonResponse(PsychicRequest* request, bool isArray = false, size_t maxJsonBufferSize = DYNAMIC_JSON_DOCUMENT_SIZE);
+    PsychicJsonResponse(PsychicResponse* response, bool isArray = false, size_t maxJsonBufferSize = DYNAMIC_JSON_DOCUMENT_SIZE);
 #else
-    PsychicJsonResponse(PsychicRequest* request, bool isArray = false);
+    PsychicJsonResponse(PsychicResponse* response, bool isArray = false);
 #endif
 
     ~PsychicJsonResponse()
@@ -60,7 +60,7 @@ class PsychicJsonResponse : public PsychicResponse
     JsonVariant& getRoot();
     size_t getLength();
 
-    virtual esp_err_t send() override;
+    esp_err_t send();
 };
 
 class PsychicJsonHandler : public PsychicWebHandler
@@ -84,7 +84,7 @@ class PsychicJsonHandler : public PsychicWebHandler
 #endif
 
     void onRequest(PsychicJsonRequestCallback fn);
-    virtual esp_err_t handleRequest(PsychicRequest* request) override;
+    virtual esp_err_t handleRequest(PsychicRequest* request, PsychicResponse* response) override;
 };
 
 #endif

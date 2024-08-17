@@ -4,22 +4,26 @@
 #include "PsychicCore.h"
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
-#include "PsychicMiddlewareChain.h"
 
 /*
  * PsychicMiddleware :: fancy callback wrapper for handling requests and responses.
  * */
 
-class PsychicMiddleware {
+class PsychicMiddleware
+{
   public:
-    //void *_context;
-    String _name;
-    PsychicMiddlewareFunction _callback;
+    virtual ~PsychicMiddleware() {}
+    virtual esp_err_t run(PsychicMiddlewareCallback next, PsychicRequest* request, PsychicResponse* response) = 0;
+};
 
-    PsychicMiddleware(PsychicMiddlewareFunction middleware);
-    virtual ~PsychicMiddleware();
+class PsychicMiddlewareClosure : public PsychicMiddleware
+{
+  protected:
+    PsychicMiddlewareFunction _fn;
 
-    void run(PsychicMiddlewareChain *chain, PsychicRequest *request, PsychicResponse *response);
+  public:
+    PsychicMiddlewareClosure(PsychicMiddlewareFunction fn);
+    esp_err_t run(PsychicMiddlewareCallback next, PsychicRequest* request, PsychicResponse* response) override;
 };
 
 #endif

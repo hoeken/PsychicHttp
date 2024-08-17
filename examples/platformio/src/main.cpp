@@ -241,18 +241,6 @@ bool setupSDCard()
 }
 #endif
 
-bool PERMISSIVE_CORS(PsychicRequest* request)
-{
-  if (request->hasHeader("Origin")) {
-    request->addResponseHeader("Access-Control-Allow-Origin", "*");
-    request->addResponseHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    request->addResponseHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
-    request->addResponseHeader("Access-Control-Max-Age", "86400");
-  }
-
-  return true;
-}
-
 void setup()
 {
   esp_log_level_set(PH_TAG, ESP_LOG_DEBUG);
@@ -328,9 +316,9 @@ void setup()
       // this creates a 2nd server listening on port 80 and redirects all requests HTTPS
       PsychicHttpServer* redirectServer = new PsychicHttpServer();
       redirectServer->config.ctrl_port = 20424; // just a random port different from the default one
-      redirectServer->onNotFound([](PsychicRequest* request) {
+      redirectServer->onNotFound([](PsychicRequest* request, PsychicResponse* response) {
         String url = "https://" + request->host() + request->url();
-        return request->redirect(url.c_str()); });
+        return response->redirect(url.c_str()); });
     }
 #endif
 
@@ -342,13 +330,13 @@ void setup()
     // serve static files from LittleFS/www on / only to clients on same wifi network
     // this is where our /index.html file lives
     //  curl -i http://psychic.local/
-    PsychicStaticFileHandler* handler = server.serveStatic("/", LittleFS, "/www/");
-    handler->setCacheControl("max-age=60");
-    handler->setFilter(ON_STA_FILTER);
+    server.serveStatic("/", LittleFS, "/www/")
+      ->setCacheControl("max-age=60")
+      ->addFilter(ON_STA_FILTER);
 
     // serve static files from LittleFS/www-ap on / only to clients on SoftAP
     // this is where our /index.html file lives
-    server.serveStatic("/", LittleFS, "/www-ap/")->setFilter(ON_AP_FILTER);
+    server.serveStatic("/", LittleFS, "/www-ap/")->addFilter(ON_AP_FILTER);
 
     // serve static files from LittleFS/img on /img
     // it's more efficient to serve everything from a single www directory, but this is also possible.
@@ -373,11 +361,11 @@ void setup()
 
     // api - json message passed in as post body
     //  curl -i -X POST -H "Content-Type: application/json" -d '{"foo":"bar"}' http://psychic.local/api
-    server.on("/api", HTTP_POST, [](PsychicRequest* request, JsonVariant& json) {
+    server.on("/api", HTTP_POST, [](PsychicRequest* request, PsychicResponse* resp, JsonVariant& json) {
       JsonObject input = json.as<JsonObject>();
 
       // create our response json
-      PsychicJsonResponse response = PsychicJsonResponse(request);
+      PsychicJsonResponse response(resp);
       JsonObject output = response.getRoot();
 
       output["msg"] = "status";
@@ -396,15 +384,15 @@ void setup()
 
     // ip - get info about the client
     //  curl -i http://psychic.local/ip
-    server.on("/ip", HTTP_GET, [](PsychicRequest* request) {
+    server.on("/ip", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
       String output = "Your IP is: " + request->client()->remoteIP().toString();
-      return request->reply(output.c_str());
+      return response->send(output.c_str());
     });
 
     // client connect/disconnect to a url
     //  curl -i http://psychic.local/handler
     PsychicWebHandler* connectionHandler = new PsychicWebHandler();
-    connectionHandler->onRequest([](PsychicRequest* request) { return request->reply("OK"); });
+    connectionHandler->onRequest([](PsychicRequest* request, PsychicResponse* response) { return response->send("OK"); });
     connectionHandler->onOpen([](PsychicClient* client) { Serial.printf("[handler] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str()); });
     connectionHandler->onClose([](PsychicClient* client) { Serial.printf("[handler] connection #%u closed\n", client->socket()); });
 
@@ -413,9 +401,9 @@ void setup()
 
     // api - parameters passed in via query eg. /api?foo=bar
     //  curl -i 'http://psychic.local/api?foo=bar'
-    server.on("/api", HTTP_GET, [](PsychicRequest* request) {
+    server.on("/api", HTTP_GET, [](PsychicRequest* request, PsychicResponse* resp) {
       // create our response json
-      PsychicJsonResponse response = PsychicJsonResponse(request);
+      PsychicJsonResponse response = PsychicJsonResponse(resp);
       JsonObject output = response.getRoot();
 
       output["msg"] = "status";
@@ -434,9 +422,9 @@ void setup()
 
     // curl -i -X GET 'http://psychic.local/any'
     // curl -i -X POST 'http://psychic.local/any'
-    server.on("/any", HTTP_ANY, [](PsychicRequest* request) {
+    server.on("/any", HTTP_ANY, [](PsychicRequest* request, PsychicResponse* resp) {
       // create our response json
-      PsychicJsonResponse response = PsychicJsonResponse(request);
+      PsychicJsonResponse response = PsychicJsonResponse(resp);
       JsonObject output = response.getRoot();
 
       output["msg"] = "status";
@@ -448,15 +436,15 @@ void setup()
     });
 
     // curl -i 'http://psychic.local/simple'
-    server.on("/simple", HTTP_GET, [](PsychicRequest* request) {
-            return request->reply("Simple");
+    server.on("/simple", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
+            return response->send("Simple");
           })
       ->setURIMatchFunction(MATCH_SIMPLE);
 
 #ifdef PSY_ENABLE_REGEX
     // curl -i 'http://psychic.local/regex/23'
     // curl -i 'http://psychic.local/regex/4223'
-    server.on("^/regex/([\\d]+)/?$", HTTP_GET, [](PsychicRequest* request) {
+    server.on("^/regex/([\\d]+)/?$", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
             // look up our regex matches
             std::smatch matches;
             if (request->getRegexMatches(matches)) {
@@ -465,55 +453,53 @@ void setup()
               output += "Matched URI: " + String(matches.str(0).c_str()) + "<br/>\n";
               output += "Match 1: " + String(matches.str(1).c_str()) + "<br/>\n";
 
-              return request->reply(output.c_str());
+              return response->send(output.c_str());
             } else
-              return request->reply("No regex match.");
+              return response->send("No regex match.");
           })
       ->setURIMatchFunction(MATCH_REGEX);
 #endif
 
     // JsonResponse example
     //  curl -i http://psychic.local/json
-    server.on("/json", HTTP_GET, [](PsychicRequest* request) {
-      PsychicJsonResponse response = PsychicJsonResponse(request);
+    server.on("/json", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
+      PsychicJsonResponse jsonResponse = PsychicJsonResponse(response);
 
       char key[16];
       char value[32];
-      JsonObject root = response.getRoot();
+      JsonObject root = jsonResponse.getRoot();
       for (int i = 0; i < 100; i++) {
         sprintf(key, "key%d", i);
         sprintf(value, "value is %d", i);
         root[key] = value;
       }
 
-      return response.send();
+      return jsonResponse.send();
     });
 
     // how to redirect a request
     //  curl -i  http://psychic.local/redirect
-    server.on("/redirect", HTTP_GET, [](PsychicRequest* request) { return request->redirect("/alien.png"); });
+    server.on("/redirect", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) { return response->redirect("/alien.png"); });
 
     // how to do basic auth
     //  curl -i --user admin:admin http://psychic.local/auth-basic
-    server.on("/auth-basic", HTTP_GET, [](PsychicRequest* request) {
+    server.on("/auth-basic", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
       if (!request->authenticate(app_user, app_pass))
         return request->requestAuthentication(BASIC_AUTH, app_name, "You must log in.");
-      return request->reply("Auth Basic Success!");
+      return response->send("Auth Basic Success!");
     });
 
     // how to do digest auth
     //  curl -i --user admin:admin http://psychic.local/auth-digest
-    server.on("/auth-digest", HTTP_GET, [](PsychicRequest* request) {
+    server.on("/auth-digest", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
       if (!request->authenticate(app_user, app_pass))
         return request->requestAuthentication(DIGEST_AUTH, app_name, "You must log in.");
-      return request->reply("Auth Digest Success!");
+      return response->send("Auth Digest Success!");
     });
 
     // example of getting / setting cookies
     //  curl -i -b cookie.txt -c cookie.txt http://psychic.local/cookies
-    server.on("/cookies", HTTP_GET, [](PsychicRequest* request) {
-      PsychicResponse response(request);
-
+    server.on("/cookies", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
       int counter = 0;
       char cookie[14];
       size_t size = sizeof(cookie);
@@ -524,25 +510,25 @@ void setup()
       }
       sprintf(cookie, "%d", counter);
 
-      response.setCookie("counter", cookie);
-      response.setContent(cookie);
-      return response.send();
+      response->setCookie("counter", cookie);
+      response->setContent(cookie);
+      return response->send();
     });
 
     // example of getting POST variables
     //  curl -i -d "param1=value1&param2=value2" -X POST http://psychic.local/post
     //  curl -F "param1=value1" -F "param2=value2" -X POST http://psychic.local/post
-    server.on("/post", HTTP_POST, [](PsychicRequest* request) {
+    server.on("/post", HTTP_POST, [](PsychicRequest* request, PsychicResponse* response) {
       String output;
       output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
       output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
 
-      return request->reply(output.c_str());
+      return response->send(output.c_str());
     });
 
     // you can set up a custom 404 handler.
     //  curl -i http://psychic.local/404
-    server.onNotFound([](PsychicRequest* request) { return request->reply(404, "text/html", "Custom 404 Handler"); });
+    server.onNotFound([](PsychicRequest* request, PsychicResponse* response) { return response->send(404, "text/html", "Custom 404 Handler"); });
 
     // handle a very basic upload as post body
     PsychicUploadHandler* uploadHandler = new PsychicUploadHandler();
@@ -575,11 +561,11 @@ void setup()
     });
 
     // gets called after upload has been handled
-    uploadHandler->onRequest([](PsychicRequest* request) {
+    uploadHandler->onRequest([](PsychicRequest* request, PsychicResponse* response) {
       String url = "/" + request->getFilename();
       String output = "<a href=\"" + url + "\">" + url + "</a>";
 
-      return request->reply(output.c_str());
+      return response->send(output.c_str());
     });
 
     // wildcard basic file upload - POST to /upload/filename.ext
@@ -617,7 +603,7 @@ void setup()
     });
 
     // gets called after upload has been handled
-    multipartHandler->onRequest([](PsychicRequest* request) {
+    multipartHandler->onRequest([](PsychicRequest* request, PsychicResponse* response) {
       String output;
       if (request->hasParam("file_upload")) {
         PsychicWebParameter* file = request->getParam("file_upload");
@@ -632,7 +618,7 @@ void setup()
       if (request->hasParam("param2"))
         output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
 
-      return request->reply(output.c_str());
+      return response->send(output.c_str());
     });
 
     // wildcard basic file upload - POST to /upload/filename.ext
@@ -643,14 +629,14 @@ void setup()
     // form only multipart handler
     // curl -F "param1=multi" -F "param2=part" http://psychic.local/multipart-data
     PsychicUploadHandler* multipartFormHandler = new PsychicUploadHandler();
-    multipartFormHandler->onRequest([](PsychicRequest* request) {
+    multipartFormHandler->onRequest([](PsychicRequest* request, PsychicResponse* response) {
       String output;
       if (request->hasParam("param1"))
         output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
       if (request->hasParam("param2"))
         output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
 
-      return request->reply(output.c_str());
+      return response->send(output.c_str());
     });
     server.on("/multipart-data", HTTP_POST, multipartFormHandler);
 
@@ -681,22 +667,22 @@ void setup()
     // example of using POST data inside the filter
     // works: curl -F "secret=password" http://psychic.local/post-filter
     // 404:   curl -F "foo=bar" http://psychic.local/post-filter
-    server.on("/post-filter", HTTP_POST, [](PsychicRequest* request) {
+    server.on("/post-filter", HTTP_POST, [](PsychicRequest* request, PsychicResponse* response) {
             String output;
             output += "Secret: " + request->getParam("secret")->value() + "<br/>\n";
 
-            return request->reply(output.c_str());
+            return response->send(output.c_str());
           })
-      ->setFilter([](PsychicRequest* request) {
+      ->addFilter([](PsychicRequest* request) {
         request->loadParams();
         return request->hasParam("secret");
       });
 
     // this will send CORS headers on every request that contains the Origin: header
-    server.setFilter(PERMISSIVE_CORS);
+    server.addMiddleware(new PermissiveCorsMiddleware());
 
     // this will respond to CORS requests (note: the global server filter will automatically add the CORS headers)
-    server.on("*", HTTP_OPTIONS, [](PsychicRequest* request) { return request->reply(200); });
+    server.on("*", HTTP_OPTIONS, [](PsychicRequest* request, PsychicResponse* response) { return response->send(200); });
 
     server.begin();
   }

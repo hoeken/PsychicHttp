@@ -49,20 +49,20 @@ class PsychicRequest;
 class PsychicResponse;
 class PsychicWebSocketRequest;
 class PsychicClient;
-class PsychicMiddlewareChain;
 
 // filter function definition
 typedef std::function<bool(PsychicRequest* request)> PsychicRequestFilterFunction;
 
 // middleware function definition
-typedef std::function<bool(PsychicMiddlewareChain *chain, PsychicRequest* request, PsychicResponse* response)> PsychicMiddlewareFunction;
+typedef std::function<esp_err_t(PsychicRequest* request, PsychicResponse* response)> PsychicMiddlewareCallback;
+typedef std::function<esp_err_t(PsychicMiddlewareCallback next, PsychicRequest* request, PsychicResponse* response)> PsychicMiddlewareFunction;
 
 // client connect callback
 typedef std::function<void(PsychicClient* client)> PsychicClientCallback;
 
 // callback definitions
-typedef std::function<esp_err_t(PsychicRequest* request)> PsychicHttpRequestCallback;
-typedef std::function<esp_err_t(PsychicRequest* request, JsonVariant& json)> PsychicJsonRequestCallback;
+typedef std::function<esp_err_t(PsychicRequest* request, PsychicResponse* response)> PsychicHttpRequestCallback;
+typedef std::function<esp_err_t(PsychicRequest* request, PsychicResponse* response, JsonVariant& json)> PsychicJsonRequestCallback;
 typedef std::function<esp_err_t(PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool final)> PsychicUploadCallback;
 
 struct HTTPHeader {

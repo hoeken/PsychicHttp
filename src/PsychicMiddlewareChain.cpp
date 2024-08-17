@@ -1,52 +1,47 @@
 #include "PsychicMiddlewareChain.h"
 
-PsychicMiddlewareChain::PsychicMiddlewareChain() :
-  _request(nullptr),
-  _response(nullptr)
-  {
+PsychicMiddlewareChain::PsychicMiddlewareChain() {}
+
+PsychicMiddlewareChain::~PsychicMiddlewareChain()
+{
+  for (auto middleware : _middleware) {
+    delete middleware;
   }
+  _middleware.clear();
+}
 
-//TODO: memory management
-PsychicMiddlewareChain::~PsychicMiddlewareChain() {}
-
-void PsychicMiddlewareChain::add(PsychicMiddleware *middleware)
+void PsychicMiddlewareChain::add(PsychicMiddleware* middleware)
 {
   _middleware.push_back(middleware);
 }
 
-bool PsychicMiddlewareChain::run(PsychicRequest *request, PsychicResponse *response)
+void PsychicMiddlewareChain::add(PsychicMiddlewareFunction fn)
 {
-  //save our in/out objects
-  _request = request;
-  _response = response;
-  _finished = false;
-
-  //start at the beginning.
-  auto _iterator = _middleware.begin();
-
-  //is it valid?
-  if (_iterator != _middleware.end())
-  {
-    PsychicMiddleware* mw = *_iterator;
-    mw->run(this, _request, _response);
-  }
-
-  //let them know if we finished or not.
-  return _finished;
+  _middleware.push_back(new PsychicMiddlewareClosure(fn));
 }
 
-void PsychicMiddlewareChain::next()
+bool PsychicMiddlewareChain::remove(PsychicMiddleware* middleware)
 {
-  //get the next one!
-  _iterator++;
+  _middleware.remove(middleware);
+  return true;
+}
 
-  //is there a next one?
-  if (_iterator != _middleware.end())
-  {
-    PsychicMiddleware* mw = *_iterator;
-    mw->run(this, _request, _response);
+esp_err_t PsychicMiddlewareChain::run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback finalizer)
+{
+  if (_middleware.size() == 0) {
+    return finalizer(request, response);
   }
-  //nope, we're done.
-  else
-    _finished = true;
+
+  PsychicMiddlewareCallback next;
+  std::list<PsychicMiddleware*>::iterator it = _middleware.begin();
+
+  next = [this, &next, &it, finalizer](PsychicRequest* request, PsychicResponse* response) {
+    if (it != _middleware.end()) {
+      return (*it++)->run(next, request, response);
+    } else {
+      return finalizer(request, response);
+    }
+  };
+
+  return (*it)->run(next, request, response);
 }

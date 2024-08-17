@@ -2,23 +2,21 @@
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
 
-PsychicFileResponse::PsychicFileResponse(PsychicRequest* request, FS& fs, const String& path, const String& contentType, bool download)
-    : PsychicResponse(request)
+PsychicFileResponse::PsychicFileResponse(PsychicResponse* response, FS& fs, const String& path, const String& contentType, bool download) : PsychicResponseDelegate(response)
 {
   //_code = 200;
   String _path(path);
 
-  if (!download && !fs.exists(_path) && fs.exists(_path + ".gz"))
-  {
+  if (!download && !fs.exists(_path) && fs.exists(_path + ".gz")) {
     _path = _path + ".gz";
     addHeader("Content-Encoding", "gzip");
   }
 
   _content = fs.open(_path, "r");
-  _contentLength = _content.size();
+  setContentLength(_content.size());
 
   if (contentType == "")
-    _setContentType(path);
+    _setContentTypeFromPath(path);
   else
     setContentType(contentType.c_str());
 
@@ -26,34 +24,29 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest* request, FS& fs, const 
   char buf[26 + path.length() - filenameStart];
   char* filename = (char*)path.c_str() + filenameStart;
 
-  if (download)
-  {
+  if (download) {
     // set filename and force download
     snprintf(buf, sizeof(buf), "attachment; filename=\"%s\"", filename);
-  }
-  else
-  {
+  } else {
     // set filename and force rendering
     snprintf(buf, sizeof(buf), "inline; filename=\"%s\"", filename);
   }
   addHeader("Content-Disposition", buf);
 }
 
-PsychicFileResponse::PsychicFileResponse(PsychicRequest* request, File content, const String& path, const String& contentType, bool download)
-    : PsychicResponse(request)
+PsychicFileResponse::PsychicFileResponse(PsychicResponse* response, File content, const String& path, const String& contentType, bool download) : PsychicResponseDelegate(response)
 {
   String _path(path);
 
-  if (!download && String(content.name()).endsWith(".gz") && !path.endsWith(".gz"))
-  {
+  if (!download && String(content.name()).endsWith(".gz") && !path.endsWith(".gz")) {
     addHeader("Content-Encoding", "gzip");
   }
 
   _content = content;
-  _contentLength = _content.size();
+  setContentLength(_content.size());
 
   if (contentType == "")
-    _setContentType(path);
+    _setContentTypeFromPath(path);
   else
     setContentType(contentType.c_str());
 
@@ -61,12 +54,9 @@ PsychicFileResponse::PsychicFileResponse(PsychicRequest* request, File content, 
   char buf[26 + path.length() - filenameStart];
   char* filename = (char*)path.c_str() + filenameStart;
 
-  if (download)
-  {
+  if (download) {
     snprintf(buf, sizeof(buf), "attachment; filename=\"%s\"", filename);
-  }
-  else
-  {
+  } else {
     snprintf(buf, sizeof(buf), "inline; filename=\"%s\"", filename);
   }
   addHeader("Content-Disposition", buf);
@@ -78,7 +68,7 @@ PsychicFileResponse::~PsychicFileResponse()
     _content.close();
 }
 
-void PsychicFileResponse::_setContentType(const String& path)
+void PsychicFileResponse::_setContentTypeFromPath(const String& path)
 {
   const char* _contentType;
 
@@ -130,44 +120,37 @@ esp_err_t PsychicFileResponse::send()
 
   // just send small files directly
   size_t size = getContentLength();
-  if (size < FILE_CHUNK_SIZE)
-  {
+  if (size < FILE_CHUNK_SIZE) {
     uint8_t* buffer = (uint8_t*)malloc(size);
-    if (buffer == NULL)
-    {
-      /* Respond with 500 Internal Server Error */
-      httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
+    if (buffer == NULL) {
+      ESP_LOGE(PH_TAG, "Unable to allocate %" PRIu32 " bytes to send chunk", size);
+      httpd_resp_send_err(request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
       return ESP_FAIL;
     }
 
     size_t readSize = _content.readBytes((char*)buffer, size);
 
-    this->setContent(buffer, readSize);
-    err = PsychicResponse::send();
+    setContent(buffer, readSize);
+    err = send();
 
     free(buffer);
-  }
-  else
-  {
+  } else {
     /* Retrieve the pointer to scratch buffer for temporary storage */
     char* chunk = (char*)malloc(FILE_CHUNK_SIZE);
-    if (chunk == NULL)
-    {
-      /* Respond with 500 Internal Server Error */
-      httpd_resp_send_err(this->_request->request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
+    if (chunk == NULL) {
+      ESP_LOGE(PH_TAG, "Unable to allocate %" PRIu32 " bytes to send chunk", FILE_CHUNK_SIZE);
+      httpd_resp_send_err(request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
       return ESP_FAIL;
     }
 
-    this->sendHeaders();
+    sendHeaders();
 
     size_t chunksize;
-    do
-    {
+    do {
       /* Read file in chunks into the scratch buffer */
       chunksize = _content.readBytes(chunk, FILE_CHUNK_SIZE);
-      if (chunksize > 0)
-      {
-        err = this->sendChunk((uint8_t*)chunk, chunksize);
+      if (chunksize > 0) {
+        err = sendChunk((uint8_t*)chunk, chunksize);
         if (err != ESP_OK)
           break;
       }
@@ -178,10 +161,9 @@ esp_err_t PsychicFileResponse::send()
     // keep track of our memory
     free(chunk);
 
-    if (err == ESP_OK)
-    {
+    if (err == ESP_OK) {
       ESP_LOGD(PH_TAG, "File sending complete");
-      this->finishChunking();
+      finishChunking();
     }
   }
 

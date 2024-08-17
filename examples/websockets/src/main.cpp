@@ -139,7 +139,7 @@ void setup()
 
     // this is where our /index.html file lives
     //  curl -i http://psychic.local/
-    PsychicStaticFileHandler* handler = server.serveStatic("/", LittleFS, "/www/");
+    server.serveStatic("/", LittleFS, "/www/");
 
     // a websocket echo server
     //  npm install -g wscat
@@ -216,7 +216,7 @@ void loop()
   // send a periodic update to all clients
   if (millis() - lastUpdate > 2000)
   {
-    sprintf(output, "Millis: %d\n", millis());
+    sprintf(output, "Millis: %lu\n", millis());
     websocketHandler.sendAll(output);
 
     lastUpdate = millis();
