@@ -60,6 +60,7 @@
   #include <PsychicHttpsServer.h>
 #endif
 
+// debugging library
 #ifdef PSY_DEVMODE
   #include <ArduinoTrace.h>
 #endif
