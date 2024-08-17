@@ -40,7 +40,7 @@ class PsychicEndpoint
 
     PsychicEndpoint* addMiddleware(PsychicMiddleware* middleware);
     PsychicEndpoint* addMiddleware(PsychicMiddlewareFunction fn);
-    bool removeMiddleware(PsychicMiddleware* middleware);
+    void removeMiddleware(PsychicMiddleware* middleware);
 
     String uri();
 

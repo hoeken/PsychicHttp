@@ -83,6 +83,10 @@ const char* app_user = "admin";
 const char* app_pass = "admin";
 const char* app_name = "Your App";
 
+LoggingMiddleware loggingMiddleware(Serial);
+AuthenticationMiddleware basicAuth(app_user, app_pass, HTTPAuthMethod::BASIC_AUTH, app_name, "You must log in.");
+AuthenticationMiddleware digestAuth(app_user, app_pass, HTTPAuthMethod::DIGEST_AUTH, app_name, "You must log in.");
+
 // hostname for mdns (psychic.local)
 const char* local_hostname = "psychic";
 
@@ -101,6 +105,7 @@ PsychicHttpServer server;
 #endif
 PsychicWebSocketHandler websocketHandler;
 PsychicEventSource eventSource;
+CorsMiddleware corsMiddleware;
 
 // NTP server stuff
 const char* ntpServer1 = "pool.ntp.org";
@@ -325,6 +330,10 @@ void setup()
 
     DefaultHeaders::Instance().addHeader("Server", "PsychicHttp");
 
+    server.addMiddleware(&loggingMiddleware);
+    // this will send CORS headers on every HTTP_OPTIONS request that contains the Origin: header
+    server.addMiddleware(&corsMiddleware);
+
     // rewrites!
     server.rewrite("/rewrite", "/api?foo=rewrite");
 
@@ -485,18 +494,14 @@ void setup()
     // how to do basic auth
     //  curl -i --user admin:admin http://psychic.local/auth-basic
     server.on("/auth-basic", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
-      if (!request->authenticate(app_user, app_pass))
-        return request->requestAuthentication(BASIC_AUTH, app_name, "You must log in.");
       return response->send("Auth Basic Success!");
-    });
+    })->addMiddleware(&basicAuth);
 
     // how to do digest auth
     //  curl -i --user admin:admin http://psychic.local/auth-digest
     server.on("/auth-digest", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
-      if (!request->authenticate(app_user, app_pass))
-        return request->requestAuthentication(DIGEST_AUTH, app_name, "You must log in.");
       return response->send("Auth Digest Success!");
-    });
+    })->addMiddleware(&digestAuth);
 
     // example of getting / setting cookies
     //  curl -i -b cookie.txt -c cookie.txt http://psychic.local/cookies
@@ -678,12 +683,6 @@ void setup()
         request->loadParams();
         return request->hasParam("secret");
       });
-
-    // this will send CORS headers on every request that contains the Origin: header
-    server.addMiddleware(new PermissiveCorsMiddleware());
-
-    // this will respond to CORS requests (note: the global server filter will automatically add the CORS headers)
-    server.on("*", HTTP_OPTIONS, [](PsychicRequest* request, PsychicResponse* response) { return response->send(200); });
 
     server.begin();
   }

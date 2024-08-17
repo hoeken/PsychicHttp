@@ -30,9 +30,9 @@ class PsychicHttpServer
     std::list<PsychicRewrite*> _rewrites;
     std::list<PsychicRequestFilterFunction> _filters;
 
-    PsychicClientCallback _onOpen;
-    PsychicClientCallback _onClose;
-    PsychicMiddlewareChain* _chain;
+    PsychicClientCallback _onOpen = nullptr;
+    PsychicClientCallback _onClose = nullptr;
+    PsychicMiddlewareChain* _chain = nullptr;
 
     esp_err_t _start();
     virtual esp_err_t _startServer();
@@ -107,7 +107,7 @@ class PsychicHttpServer
 
     PsychicHttpServer* addMiddleware(PsychicMiddleware* middleware);
     PsychicHttpServer* addMiddleware(PsychicMiddlewareFunction fn);
-    bool removeMiddleware(PsychicMiddleware *middleware);
+    void removeMiddleware(PsychicMiddleware *middleware);
 
     static esp_err_t requestHandler(httpd_req_t* req);
     static esp_err_t notFoundHandler(httpd_req_t* req, httpd_err_code_t err);

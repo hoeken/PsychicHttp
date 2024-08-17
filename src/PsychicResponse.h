@@ -22,8 +22,11 @@ class PsychicResponse
     PsychicResponse(PsychicRequest* request);
     virtual ~PsychicResponse();
 
-    void setCode(int code);
+    const char* version() { return "HTTP/1.1"; }
 
+    void setCode(int code);
+    int getCode() { return _code; }
+    
     void setContentType(const char* contentType);
     String& getContentType() { return _contentType; }
 
@@ -31,6 +34,7 @@ class PsychicResponse
     int64_t getContentLength(int64_t contentLength) { return _contentLength; }
 
     void addHeader(const char* field, const char* value);
+    std::list<HTTPHeader>& headers() { return _headers; }
 
     void setCookie(const char* key, const char* value, unsigned long max_age = 60 * 60 * 24 * 30, const char* extras = "");
 
@@ -64,6 +68,8 @@ class PsychicResponseDelegate
   public:
     PsychicResponseDelegate(PsychicResponse* response) : _response(response) {}
     virtual ~PsychicResponseDelegate() {}
+
+    const char* version() { return _response->version(); }
 
     void setCode(int code) { _response->setCode(code); }
 

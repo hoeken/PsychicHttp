@@ -120,6 +120,7 @@ class PsychicRequest
     size_t contentLength();     // returns the Content-Length header value
     const String& body();       // returns the body of the request
     const ContentDisposition getContentDisposition();
+    const char* version() { return "HTTP/1.1"; }
 
     const String& queryString() { return query(); } // compatability function.  same as query()
     const String& url() { return uri(); }           // compatability function.  same as uri()

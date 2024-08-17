@@ -7,7 +7,7 @@ PsychicMiddlewareClosure::PsychicMiddlewareClosure(PsychicMiddlewareFunction fn)
 {
   assert(_fn);
 }
-esp_err_t PsychicMiddlewareClosure::run(PsychicMiddlewareCallback next, PsychicRequest* request, PsychicResponse* response)
+esp_err_t PsychicMiddlewareClosure::run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback next)
 {
-  return _fn(next, request, response);
+  return _fn(request, response, next);
 }

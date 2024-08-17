@@ -126,9 +126,9 @@ PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddlewareFunction fn)
   return this;
 }
 
-bool PsychicEndpoint::removeMiddleware(PsychicMiddleware* middleware)
+void PsychicEndpoint::removeMiddleware(PsychicMiddleware* middleware)
 {
-  return _handler->removeMiddleware(middleware);
+  _handler->removeMiddleware(middleware);
 }
 
 esp_err_t PsychicEndpoint::process(PsychicRequest* request, PsychicResponse* response)
