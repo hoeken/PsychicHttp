@@ -5,7 +5,8 @@ PsychicMiddlewareChain::PsychicMiddlewareChain() {}
 PsychicMiddlewareChain::~PsychicMiddlewareChain()
 {
   for (auto middleware : _middleware) {
-    delete middleware;
+    if (middleware->_managed)
+      delete middleware;
   }
   _middleware.clear();
 }
@@ -17,13 +18,14 @@ void PsychicMiddlewareChain::add(PsychicMiddleware* middleware)
 
 void PsychicMiddlewareChain::add(PsychicMiddlewareFunction fn)
 {
-  _middleware.push_back(new PsychicMiddlewareClosure(fn));
+  PsychicMiddlewareClosure* closure = new PsychicMiddlewareClosure(fn);
+  closure->_managed = true;
+  _middleware.push_back(closure);
 }
 
-bool PsychicMiddlewareChain::remove(PsychicMiddleware* middleware)
+void PsychicMiddlewareChain::remove(PsychicMiddleware* middleware)
 {
   _middleware.remove(middleware);
-  return true;
 }
 
 esp_err_t PsychicMiddlewareChain::run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback finalizer)
@@ -37,11 +39,13 @@ esp_err_t PsychicMiddlewareChain::run(PsychicRequest* request, PsychicResponse* 
 
   next = [this, &next, &it, finalizer](PsychicRequest* request, PsychicResponse* response) {
     if (it != _middleware.end()) {
-      return (*it++)->run(next, request, response);
+      PsychicMiddleware* m = *it;
+      it++;
+      return m->run(request, response, next);
     } else {
       return finalizer(request, response);
     }
   };
 
-  return (*it)->run(next, request, response);
+  return next(request, response);
 }

@@ -53,6 +53,15 @@ IPAddress PsychicClient::localIP()
   return address;
 }
 
+uint16_t PsychicClient::localPort() const
+{
+  struct sockaddr_storage addr;
+  socklen_t len = sizeof addr;
+  getsockname(_socket, (struct sockaddr*)&addr, &len);
+  struct sockaddr_in* s = (struct sockaddr_in*)&addr;
+  return ntohs(s->sin_port);
+}
+
 IPAddress PsychicClient::remoteIP()
 {
   IPAddress address(0, 0, 0, 0);
@@ -72,4 +81,13 @@ IPAddress PsychicClient::remoteIP()
   address.fromString(ipstr);
 
   return address;
+}
+
+uint16_t PsychicClient::remotePort() const
+{
+  struct sockaddr_storage addr;
+  socklen_t len = sizeof addr;
+  getpeername(_socket, (struct sockaddr*)&addr, &len);
+  struct sockaddr_in* s = (struct sockaddr_in*)&addr;
+  return ntohs(s->sin_port);
 }

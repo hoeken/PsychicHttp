@@ -10,9 +10,7 @@
   #include "ETH.h"
 #endif
 
-PsychicHttpServer::PsychicHttpServer(uint16_t port) : _onOpen(NULL),
-                                                      _onClose(NULL),
-                                                      _chain(new PsychicMiddlewareChain())
+PsychicHttpServer::PsychicHttpServer(uint16_t port)
 {
   maxRequestBodySize = MAX_REQUEST_BODY_SIZE;
   maxUploadSize = MAX_UPLOAD_SIZE;
@@ -401,19 +399,27 @@ bool PsychicHttpServer::_filter(PsychicRequest* request)
 
 PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddleware* middleware)
 {
+  if (!_chain) {
+    _chain = new PsychicMiddlewareChain();
+  }
   _chain->add(middleware);
   return this;
 }
 
 PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddlewareFunction fn)
 {
+  if (!_chain) {
+    _chain = new PsychicMiddlewareChain();
+  }
   _chain->add(fn);
   return this;
 }
 
-bool PsychicHttpServer::removeMiddleware(PsychicMiddleware* middleware)
+void PsychicHttpServer::removeMiddleware(PsychicMiddleware* middleware)
 {
-  return _chain->remove(middleware);
+  if (_chain) {
+    _chain->remove(middleware);
+  }
 }
 
 void PsychicHttpServer::onNotFound(PsychicHttpRequestCallback fn)
@@ -452,7 +458,12 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
   }
 
   // then runs the request through the filter chain
-  esp_err_t ret = server->_chain->run(&request, &response, std::bind(&PsychicHttpServer::_process, server, std::placeholders::_1, std::placeholders::_2));
+  esp_err_t ret;
+  if (server->_chain) {
+    ret = server->_chain->run(&request, &response, std::bind(&PsychicHttpServer::_process, server, std::placeholders::_1, std::placeholders::_2));
+  } else {
+    ret = server->_process(&request, &response);
+  }
   ESP_LOGD(PH_TAG, "Request %s processed by global middleware: %s", request.uri().c_str(), esp_err_to_name(ret));
 
   if (ret == HTTPD_404_NOT_FOUND) {

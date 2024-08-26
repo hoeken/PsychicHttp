@@ -31,7 +31,9 @@ class PsychicClient
     esp_err_t close();
 
     IPAddress localIP();
+    uint16_t localPort() const;
     IPAddress remoteIP();
+    uint16_t remotePort() const;
 };
 
 #endif

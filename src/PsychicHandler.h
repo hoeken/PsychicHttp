@@ -18,8 +18,8 @@ class PsychicHandler
     friend PsychicEndpoint;
 
   protected:
-    PsychicHttpServer* _server;
-    PsychicMiddlewareChain* _chain;
+    PsychicHttpServer* _server = nullptr;
+    PsychicMiddlewareChain* _chain = nullptr;
     std::list<PsychicRequestFilterFunction> _filters;
 
     String _subprotocol;
@@ -58,7 +58,7 @@ class PsychicHandler
 
     PsychicHandler* addMiddleware(PsychicMiddleware* middleware);
     PsychicHandler* addMiddleware(PsychicMiddlewareFunction fn);
-    bool removeMiddleware(PsychicMiddleware *middleware);
+    void removeMiddleware(PsychicMiddleware *middleware);
 
     // derived classes must implement these functions
     virtual bool canHandle(PsychicRequest* request) { return true; };

@@ -1,8 +1,6 @@
 #include "PsychicHandler.h"
 
-PsychicHandler::PsychicHandler() : _server(NULL),
-                                   _chain(new PsychicMiddlewareChain()),
-                                   _subprotocol("")
+PsychicHandler::PsychicHandler()
 {
 }
 
@@ -26,7 +24,7 @@ bool PsychicHandler::filter(PsychicRequest* request)
   // run through our filter chain.
   for (auto& filter : _filters) {
     if (!filter(request)) {
-      ESP_LOGD(PH_TAG, "Request %s refused by filter from handler %s", request->uri().c_str(), typeid(*this).name());
+      ESP_LOGD(PH_TAG, "Request %s refused by filter from handler", request->uri().c_str());
       return false;
     }
   }
@@ -105,19 +103,27 @@ const std::list<PsychicClient*>& PsychicHandler::getClientList()
 
 PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddleware* middleware)
 {
+  if (!_chain) {
+    _chain = new PsychicMiddlewareChain();
+  }
   _chain->add(middleware);
   return this;
 }
 
 PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddlewareFunction fn)
 {
+  if (!_chain) {
+    _chain = new PsychicMiddlewareChain();
+  }
   _chain->add(fn);
   return this;
 }
 
-bool PsychicHandler::removeMiddleware(PsychicMiddleware* middleware)
+void PsychicHandler::removeMiddleware(PsychicMiddleware* middleware)
 {
-  return _chain->remove(middleware);
+  if (_chain) {
+    _chain->remove(middleware);
+  }
 }
 
 esp_err_t PsychicHandler::process(PsychicRequest* request, PsychicResponse* response)
@@ -127,9 +133,14 @@ esp_err_t PsychicHandler::process(PsychicRequest* request, PsychicResponse* resp
   }
 
   if (!canHandle(request)) {
-    ESP_LOGD(PH_TAG, "Request %s refused by handler %s", request->uri().c_str(), typeid(*this).name());
+    ESP_LOGD(PH_TAG, "Request %s refused by handler", request->uri().c_str());
     return HTTPD_404_NOT_FOUND;
   }
 
-  return _chain->run(request, response, std::bind(&PsychicHandler::handleRequest, this, std::placeholders::_1, std::placeholders::_2));
+  if (_chain) {
+    return _chain->run(request, response, std::bind(&PsychicHandler::handleRequest, this, std::placeholders::_1, std::placeholders::_2));
+
+  } else {
+    return handleRequest(request, response);
+  }
 }

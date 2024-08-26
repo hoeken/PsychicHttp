@@ -21,7 +21,7 @@ class PsychicMiddlewareChain
 
     void add(PsychicMiddleware* middleware);
     void add(PsychicMiddlewareFunction fn);
-    bool remove(PsychicMiddleware* middleware);
+    void remove(PsychicMiddleware* middleware);
 
     esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback finalizer);
 };

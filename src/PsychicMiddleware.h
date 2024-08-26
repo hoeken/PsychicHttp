@@ -5,15 +5,20 @@
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
 
+class PsychicMiddlewareChain;
 /*
  * PsychicMiddleware :: fancy callback wrapper for handling requests and responses.
  * */
 
 class PsychicMiddleware
 {
+  private:
+    bool _managed = false;
+    friend PsychicMiddlewareChain;
+
   public:
     virtual ~PsychicMiddleware() {}
-    virtual esp_err_t run(PsychicMiddlewareCallback next, PsychicRequest* request, PsychicResponse* response) = 0;
+    virtual esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback next) = 0;
 };
 
 class PsychicMiddlewareClosure : public PsychicMiddleware
@@ -23,7 +28,7 @@ class PsychicMiddlewareClosure : public PsychicMiddleware
 
   public:
     PsychicMiddlewareClosure(PsychicMiddlewareFunction fn);
-    esp_err_t run(PsychicMiddlewareCallback next, PsychicRequest* request, PsychicResponse* response) override;
+    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback next) override;
 };
 
 #endif
