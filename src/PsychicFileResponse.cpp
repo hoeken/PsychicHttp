@@ -131,7 +131,7 @@ esp_err_t PsychicFileResponse::send()
     size_t readSize = _content.readBytes((char*)buffer, size);
 
     setContent(buffer, readSize);
-    err = send();
+    err = _response->send();
 
     free(buffer);
   } else {
