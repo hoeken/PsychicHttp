@@ -6,37 +6,61 @@ on:
   pull_request:
     branches: []
   schedule:
-    - cron: "0 1 * * 6" # Every Saturday at 1AM  
+    - cron: "0 1 * * 6" # Every Saturday at 1AM
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
+    name: "pio:${{ matrix.board }}:${{ matrix.platform }}:${{ matrix.flags }}"
+    runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
-        feature: ["arduino2", "arduino2-ssl", "arduino2-regex", "arduino3", "arduino3-ssl", "arduino3-regex"]
-
-    runs-on: ubuntu-latest
-    name: Build ${{ matrix.feature }}
+        flags: ["-DPSY_ENABLE_SSL", "-DPSY_ENABLE_REGEX"]
+        platform: [
+          "51.03.04",
+          "53.03.10%2Brc1"
+        ]
+        board:
+          [
+            "esp32dev",
+            "esp32-s2-saola-1",
+            "esp32-s3-devkitc-1",
+            "esp32-c3-devkitc-02",
+            "esp32-c6-devkitc-1",
+          ]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Pythonf
-        uses: actions/setup-python@v4
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-pio
+          path: |
+            ~/.cache/pip
+            ~/.platformio
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
       - name: Install Platform IO
-        run:
-          |
-          pip install -U platformio
-          platformio update
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
 
       - name: Install Checked out PsychicHttp
-        run:
-          pio lib -g install $GITHUB_WORKSPACE
+        run: pio lib -g install $GITHUB_WORKSPACE
 
-      - name: Build ${{ matrix.feature }} 
-        run:
-          |
+      - name: Prepare Secret
+        run: |
           cd examples/platformio
           cp src/secret.h src/_secret.h
-          pio run -e ${{ matrix.feature }}
+
+      - run: PIO_BOARD=${{ matrix.board }} PIO_PLATFORM="https://github.com/pioarduino/platform-espressif32/releases/download/${{ matrix.platform }}/platform-espressif32.zip" PLATFORMIO_BUILD_FLAGS="${{ matrix.flags }}" pio run -e ci
