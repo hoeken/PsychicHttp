@@ -12,9 +12,9 @@
   #include <regex>
 #endif
 
-enum PsychicHttpMethod {
-  HTTP_ANY = 99
-};
+#ifndef HTTP_ANY
+  #define HTTP_ANY INT_MAX
+#endif
 
 class PsychicEndpoint;
 class PsychicHandler;
