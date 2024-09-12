@@ -56,7 +56,7 @@ jobs:
           pip install --upgrade platformio
 
       - name: Install Checked out PsychicHttp
-        run: pio lib -g install $GITHUB_WORKSPACE
+        run: pio lib -g install -f $GITHUB_WORKSPACE
 
       - name: Prepare Secret
         run: |
