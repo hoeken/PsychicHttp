@@ -141,12 +141,12 @@ class CorsMiddleware : public PsychicMiddleware
 
     esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback next) override
     {
+      response->addHeader("Access-Control-Allow-Origin", _origin.c_str());
+      response->addHeader("Access-Control-Allow-Methods", _methods.c_str());
+      response->addHeader("Access-Control-Allow-Headers", _headers.c_str());
+      response->addHeader("Access-Control-Allow-Credentials", _credentials ? "true" : "false");
+      response->addHeader("Access-Control-Max-Age", String(_maxAge).c_str());
       if (request->method() == HTTP_OPTIONS && request->hasHeader("Origin")) {
-        response->addHeader("Access-Control-Allow-Origin", _origin.c_str());
-        response->addHeader("Access-Control-Allow-Methods", _methods.c_str());
-        response->addHeader("Access-Control-Allow-Headers", _headers.c_str());
-        response->addHeader("Access-Control-Allow-Credentials", _credentials ? "true" : "false");
-        response->addHeader("Access-Control-Max-Age", String(_maxAge).c_str());
         return response->send(200);
       }
       return next(request, response);

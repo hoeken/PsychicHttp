@@ -49,7 +49,14 @@ class PsychicHttpServer
     virtual ~PsychicHttpServer();
 
     // what methods to support
-    std::list<http_method> supported_methods = {HTTP_GET, HTTP_POST, HTTP_DELETE, HTTP_HEAD, HTTP_PUT};
+    std::list<http_method> supported_methods = {
+      HTTP_GET,
+      HTTP_POST,
+      HTTP_DELETE,
+      HTTP_HEAD,
+      HTTP_PUT,
+      HTTP_OPTIONS
+    };
 
     // esp-idf specific stuff
     httpd_handle_t server;
