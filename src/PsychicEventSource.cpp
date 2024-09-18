@@ -240,16 +240,20 @@ PsychicEventSourceResponse::PsychicEventSourceResponse(PsychicResponse* response
 
 esp_err_t PsychicEventSourceResponse::send()
 {
+  _response->addHeader("Content-Type", "text/event-stream");
+  _response->addHeader("Cache-Control", "no-cache");
+  _response->addHeader("Connection", "keep-alive");
 
   // build our main header
   String out = String();
   out.concat("HTTP/1.1 200 OK\r\n");
-  out.concat("Content-Type: text/event-stream\r\n");
-  out.concat("Cache-Control: no-cache\r\n");
-  out.concat("Connection: keep-alive\r\n");
 
   // get our global headers out of the way first
   for (auto& header : DefaultHeaders::Instance().getHeaders())
+    out.concat(header.field + ": " + header.value + "\r\n");
+
+  // now do our individual headers
+  for (auto& header : _response->headers())
     out.concat(header.field + ": " + header.value + "\r\n");
 
   // separator
