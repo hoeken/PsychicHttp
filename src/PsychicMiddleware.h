@@ -28,10 +28,7 @@ class PsychicMiddlewareFunction : public PsychicMiddleware
 {
   public:
     PsychicMiddlewareFunction(PsychicMiddlewareCallback fn) : _fn(fn) { assert(_fn); }
-    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next) override
-    {
-      return _fn(request, response, next);
-    }
+    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next) override;
 
   protected:
     PsychicMiddlewareCallback _fn;

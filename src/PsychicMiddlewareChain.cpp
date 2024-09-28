@@ -27,7 +27,7 @@ void PsychicMiddlewareChain::removeMiddleware(PsychicMiddleware* middleware)
     delete middleware;
 }
 
-esp_err_t PsychicMiddlewareChain::runChain(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext finalizer)
+esp_err_t PsychicMiddlewareChain::runChain(PsychicRequest* request, PsychicMiddlewareNext finalizer)
 {
   if (_middleware.size() == 0)
     return finalizer();
@@ -35,12 +35,12 @@ esp_err_t PsychicMiddlewareChain::runChain(PsychicRequest* request, PsychicRespo
   PsychicMiddlewareNext next;
   std::list<PsychicMiddleware*>::iterator it = _middleware.begin();
 
-  next = [this, &next, &it, request, response, finalizer]() {
+  next = [this, &next, &it, request, finalizer]() {
     if (it == _middleware.end())
       return finalizer();
     PsychicMiddleware* m = *it;
     it++;
-    return m->run(request, response, next);
+    return m->run(request, request->response(), next);
   };
 
   return next();

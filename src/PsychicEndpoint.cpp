@@ -56,15 +56,14 @@ esp_err_t PsychicEndpoint::requestCallback(httpd_req_t* req)
 
   PsychicEndpoint* self = (PsychicEndpoint*)req->user_ctx;
   PsychicRequest request(self->_server, req);
-  PsychicResponse response(&request);
 
-  esp_err_t err = self->process(&request, &response);
+  esp_err_t err = self->process(&request);
 
   if (err == HTTPD_404_NOT_FOUND)
     return PsychicHttpServer::requestHandler(req);
 
   if (err == ESP_ERR_HTTPD_INVALID_REQ)
-    return response.error(HTTPD_500_INTERNAL_SERVER_ERROR, "No handler registered.");
+    return request.response()->error(HTTPD_500_INTERNAL_SERVER_ERROR, "No handler registered.");
 
   return err;
 }
@@ -131,11 +130,11 @@ void PsychicEndpoint::removeMiddleware(PsychicMiddleware* middleware)
   _handler->removeMiddleware(middleware);
 }
 
-esp_err_t PsychicEndpoint::process(PsychicRequest* request, PsychicResponse* response)
+esp_err_t PsychicEndpoint::process(PsychicRequest* request)
 {
   esp_err_t ret = ESP_ERR_HTTPD_INVALID_REQ;
   if (_handler != NULL)
-    ret = _handler->process(request, response);
+    ret = _handler->process(request);
   ESP_LOGD(PH_TAG, "Endpoint %s processed %s: %s", _uri.c_str(), request->uri().c_str(), esp_err_to_name(ret));
   return ret;
 }

@@ -50,7 +50,7 @@ class PsychicHandler
     const std::list<PsychicClient*>& getClientList();
 
     // called to process this handler with its middleware chain and filers
-    esp_err_t process(PsychicRequest* request, PsychicResponse* response);
+    esp_err_t process(PsychicRequest* request);
 
     //bool filter(PsychicRequest* request);
     PsychicHandler* addFilter(PsychicRequestFilterFunction fn);

@@ -19,7 +19,7 @@ class PsychicMiddlewareChain
     void addMiddleware(PsychicMiddlewareCallback fn);
     void removeMiddleware(PsychicMiddleware* middleware);
 
-    esp_err_t runChain(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext finalizer);
+    esp_err_t runChain(PsychicRequest* request, PsychicMiddlewareNext finalizer);
 
   protected:
     std::list<PsychicMiddleware*> _middleware;

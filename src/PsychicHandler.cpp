@@ -126,7 +126,7 @@ void PsychicHandler::removeMiddleware(PsychicMiddleware* middleware)
   }
 }
 
-esp_err_t PsychicHandler::process(PsychicRequest* request, PsychicResponse* response)
+esp_err_t PsychicHandler::process(PsychicRequest* request)
 {
   if (!filter(request)) {
     return HTTPD_404_NOT_FOUND;
@@ -138,11 +138,11 @@ esp_err_t PsychicHandler::process(PsychicRequest* request, PsychicResponse* resp
   }
 
   if (_chain) {
-    return _chain->runChain(request, response, [this, request, response]() {
-      return handleRequest(request, response);
+    return _chain->runChain(request, [this, request]() {
+      return handleRequest(request, request->response());
     });
 
   } else {
-    return handleRequest(request, response);
+    return handleRequest(request, request->response());
   }
 }

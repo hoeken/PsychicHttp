@@ -41,7 +41,7 @@ class PsychicHttpServer
     httpd_uri_match_func_t _uri_match_fn = nullptr;
 
     bool _rewriteRequest(PsychicRequest* request);
-    esp_err_t _process(PsychicRequest* request, PsychicResponse* response);
+    esp_err_t _process(PsychicRequest* request);
     bool _filter(PsychicRequest* request);
 
   public:
