@@ -596,6 +596,6 @@ esp_err_t PsychicRequest::requestAuthentication(HTTPAuthMethod mode, const char*
 
   response.setCode(401);
   response.setContentType("text/html");
-  response.setContent(authStr.c_str());
+  response.setContent(authFailMsg);
   return response.send();
 }

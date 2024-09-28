@@ -83,9 +83,9 @@ const char* app_user = "admin";
 const char* app_pass = "admin";
 const char* app_name = "Your App";
 
-LoggingMiddleware loggingMiddleware(Serial);
-AuthenticationMiddleware basicAuth(app_user, app_pass, HTTPAuthMethod::BASIC_AUTH, app_name, "You must log in.");
-AuthenticationMiddleware digestAuth(app_user, app_pass, HTTPAuthMethod::DIGEST_AUTH, app_name, "You must log in.");
+LoggingMiddleware loggingMiddleware;
+AuthenticationMiddleware basicAuth;
+AuthenticationMiddleware digestAuth;
 
 // hostname for mdns (psychic.local)
 const char* local_hostname = "psychic";
@@ -329,6 +329,20 @@ void setup()
 #endif
 
     DefaultHeaders::Instance().addHeader("Server", "PsychicHttp");
+
+    loggingMiddleware.setOutput(Serial);
+
+    basicAuth.setUsername(app_user);
+    basicAuth.setPassword(app_pass);
+    basicAuth.setRealm(app_name);
+    basicAuth.setAuthMethod(HTTPAuthMethod::BASIC_AUTH);
+    basicAuth.setAuthFailureMessage("You must log in.");
+
+    digestAuth.setUsername(app_user);
+    digestAuth.setPassword(app_pass);
+    digestAuth.setRealm(app_name);
+    digestAuth.setAuthMethod(HTTPAuthMethod::DIGEST_AUTH);
+    digestAuth.setAuthFailureMessage("You must log in.");
 
     server.addMiddleware(&loggingMiddleware);
     // this will send CORS headers on every HTTP_OPTIONS request that contains the Origin: header
