@@ -30,6 +30,7 @@ class PsychicHttpsServer : public PsychicHttpServer
 
     // using PsychicHttpServer::listen; // keep the regular version
     virtual void setPort(uint16_t port) override final;
+    virtual uint16_t getPort() override final;
     // Pointer to certificate data in PEM format
     void setCertificate(const char* cert, const char* private_key = nullptr) { setCertificate((const uint8_t*)cert, strlen(cert) + 1, (const uint8_t*)private_key, private_key ? strlen(private_key) + 1 : 0); }
     // Pointer to certificate data in PEM or DER format. PEM-format must have a terminating NULL-character. DER-format requires the length to be passed in certSize and keySize.
