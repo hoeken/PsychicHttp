@@ -71,6 +71,7 @@ class PsychicHttpServer
     static void destroy(void* ctx);
 
     virtual void setPort(uint16_t port);
+    virtual uint16_t getPort();
 
     bool isConnected();
     bool isRunning() { return _running; }

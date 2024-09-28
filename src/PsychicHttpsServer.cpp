@@ -29,6 +29,11 @@ void PsychicHttpsServer::setPort(uint16_t port)
   this->ssl_config.port_secure = port;
 }
 
+uint16_t PsychicHttpsServer::getPort()
+{
+  return this->ssl_config.port_secure;
+}
+
 void PsychicHttpsServer::setCertificate(const uint8_t* cert, size_t cert_size, const uint8_t* private_key, size_t private_key_size)
 {
   if (cert) {

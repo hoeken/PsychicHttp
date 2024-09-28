@@ -77,6 +77,11 @@ void PsychicHttpServer::setPort(uint16_t port)
   this->config.server_port = port;
 }
 
+uint16_t PsychicHttpServer::getPort()
+{
+  return this->config.server_port;
+}
+
 bool PsychicHttpServer::isConnected()
 {
   if (WiFi.softAPIP())
@@ -151,6 +156,8 @@ esp_err_t PsychicHttpServer::start()
   ret = httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, PsychicHttpServer::notFoundHandler);
   if (ret != ESP_OK)
     ESP_LOGE(PH_TAG, "Add 404 handler failed (%s)", esp_err_to_name(ret));
+
+  ESP_LOGI(PH_TAG, "Server started on port %" PRIu16, getPort());
 
   _running = true;
   return ret;
