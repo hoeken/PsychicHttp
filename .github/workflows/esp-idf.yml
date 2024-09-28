@@ -1,4 +1,4 @@
-name: ESP-IDF v4.4
+name: ESP-IDF
 
 on:
   push:
@@ -15,15 +15,15 @@ concurrency:
 jobs:
 
   build:
+    name: "ESP-IDF ${{ matrix.idf_ver }}"
+    runs-on: ubuntu-latest
     timeout-minutes: 10
+
     strategy:
       fail-fast: false
       matrix:
-        idf_ver: ["v4.4.7"]
+        idf_ver: ["v4.4.7", "v5.1.4", "v5.2.3", "v5.3.1"]
         idf_target: ["esp32"]
-  
-    runs-on: ubuntu-latest
-    name: Build
 
     steps:
       - uses: actions/checkout@v3
