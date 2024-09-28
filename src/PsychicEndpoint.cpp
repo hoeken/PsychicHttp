@@ -120,7 +120,7 @@ PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddleware* middleware)
   return this;
 }
 
-PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddlewareFunction fn)
+PsychicEndpoint* PsychicEndpoint::addMiddleware(PsychicMiddlewareCallback fn)
 {
   _handler->addMiddleware(fn);
   return this;

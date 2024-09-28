@@ -12,23 +12,29 @@ class PsychicMiddlewareChain;
 
 class PsychicMiddleware
 {
-  private:
-    bool _managed = false;
-    friend PsychicMiddlewareChain;
-
   public:
     virtual ~PsychicMiddleware() {}
-    virtual esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback next) = 0;
+    virtual esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next)
+    {
+      return next();
+    }
+
+  private:
+    friend PsychicMiddlewareChain;
+    bool _freeOnRemoval = false;
 };
 
-class PsychicMiddlewareClosure : public PsychicMiddleware
+class PsychicMiddlewareFunction : public PsychicMiddleware
 {
-  protected:
-    PsychicMiddlewareFunction _fn;
-
   public:
-    PsychicMiddlewareClosure(PsychicMiddlewareFunction fn);
-    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback next) override;
+    PsychicMiddlewareFunction(PsychicMiddlewareCallback fn) : _fn(fn) { assert(_fn); }
+    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next) override
+    {
+      return _fn(request, response, next);
+    }
+
+  protected:
+    PsychicMiddlewareCallback _fn;
 };
 
 #endif

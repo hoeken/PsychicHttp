@@ -1,51 +1,47 @@
 #include "PsychicMiddlewareChain.h"
 
-PsychicMiddlewareChain::PsychicMiddlewareChain() {}
-
 PsychicMiddlewareChain::~PsychicMiddlewareChain()
 {
-  for (auto middleware : _middleware) {
-    if (middleware->_managed)
+  for (auto middleware : _middleware)
+    if (middleware->_freeOnRemoval)
       delete middleware;
-  }
   _middleware.clear();
 }
 
-void PsychicMiddlewareChain::add(PsychicMiddleware* middleware)
+void PsychicMiddlewareChain::addMiddleware(PsychicMiddleware* middleware)
 {
   _middleware.push_back(middleware);
 }
 
-void PsychicMiddlewareChain::add(PsychicMiddlewareFunction fn)
+void PsychicMiddlewareChain::addMiddleware(PsychicMiddlewareCallback fn)
 {
-  PsychicMiddlewareClosure* closure = new PsychicMiddlewareClosure(fn);
-  closure->_managed = true;
+  PsychicMiddlewareFunction* closure = new PsychicMiddlewareFunction(fn);
+  closure->_freeOnRemoval = true;
   _middleware.push_back(closure);
 }
 
-void PsychicMiddlewareChain::remove(PsychicMiddleware* middleware)
+void PsychicMiddlewareChain::removeMiddleware(PsychicMiddleware* middleware)
 {
   _middleware.remove(middleware);
+  if (middleware->_freeOnRemoval)
+    delete middleware;
 }
 
-esp_err_t PsychicMiddlewareChain::run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback finalizer)
+esp_err_t PsychicMiddlewareChain::runChain(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext finalizer)
 {
-  if (_middleware.size() == 0) {
-    return finalizer(request, response);
-  }
+  if (_middleware.size() == 0)
+    return finalizer();
 
-  PsychicMiddlewareCallback next;
+  PsychicMiddlewareNext next;
   std::list<PsychicMiddleware*>::iterator it = _middleware.begin();
 
-  next = [this, &next, &it, finalizer](PsychicRequest* request, PsychicResponse* response) {
-    if (it != _middleware.end()) {
-      PsychicMiddleware* m = *it;
-      it++;
-      return m->run(request, response, next);
-    } else {
-      return finalizer(request, response);
-    }
+  next = [this, &next, &it, request, response, finalizer]() {
+    if (it == _middleware.end())
+      return finalizer();
+    PsychicMiddleware* m = *it;
+    it++;
+    return m->run(request, response, next);
   };
 
-  return next(request, response);
+  return next();
 }

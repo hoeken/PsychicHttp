@@ -39,7 +39,7 @@ class PsychicEndpoint
     PsychicEndpoint* addFilter(PsychicRequestFilterFunction fn);
 
     PsychicEndpoint* addMiddleware(PsychicMiddleware* middleware);
-    PsychicEndpoint* addMiddleware(PsychicMiddlewareFunction fn);
+    PsychicEndpoint* addMiddleware(PsychicMiddlewareCallback fn);
     void removeMiddleware(PsychicMiddleware* middleware);
 
     String uri();

@@ -57,7 +57,7 @@ class PsychicHandler
     bool filter(PsychicRequest* request);
 
     PsychicHandler* addMiddleware(PsychicMiddleware* middleware);
-    PsychicHandler* addMiddleware(PsychicMiddlewareFunction fn);
+    PsychicHandler* addMiddleware(PsychicMiddlewareCallback fn);
     void removeMiddleware(PsychicMiddleware *middleware);
 
     // derived classes must implement these functions

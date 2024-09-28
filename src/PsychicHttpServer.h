@@ -113,7 +113,7 @@ class PsychicHttpServer
     PsychicHttpServer* addFilter(PsychicRequestFilterFunction fn);
 
     PsychicHttpServer* addMiddleware(PsychicMiddleware* middleware);
-    PsychicHttpServer* addMiddleware(PsychicMiddlewareFunction fn);
+    PsychicHttpServer* addMiddleware(PsychicMiddlewareCallback fn);
     void removeMiddleware(PsychicMiddleware *middleware);
 
     static esp_err_t requestHandler(httpd_req_t* req);

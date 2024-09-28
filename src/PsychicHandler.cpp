@@ -106,23 +106,23 @@ PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddleware* middleware)
   if (!_chain) {
     _chain = new PsychicMiddlewareChain();
   }
-  _chain->add(middleware);
+  _chain->addMiddleware(middleware);
   return this;
 }
 
-PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddlewareFunction fn)
+PsychicHandler* PsychicHandler::addMiddleware(PsychicMiddlewareCallback fn)
 {
   if (!_chain) {
     _chain = new PsychicMiddlewareChain();
   }
-  _chain->add(fn);
+  _chain->addMiddleware(fn);
   return this;
 }
 
 void PsychicHandler::removeMiddleware(PsychicMiddleware* middleware)
 {
   if (_chain) {
-    _chain->remove(middleware);
+    _chain->removeMiddleware(middleware);
   }
 }
 
@@ -138,7 +138,9 @@ esp_err_t PsychicHandler::process(PsychicRequest* request, PsychicResponse* resp
   }
 
   if (_chain) {
-    return _chain->run(request, response, std::bind(&PsychicHandler::handleRequest, this, std::placeholders::_1, std::placeholders::_2));
+    return _chain->runChain(request, response, [this, request, response]() {
+      return handleRequest(request, response);
+    });
 
   } else {
     return handleRequest(request, response);

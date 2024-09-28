@@ -15,7 +15,7 @@ class LoggingMiddleware : public PsychicMiddleware
   public:
     explicit LoggingMiddleware(Stream& out) : _out(&out) {}
 
-    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback next) override
+    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next) override
     {
       _out->print("* Connection from ");
       _out->print(request->client()->remoteIP().toString());
@@ -43,7 +43,7 @@ class LoggingMiddleware : public PsychicMiddleware
 
       _out->println("<");
 
-      esp_err_t ret = next(request, response);
+      esp_err_t ret = next();
 
       if (ret != HTTPD_404_NOT_FOUND) {
         _out->println("* Processed!");
@@ -90,12 +90,12 @@ class AuthenticationMiddleware : public PsychicMiddleware
     AuthenticationMiddleware(const char* username, const char* password, HTTPAuthMethod method = BASIC_AUTH, const char* realm = "", const char* authFailMsg = "")
         : _username(username), _password(password), _method(method), _realm(realm), _authFailMsg(authFailMsg), _authc(!_username.isEmpty() && !_password.isEmpty()) {}
 
-    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback next) override
+    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next) override
     {
       if (_authc && !request->authenticate(_username.c_str(), _password.c_str())) {
         return request->requestAuthentication(_method, _realm.c_str(), _authFailMsg.c_str());
       }
-      return next(request, response);
+      return next();
     }
 };
 
@@ -139,7 +139,7 @@ class CorsMiddleware : public PsychicMiddleware
       return *this;
     }
 
-    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback next) override
+    esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next) override
     {
       if (request->hasHeader("Origin")) {
         response->addHeader("Access-Control-Allow-Origin", _origin.c_str());
@@ -151,7 +151,7 @@ class CorsMiddleware : public PsychicMiddleware
           return response->send(200);
         }
       }
-      return next(request, response);
+      return next();
     }
 };
 

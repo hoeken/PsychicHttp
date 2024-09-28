@@ -402,23 +402,23 @@ PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddleware* middlewar
   if (!_chain) {
     _chain = new PsychicMiddlewareChain();
   }
-  _chain->add(middleware);
+  _chain->addMiddleware(middleware);
   return this;
 }
 
-PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddlewareFunction fn)
+PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddlewareCallback fn)
 {
   if (!_chain) {
     _chain = new PsychicMiddlewareChain();
   }
-  _chain->add(fn);
+  _chain->addMiddleware(fn);
   return this;
 }
 
 void PsychicHttpServer::removeMiddleware(PsychicMiddleware* middleware)
 {
   if (_chain) {
-    _chain->remove(middleware);
+    _chain->removeMiddleware(middleware);
   }
 }
 
@@ -460,7 +460,9 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
   // then runs the request through the filter chain
   esp_err_t ret;
   if (server->_chain) {
-    ret = server->_chain->run(&request, &response, std::bind(&PsychicHttpServer::_process, server, std::placeholders::_1, std::placeholders::_2));
+    ret = server->_chain->runChain(&request, &response, [server, &request, &response]() {
+      return server->_process(&request, &response);
+    });
   } else {
     ret = server->_process(&request, &response);
   }
