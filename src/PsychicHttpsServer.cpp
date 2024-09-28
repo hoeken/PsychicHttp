@@ -2,7 +2,7 @@
 
 #ifdef CONFIG_ESP_HTTPS_SERVER_ENABLE
 
-PsychicHttpsServer::PsychicHttpsServer(uint16_t port, const char* cert, const char* private_key) : PsychicHttpServer(port)
+PsychicHttpsServer::PsychicHttpsServer(uint16_t port) : PsychicHttpServer(port)
 {
   // for a SSL server
   ssl_config = HTTPD_SSL_CONFIG_DEFAULT();
@@ -20,7 +20,6 @@ PsychicHttpsServer::PsychicHttpsServer(uint16_t port, const char* cert, const ch
   ssl_config.httpd.max_open_sockets = 2;
 
   setPort(port);
-  setCertificate(cert, private_key);
 }
 
 PsychicHttpsServer::~PsychicHttpsServer() {}
@@ -30,23 +29,21 @@ void PsychicHttpsServer::setPort(uint16_t port)
   this->ssl_config.port_secure = port;
 }
 
-void PsychicHttpsServer::setCertificate(const char* cert, const char* private_key)
+void PsychicHttpsServer::setCertificate(const uint8_t* cert, size_t cert_size, const uint8_t* private_key, size_t private_key_size)
 {
-  if (cert)
-  {
+  if (cert) {
   #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 2)
-    this->ssl_config.servercert = (uint8_t*)cert;
-    this->ssl_config.servercert_len = strlen(cert) + 1;
+    this->ssl_config.servercert = cert;
+    this->ssl_config.servercert_len = cert_size;
   #else
-    this->ssl_config.cacert_pem = (uint8_t*)cert;
-    this->ssl_config.cacert_len = strlen(cert) + 1;
+    this->ssl_config.cacert_pem = cert;
+    this->ssl_config.cacert_len = cert_size;
   #endif
   }
 
-  if (private_key)
-  {
-    this->ssl_config.prvtkey_pem = (uint8_t*)private_key;
-    this->ssl_config.prvtkey_len = strlen(private_key) + 1;
+  if (private_key) {
+    this->ssl_config.prvtkey_pem = private_key;
+    this->ssl_config.prvtkey_len = private_key_size;
   }
 }
 
