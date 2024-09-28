@@ -47,7 +47,7 @@ class PsychicRequest
 
     std::list<PsychicWebParameter*> _params;
 
-    std::list<HTTPHeader> _responseHeaders;
+    PsychicResponse* _response;
 
     void _setUri(const char* uri);
     void _addParams(const String& params, bool post);
@@ -87,8 +87,10 @@ class PsychicRequest
 
     bool hasCookie(const char* key, size_t* size = nullptr);
 
+    PsychicResponse* response() { return _response; }
+    void replaceResponse(PsychicResponse* response);
     void addResponseHeader(const char* key, const char* value);
-    const std::list<HTTPHeader>& getResponseHeaders() { return _responseHeaders; }
+    std::list<HTTPHeader>& getResponseHeaders();
 
     /**
      * @brief   Get the value string of a cookie value from the "Cookie" request headers by cookie name.

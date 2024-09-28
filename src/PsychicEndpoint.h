@@ -34,12 +34,12 @@ class PsychicEndpoint
     bool matches(const char* uri);
 
     // called to process this endpoint with its middleware chain
-    esp_err_t process(PsychicRequest* request, PsychicResponse* response);
+    esp_err_t process(PsychicRequest* request);
 
     PsychicEndpoint* addFilter(PsychicRequestFilterFunction fn);
 
     PsychicEndpoint* addMiddleware(PsychicMiddleware* middleware);
-    PsychicEndpoint* addMiddleware(PsychicMiddlewareFunction fn);
+    PsychicEndpoint* addMiddleware(PsychicMiddlewareCallback fn);
     void removeMiddleware(PsychicMiddleware* middleware);
 
     String uri();

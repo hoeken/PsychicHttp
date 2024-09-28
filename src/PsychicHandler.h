@@ -50,14 +50,14 @@ class PsychicHandler
     const std::list<PsychicClient*>& getClientList();
 
     // called to process this handler with its middleware chain and filers
-    esp_err_t process(PsychicRequest* request, PsychicResponse* response);
+    esp_err_t process(PsychicRequest* request);
 
     //bool filter(PsychicRequest* request);
     PsychicHandler* addFilter(PsychicRequestFilterFunction fn);
     bool filter(PsychicRequest* request);
 
     PsychicHandler* addMiddleware(PsychicMiddleware* middleware);
-    PsychicHandler* addMiddleware(PsychicMiddlewareFunction fn);
+    PsychicHandler* addMiddleware(PsychicMiddlewareCallback fn);
     void removeMiddleware(PsychicMiddleware *middleware);
 
     // derived classes must implement these functions

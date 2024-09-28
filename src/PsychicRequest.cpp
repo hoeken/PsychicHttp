@@ -28,6 +28,8 @@ PsychicRequest::PsychicRequest(PsychicHttpServer* server, httpd_req_t* req) : _s
 
   // load and parse our uri.
   this->_setUri(this->_req->uri);
+
+  _response = new PsychicResponse(this);
 }
 
 PsychicRequest::~PsychicRequest()
@@ -40,6 +42,8 @@ PsychicRequest::~PsychicRequest()
   for (auto* param : _params)
     delete (param);
   _params.clear();
+
+  delete _response;
 }
 
 void PsychicRequest::freeSession(void* ctx)
@@ -313,18 +317,20 @@ String PsychicRequest::getCookie(const char* key)
   return cookie;
 }
 
+void PsychicRequest::replaceResponse(PsychicResponse* response)
+{
+  delete _response;
+  _response = response;
+}
+
 void PsychicRequest::addResponseHeader(const char* key, const char* value)
 {
-  // erase any existing ones.
-  for (auto itr = _responseHeaders.begin(); itr != _responseHeaders.end();) {
-    if (itr->field.equals(key))
-      itr = _responseHeaders.erase(itr);
-    else
-      itr++;
-  }
+  _response->addHeader(key, value);
+}
 
-  // now add it.
-  _responseHeaders.push_back({key, value});
+std::list<HTTPHeader>& PsychicRequest::getResponseHeaders()
+{
+  return _response->headers();
 }
 
 void PsychicRequest::loadParams()

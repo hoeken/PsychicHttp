@@ -54,8 +54,8 @@ class PsychicClient;
 typedef std::function<bool(PsychicRequest* request)> PsychicRequestFilterFunction;
 
 // middleware function definition
-typedef std::function<esp_err_t(PsychicRequest* request, PsychicResponse* response)> PsychicMiddlewareCallback;
-typedef std::function<esp_err_t(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareCallback next)> PsychicMiddlewareFunction;
+typedef std::function<esp_err_t()> PsychicMiddlewareNext;
+typedef std::function<esp_err_t(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next)> PsychicMiddlewareCallback;
 
 // client connect callback
 typedef std::function<void(PsychicClient* client)> PsychicClientCallback;
