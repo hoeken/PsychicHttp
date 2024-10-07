@@ -212,7 +212,7 @@ server.on("/ws")->attachHandler(&websocketHandler);
 
 The ```PsychicWebHandler``` class is for handling standard web requests.  It provides a single callback: ```onRequest()```.  This callback is called when the handler receives a valid HTTP request.
 
-One major difference from ESPAsyncWebserver is that this callback needs to return an esp_err_t variable to let the server know the result of processing the request.  The ```response->reply()``` and ```request->send()``` functions will return this.  It is a good habit to return the result of these functions as sending the response will close the connection.
+One major difference from ESPAsyncWebserver is that this callback needs to return an esp_err_t variable to let the server know the result of processing the request.  The ```response->send()``` and ```request->reply()``` functions will return this.  It is a good habit to return the result of these functions as sending the response will close the connection.
 
 The function definition for the onRequest callback is:
 
