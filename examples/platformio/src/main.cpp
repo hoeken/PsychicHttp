@@ -344,6 +344,10 @@ void setup()
     digestAuth.setAuthMethod(HTTPAuthMethod::DIGEST_AUTH);
     digestAuth.setAuthFailureMessage("You must log in.");
 
+    // corsMiddleware.setAllowCredentials(true);
+    // corsMiddleware.setOrigin("http://www.example.com,https://www.example.com,http://api.example.com,https://api.example.com");
+    // corsMiddleware.setHeaders("Origin,X-Requested-With,Content-Type,Accept,Content-Type,Authorization,X-Access-Token");
+
     server.addMiddleware(&loggingMiddleware);
     // this will send CORS headers on every HTTP_OPTIONS request that contains the Origin: header
     server.addMiddleware(&corsMiddleware);
