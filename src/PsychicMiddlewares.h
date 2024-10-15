@@ -11,6 +11,7 @@ class LoggingMiddleware : public PsychicMiddleware
 {
   public:
     void setOutput(Print& output);
+
     esp_err_t run(PsychicRequest* request, PsychicResponse* response, PsychicMiddlewareNext next) override;
 
   private:
@@ -26,6 +27,13 @@ class AuthenticationMiddleware : public PsychicMiddleware
     AuthenticationMiddleware& setRealm(const char* realm);
     AuthenticationMiddleware& setAuthMethod(HTTPAuthMethod method);
     AuthenticationMiddleware& setAuthFailureMessage(const char* message);
+
+    const String& getUsername() const { return _username; }
+    const String& getPassword() const { return _password; }
+
+    const String& getRealm() const { return _realm; }
+    HTTPAuthMethod getAuthMethod() const { return _method; }
+    const String& getAuthFailureMessage() const { return _authFailMsg; }
 
     bool isAllowed(PsychicRequest* request) const;
 
@@ -48,6 +56,12 @@ class CorsMiddleware : public PsychicMiddleware
     CorsMiddleware& setHeaders(const char* headers);
     CorsMiddleware& setAllowCredentials(bool credentials);
     CorsMiddleware& setMaxAge(uint32_t seconds);
+
+    const String& getOrigin() const { return _origin; }
+    const String& getMethods() const { return _methods; }
+    const String& getHeaders() const { return _headers; }
+    bool getAllowCredentials() const { return _credentials; }
+    uint32_t getMaxAge() const { return _maxAge; }
 
     void addCORSHeaders(PsychicResponse* response);
 
