@@ -5,8 +5,6 @@
 PsychicResponse::PsychicResponse(PsychicRequest* request) : _request(request),
                                                             _code(200),
                                                             _status(""),
-                                                            _contentType(emptyString),
-                                                            _contentLength(0),
                                                             _body("")
 {
   // get our global headers out of the way
@@ -31,6 +29,22 @@ void PsychicResponse::addHeader(const char* field, const char* value)
 
   // now add it.
   _headers.push_back({field, value});
+}
+
+const String& PsychicResponse::getHeader(const char* field) {
+  for (auto& header : _headers) {
+    if (header.field.equalsIgnoreCase(field))
+      return header.value;
+  }
+  return emptyString;
+}
+
+bool PsychicResponse::hasHeader(const char* field) {
+  for (auto& header : _headers) {
+    if (header.field.equalsIgnoreCase(field))
+      return true;
+  }
+  return false;
 }
 
 void PsychicResponse::setCookie(const char* name, const char* value, unsigned long secondsFromNow, const char* extras)
@@ -67,11 +81,6 @@ void PsychicResponse::setCode(int code)
   _code = code;
 }
 
-void PsychicResponse::setContentType(const char* contentType)
-{
-  _contentType = contentType;
-}
-
 void PsychicResponse::setContent(const char* content)
 {
   _body = content;
@@ -89,11 +98,6 @@ const char* PsychicResponse::getContent()
   return _body;
 }
 
-size_t PsychicResponse::getContentLength()
-{
-  return _contentLength;
-}
-
 esp_err_t PsychicResponse::send()
 {
   // esp-idf makes you set the whole status.
@@ -101,7 +105,7 @@ esp_err_t PsychicResponse::send()
   httpd_resp_set_status(_request->request(), _status);
 
   // set the content type
-  httpd_resp_set_type(_request->request(), _contentType.c_str());
+  httpd_resp_set_type(_request->request(), getContentType().c_str());
 
   // our headers too
   this->sendHeaders();
@@ -162,7 +166,7 @@ esp_err_t PsychicResponse::send(const char* content)
 {
   if (!_code)
     setCode(200);
-  if (_contentType.isEmpty())
+  if (!hasHeader("Content-Type"))
     setContentType("text/html");
   setContent(content);
   return send();

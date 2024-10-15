@@ -14,8 +14,6 @@ class PsychicResponse
     int _code;
     char _status[60];
     std::list<HTTPHeader> _headers;
-    String _contentType;
-    int64_t _contentLength;
     const char* _body;
 
   public:
@@ -26,15 +24,17 @@ class PsychicResponse
 
     void setCode(int code);
     int getCode() { return _code; }
-    
-    void setContentType(const char* contentType);
-    String& getContentType() { return _contentType; }
 
-    void setContentLength(int64_t contentLength) { _contentLength = contentLength; }
-    int64_t getContentLength(int64_t contentLength) { return _contentLength; }
+    void setContentType(const char* contentType) { addHeader("Content-Type", contentType); }
+    const String& getContentType() { return getHeader("Content-Type"); }
+
+    void setContentLength(size_t contentLength) { addHeader("Content-Length", String(contentLength).c_str()); }
+    size_t getContentLength() { return strtoul(getHeader("Content-Length").c_str(), nullptr, 10); }
 
     void addHeader(const char* field, const char* value);
     std::list<HTTPHeader>& headers() { return _headers; }
+    bool hasHeader(const char* field);
+    const String& getHeader(const char* field);
 
     void setCookie(const char* key, const char* value, unsigned long max_age = 60 * 60 * 24 * 30, const char* extras = "");
 
@@ -42,7 +42,6 @@ class PsychicResponse
     void setContent(const uint8_t* content, size_t len);
 
     const char* getContent();
-    size_t getContentLength();
 
     virtual esp_err_t send();
     void sendHeaders();
@@ -74,12 +73,15 @@ class PsychicResponseDelegate
     void setCode(int code) { _response->setCode(code); }
 
     void setContentType(const char* contentType) { _response->setContentType(contentType); }
-    String& getContentType() { return _response->getContentType(); }
+    const String& getContentType() { return _response->getContentType(); }
 
-    void setContentLength(int64_t contentLength) { _response->setContentLength(contentLength); }
-    int64_t getContentLength(int64_t contentLength) { return _response->getContentLength(); }
+    void setContentLength(size_t contentLength) { _response->setContentLength(contentLength); }
+    size_t getContentLength() { return _response->getContentLength(); }
 
     void addHeader(const char* field, const char* value) { _response->addHeader(field, value); }
+    std::list<HTTPHeader>& headers() { return _response->headers(); }
+    bool hasHeader(const char* field) { return _response->hasHeader(field); }
+    const String& getHeader(const char* field) { return _response->getHeader(field); }
 
     void setCookie(const char* key, const char* value, unsigned long max_age = 60 * 60 * 24 * 30, const char* extras = "") { _response->setCookie(key, value, max_age, extras); }
 
@@ -87,7 +89,6 @@ class PsychicResponseDelegate
     void setContent(const uint8_t* content, size_t len) { _response->setContent(content, len); }
 
     const char* getContent() { return _response->getContent(); }
-    size_t getContentLength() { return _response->getContentLength(); }
 
     esp_err_t send() { return _response->send(); }
     void sendHeaders() { _response->sendHeaders(); }
