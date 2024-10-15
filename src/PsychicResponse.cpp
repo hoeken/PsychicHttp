@@ -23,7 +23,7 @@ void PsychicResponse::addHeader(const char* field, const char* value)
 {
   // erase any existing ones.
   for (auto itr = _headers.begin(); itr != _headers.end();) {
-    if (itr->field.equals(field))
+    if (itr->field.equalsIgnoreCase(field))
       itr = _headers.erase(itr);
     else
       itr++;
