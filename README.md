@@ -2,6 +2,8 @@
 
 PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the [ESP-IDF HTTP Server](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/protocols/esp_http_server.html) library under the hood.  It is written in a similar style to the [Arduino WebServer](https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer), [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer), and [ArduinoMongoose](https://github.com/jeremypoulter/ArduinoMongoose) libraries to make writing code simple and porting from those other libraries straightforward.
 
+**Discord**: [https://discord.gg/TAQrTR3f9C](https://discord.gg/TAQrTR3f9C)
+
 # Features
 
 * Asynchronous approach (server runs in its own FreeRTOS thread)
