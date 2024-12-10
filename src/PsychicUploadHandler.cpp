@@ -106,8 +106,10 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest* request)
     }
 
     /* Keep track of remaining size of the file left to be uploaded */
-    remaining -= received;
-    index += received;
+    if(received > 0) {
+      remaining -= received;
+      index += received;
+    }
   }
 
   // dont forget to free our buffer
