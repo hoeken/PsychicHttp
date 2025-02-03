@@ -1,0 +1,2 @@
+dependencies:
+  joltwallet/littlefs: ^1.16.4

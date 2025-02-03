@@ -9,8 +9,8 @@ set(COMPONENT_ADD_INCLUDEDIRS
 set(COMPONENT_REQUIRES
     "arduino-esp32"
     "esp_https_server"
-    "ArduinoJson"
-    "UrlEncode"
+    "arduinojson"
+    "urlencode"
 )
 
 register_component()
