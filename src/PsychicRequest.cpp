@@ -359,7 +359,7 @@ static const String md5str(const String &in){
   return md5.toString();
 }
 
-bool PsychicRequest::authenticate(const char * username, const char * password)
+bool PsychicRequest::authenticate(const char * username, const char * password, bool passwordIsHashed)
 {
   if(hasHeader("Authorization"))
   {
@@ -420,21 +420,29 @@ bool PsychicRequest::authenticate(const char * username, const char * password)
         _cnonce = _extractParam(authReq, F("cnonce=\""),'\"');
       }
       
-      String _H1 = md5str(String(username) + ':' + _realm + ':' + String(password));
+
+      String _H1 = passwordIsHashed ? String(password) : md5str(String(username) + ':' + _realm + ':' + String(password));      
       //ESP_LOGD(PH_TAG, "Hash of user:realm:pass=%s", _H1.c_str());
       
       String _H2 = "";
-      if(_method == HTTP_GET){
+      switch(method()) {
+        case HTTP_GET:
           _H2 = md5str(String(F("GET:")) + _uri);
-      }else if(_method == HTTP_POST){
+          break;
+        case HTTP_POST:
           _H2 = md5str(String(F("POST:")) + _uri);
-      }else if(_method == HTTP_PUT){
+          break;
+        case HTTP_PUT:
           _H2 = md5str(String(F("PUT:")) + _uri);
-      }else if(_method == HTTP_DELETE){
+          break;
+        case HTTP_DELETE:
           _H2 = md5str(String(F("DELETE:")) + _uri);
-      }else{
+          break;
+        default:
           _H2 = md5str(String(F("GET:")) + _uri);
+          break;
       }
+
       //ESP_LOGD(PH_TAG, "Hash of GET:uri=%s", _H2.c_str());
       
       String _responsecheck = "";
@@ -504,7 +512,7 @@ esp_err_t PsychicRequest::requestAuthentication(HTTPAuthMethod mode, const char*
 
   response.setCode(401);
   response.setContentType("text/html");
-  response.setContent(authStr.c_str());
+  response.setContent(authFailMsg);
   return response.send();
 }
 
