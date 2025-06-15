@@ -99,10 +99,6 @@ size_t PsychicResponse::getContentLength()
 
 esp_err_t PsychicResponse::send()
 {
-  //esp-idf makes you set the whole status.
-  sprintf(_status, "%u %s", _code, http_status_reason(_code));
-  httpd_resp_set_status(_request->request(), _status);
-
   //our headers too
   this->sendHeaders();
 
@@ -118,6 +114,10 @@ esp_err_t PsychicResponse::send()
 
 void PsychicResponse::sendHeaders()
 {
+  //esp-idf makes you set the whole status.
+  sprintf(_status, "%u %s", _code, http_status_reason(_code));
+  httpd_resp_set_status(_request->request(), _status);
+  
   //get our global headers out of the way first
   for (HTTPHeader header : DefaultHeaders::Instance().getHeaders())
     httpd_resp_set_hdr(_request->request(), header.field, header.value);
