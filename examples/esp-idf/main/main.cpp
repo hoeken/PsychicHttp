@@ -157,7 +157,7 @@ void setup()
     }
     MDNS.addService("http", "tcp", 80);
 
-    if(!LittleFS.begin())
+    if(!LittleFS.begin(false, "/spiffs", 5, "littlefs"))
     {
       Serial.println("LittleFS Mount Failed. Do Platform -> Build Filesystem Image and Platform -> Upload Filesystem Image from VSCode");
       return;
