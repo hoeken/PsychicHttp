@@ -89,9 +89,12 @@ void PsychicEventSource::addClient(PsychicClient *client) {
 }
 
 void PsychicEventSource::removeClient(PsychicClient *client) {
+  auto buddy = static_cast<PsychicEventSourceClient *>(client->_friend);
+  if (buddy) {
+      delete buddy;
+      client->_friend = nullptr;
+  }
   PsychicHandler::removeClient(client);
-  delete (PsychicEventSourceClient*)client->_friend;
-  client->_friend = nullptr;
 }
 
 void PsychicEventSource::openCallback(PsychicClient *client) {
