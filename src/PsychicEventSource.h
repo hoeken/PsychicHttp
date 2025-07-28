@@ -24,6 +24,7 @@
 #include "PsychicHandler.h"
 #include "PsychicClient.h"
 #include "PsychicResponse.h"
+#include <functional>
 
 class PsychicEventSource;
 class PsychicEventSourceResponse;
@@ -43,8 +44,8 @@ class PsychicEventSourceClient : public PsychicClient {
     ~PsychicEventSourceClient();
 
     uint32_t lastId() const { return _lastId; }
-    void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);
-    void sendEvent(const char *event);
+    bool send(const char *message, const char *event=nullptr, uint32_t id=0, uint32_t reconnect=0);
+    bool sendEvent(const char *event);
 };
 
 class PsychicEventSource : public PsychicHandler {
@@ -68,7 +69,7 @@ class PsychicEventSource : public PsychicHandler {
 
     esp_err_t handleRequest(PsychicRequest *request) override final;
 
-    void send(const char *message, const char *event=NULL, uint32_t id=0, uint32_t reconnect=0);
+    void send(const char *message, const char *event=nullptr, uint32_t id=0, uint32_t reconnect=0);
 };
 
 class PsychicEventSourceResponse: public PsychicResponse {
