@@ -55,8 +55,7 @@ class PsychicHttpServer
       HTTP_DELETE,
       HTTP_HEAD,
       HTTP_PUT,
-      HTTP_OPTIONS
-    };
+      HTTP_OPTIONS};
 
     // esp-idf specific stuff
     httpd_handle_t server;
@@ -72,6 +71,11 @@ class PsychicHttpServer
 
     virtual void setPort(uint16_t port);
     virtual uint16_t getPort();
+
+    // stub functions to allow us to use a pointer to PsychicHttpServer that is really a PsychicHttpsServer
+    // for runtime selection of ssl or no ssl
+    virtual void setCertificate(const char* cert, const char* private_key) {}
+    virtual void setCertificate(const uint8_t* cert, size_t cert_size, const uint8_t* private_key, size_t private_key_size) {}
 
     bool isConnected();
     bool isRunning() { return _running; }
@@ -115,7 +119,7 @@ class PsychicHttpServer
 
     PsychicHttpServer* addMiddleware(PsychicMiddleware* middleware);
     PsychicHttpServer* addMiddleware(PsychicMiddlewareCallback fn);
-    void removeMiddleware(PsychicMiddleware *middleware);
+    void removeMiddleware(PsychicMiddleware* middleware);
 
     static esp_err_t requestHandler(httpd_req_t* req);
     static esp_err_t notFoundHandler(httpd_req_t* req, httpd_err_code_t err);
