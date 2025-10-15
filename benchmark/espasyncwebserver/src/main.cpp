@@ -89,6 +89,8 @@ const char* htmlContent = R"(
 </html>
 )";
 
+const size_t htmlContentLen = strlen(htmlContent);
+
 bool connectToWifi()
 {
   Serial.println();
@@ -241,7 +243,11 @@ void setup()
     }
 
     // api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { request->send(200, "text/html", htmlContent); });
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+      // ESPAsyncWebServer, sending a char* does a buffer copy, unlike Psychic.
+      // Sending flash data is done with the uint8_t* overload.
+      request->send(200, "text/html", (uint8_t*)htmlContent, htmlContentLen);
+    });
 
     // api - parameters passed in via query eg. /api/endpoint?foo=bar
     server.on("/api", HTTP_GET, [](AsyncWebServerRequest* request) {

@@ -41,7 +41,7 @@ class PsychicHttpServer
     httpd_uri_match_func_t _uri_match_fn = nullptr;
 
     bool _rewriteRequest(PsychicRequest* request);
-    esp_err_t _process(PsychicRequest* request, PsychicResponse* response);
+    esp_err_t _process(PsychicRequest* request);
     bool _filter(PsychicRequest* request);
 
   public:
@@ -71,6 +71,7 @@ class PsychicHttpServer
     static void destroy(void* ctx);
 
     virtual void setPort(uint16_t port);
+    virtual uint16_t getPort();
 
     bool isConnected();
     bool isRunning() { return _running; }
@@ -113,7 +114,7 @@ class PsychicHttpServer
     PsychicHttpServer* addFilter(PsychicRequestFilterFunction fn);
 
     PsychicHttpServer* addMiddleware(PsychicMiddleware* middleware);
-    PsychicHttpServer* addMiddleware(PsychicMiddlewareFunction fn);
+    PsychicHttpServer* addMiddleware(PsychicMiddlewareCallback fn);
     void removeMiddleware(PsychicMiddleware *middleware);
 
     static esp_err_t requestHandler(httpd_req_t* req);

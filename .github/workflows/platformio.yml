@@ -22,8 +22,8 @@ jobs:
       matrix:
         flags: ["-DPSY_ENABLE_SSL", "-DPSY_ENABLE_REGEX"]
         platform: [
-          "51.03.04",
-          "53.03.10%2Brc1"
+          "51.03.05",
+          "53.03.10-rc1"
         ]
         board:
           [

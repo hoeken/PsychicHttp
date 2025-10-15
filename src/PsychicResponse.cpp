@@ -12,10 +12,6 @@ PsychicResponse::PsychicResponse(PsychicRequest* request) : _request(request),
   // get our global headers out of the way
   for (auto& header : DefaultHeaders::Instance().getHeaders())
     addHeader(header.field.c_str(), header.value.c_str());
-
-  // pull in any response headers we've stored.
-  for (auto& header : request->getResponseHeaders())
-    addHeader(header.field.c_str(), header.value.c_str());
 }
 
 PsychicResponse::~PsychicResponse()
@@ -27,7 +23,7 @@ void PsychicResponse::addHeader(const char* field, const char* value)
 {
   // erase any existing ones.
   for (auto itr = _headers.begin(); itr != _headers.end();) {
-    if (itr->field.equals(field))
+    if (itr->field.equalsIgnoreCase(field))
       itr = _headers.erase(itr);
     else
       itr++;

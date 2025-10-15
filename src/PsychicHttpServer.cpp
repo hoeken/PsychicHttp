@@ -77,6 +77,11 @@ void PsychicHttpServer::setPort(uint16_t port)
   this->config.server_port = port;
 }
 
+uint16_t PsychicHttpServer::getPort()
+{
+  return this->config.server_port;
+}
+
 bool PsychicHttpServer::isConnected()
 {
   if (WiFi.softAPIP())
@@ -151,6 +156,8 @@ esp_err_t PsychicHttpServer::start()
   ret = httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, PsychicHttpServer::notFoundHandler);
   if (ret != ESP_OK)
     ESP_LOGE(PH_TAG, "Add 404 handler failed (%s)", esp_err_to_name(ret));
+
+  ESP_LOGI(PH_TAG, "Server started on port %" PRIu16, getPort());
 
   _running = true;
   return ret;
@@ -402,23 +409,23 @@ PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddleware* middlewar
   if (!_chain) {
     _chain = new PsychicMiddlewareChain();
   }
-  _chain->add(middleware);
+  _chain->addMiddleware(middleware);
   return this;
 }
 
-PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddlewareFunction fn)
+PsychicHttpServer* PsychicHttpServer::addMiddleware(PsychicMiddlewareCallback fn)
 {
   if (!_chain) {
     _chain = new PsychicMiddlewareChain();
   }
-  _chain->add(fn);
+  _chain->addMiddleware(fn);
   return this;
 }
 
 void PsychicHttpServer::removeMiddleware(PsychicMiddleware* middleware)
 {
   if (_chain) {
-    _chain->remove(middleware);
+    _chain->removeMiddleware(middleware);
   }
 }
 
@@ -446,7 +453,6 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
 {
   PsychicHttpServer* server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicRequest request(server, req);
-  PsychicResponse response(&request);
 
   // process any URL rewrites
   server->_rewriteRequest(&request);
@@ -454,15 +460,17 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
   // run it through our global server filter list
   if (!server->_filter(&request)) {
     ESP_LOGD(PH_TAG, "Request %s refused by global filter", request.uri().c_str());
-    return response.send(400);
+    return request.response()->send(400);
   }
 
   // then runs the request through the filter chain
   esp_err_t ret;
   if (server->_chain) {
-    ret = server->_chain->run(&request, &response, std::bind(&PsychicHttpServer::_process, server, std::placeholders::_1, std::placeholders::_2));
+    ret = server->_chain->runChain(&request, [server, &request]() {
+      return server->_process(&request);
+    });
   } else {
-    ret = server->_process(&request, &response);
+    ret = server->_process(&request);
   }
   ESP_LOGD(PH_TAG, "Request %s processed by global middleware: %s", request.uri().c_str(), esp_err_to_name(ret));
 
@@ -473,21 +481,21 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
   return ret;
 }
 
-esp_err_t PsychicHttpServer::_process(PsychicRequest* request, PsychicResponse* response)
+esp_err_t PsychicHttpServer::_process(PsychicRequest* request)
 {
   // loop through our endpoints and see if anyone wants it.
   for (auto* endpoint : _endpoints) {
     if (endpoint->matches(request->uri().c_str())) {
       if (endpoint->_method == request->method() || endpoint->_method == HTTP_ANY) {
         request->setEndpoint(endpoint);
-        return endpoint->process(request, response);
+        return endpoint->process(request);
       }
     }
   }
 
   // loop through our global handlers and see if anyone wants it
   for (auto* handler : _handlers) {
-    esp_err_t ret = handler->process(request, response);
+    esp_err_t ret = handler->process(request);
     if (ret != HTTPD_404_NOT_FOUND)
       return ret;
   }
@@ -499,19 +507,18 @@ esp_err_t PsychicHttpServer::notFoundHandler(httpd_req_t* req, httpd_err_code_t 
 {
   PsychicHttpServer* server = (PsychicHttpServer*)httpd_get_global_user_ctx(req->handle);
   PsychicRequest request(server, req);
-  PsychicResponse response(&request);
 
   // pull up our default handler / endpoint
   PsychicHandler* handler = server->defaultEndpoint->handler();
   if (!handler)
-    return response.send(404);
+    return request.response()->send(404);
 
-  esp_err_t ret = handler->process(&request, &response);
+  esp_err_t ret = handler->process(&request);
   if (ret != HTTPD_404_NOT_FOUND)
     return ret;
 
   // not sure how we got this far.
-  return response.send(404);
+  return request.response()->send(404);
 }
 
 esp_err_t PsychicHttpServer::defaultNotFoundHandler(PsychicRequest* request, PsychicResponse* response)
