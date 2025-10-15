@@ -2,6 +2,8 @@
 
 PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the [ESP-IDF HTTP Server](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/protocols/esp_http_server.html) library under the hood.  It is written in a similar style to the [Arduino WebServer](https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer), [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer), and [ArduinoMongoose](https://github.com/jeremypoulter/ArduinoMongoose) libraries to make writing code simple and porting from those other libraries straightforward.
 
+**Discord**: [https://discord.gg/TAQrTR3f9C](https://discord.gg/TAQrTR3f9C)
+
 # Features
 
 * Asynchronous approach (server runs in its own FreeRTOS thread)
@@ -209,7 +211,7 @@ server.on("/ws")->attachHandler(&websocketHandler);
 
 The ```PsychicWebHandler``` class is for handling standard web requests.  It provides a single callback: ```onRequest()```.  This callback is called when the handler receives a valid HTTP request.
 
-One major difference from ESPAsyncWebserver is that this callback needs to return an esp_err_t variable to let the server know the result of processing the request.  The ```response->send()``` and ```request->send()``` functions will return this.  It is a good habit to return the result of these functions as sending the response will close the connection.
+One major difference from ESPAsyncWebserver is that this callback needs to return an esp_err_t variable to let the server know the result of processing the request.  The ```response->send()``` and ```request->reply()``` functions will return this.  It is a good habit to return the result of these functions as sending the response will close the connection.
 
 The function definition for the onRequest callback is:
 

@@ -1,0 +1,26 @@
+## IDF Component Manager Manifest File
+version: "1.2.1"
+license: "MIT"
+description: "Asyncronous Webserver library for ESP32 + Arduino framework"
+url: "https://github.com/hoeken/PsychicHttp"
+repository: "https://github.com/hoeken/PsychicHttp"
+documentation: "https://h2zero.github.io/esp-nimble-cpp/"
+tags:
+  - webserver
+  - websocket
+  - http
+  - https
+
+dependencies:
+  bblanchon/arduinojson: ^7.3.0
+  urlencode:
+    git: "https://github.com/dzungpv/urlencode.git"
+    version: "cb71cbf2828683e5ff2b1afd89289d932ba8866b"
+  espressif/arduino-esp32:
+    matches:
+      - if: "idf_version ^4"
+        version: "^2"
+      - if: "idf_version ^5.1"
+        version: "^3.0"
+      - if: "idf_version ^5.3"
+        version: "^3.1"
