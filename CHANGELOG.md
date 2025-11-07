@@ -1,5 +1,8 @@
 # v2.0
 
+I apologize for sitting on this release for so long.  Its been almost a year and life just sort of got away from me.  I'd like to get this release out and then start working through the backlog of issues.  v2.0 has been very stable for me, so it's more than time to release it.
+
+* Huge amount of work was done to add MiddleWare and some more under the hood updates
 * Modified the request handling to bring initial url matching and filtering into PsychicHttpServer itself.
     * Fixed a bug with filter() where endpoint is matched, but filter fails and it doesn't continue matching further endpoints on same uri (checks were in different codebases)
     * HTTP_ANY support
