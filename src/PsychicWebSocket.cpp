@@ -274,7 +274,7 @@ void PsychicWebSocketHandler::sendAll(httpd_ws_frame_t* ws_pkt)
     // ESP_LOGD(PH_TAG, "Active client (fd=%d) -> sending async message", client->socket());
 
     if (client->_friend == NULL) {
-      return;
+      continue;
     }
 
     if (((PsychicWebSocketClient*)client->_friend)->sendMessage(ws_pkt) != ESP_OK)
