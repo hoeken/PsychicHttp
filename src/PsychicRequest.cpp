@@ -458,7 +458,7 @@ static const String md5str(const String& in)
   return md5.toString();
 }
 
-bool PsychicRequest::authenticate(const char* username, const char* password)
+bool PsychicRequest::authenticate(const char * username, const char * password, bool passwordIsHashed)
 {
   if (hasHeader("Authorization")) {
     String authReq = header("Authorization");
@@ -514,24 +514,32 @@ bool PsychicRequest::authenticate(const char* username, const char* password)
         _nc = _extractParam(authReq, F("nc="), ',');
         _cnonce = _extractParam(authReq, F("cnonce=\""), '\"');
       }
+      
 
-      String _H1 = md5str(String(username) + ':' + _realm + ':' + String(password));
-      // ESP_LOGD(PH_TAG, "Hash of user:realm:pass=%s", _H1.c_str());
-
+      String _H1 = passwordIsHashed ? String(password) : md5str(String(username) + ':' + _realm + ':' + String(password));      
+      //ESP_LOGD(PH_TAG, "Hash of user:realm:pass=%s", _H1.c_str());
+      
       String _H2 = "";
-      if (_method == HTTP_GET) {
-        _H2 = md5str(String(F("GET:")) + _url);
-      } else if (_method == HTTP_POST) {
-        _H2 = md5str(String(F("POST:")) + _url);
-      } else if (_method == HTTP_PUT) {
-        _H2 = md5str(String(F("PUT:")) + _url);
-      } else if (_method == HTTP_DELETE) {
-        _H2 = md5str(String(F("DELETE:")) + _url);
-      } else {
-        _H2 = md5str(String(F("GET:")) + _url);
+      switch(method()) {
+        case HTTP_GET:
+          _H2 = md5str(String(F("GET:")) + _uri);
+          break;
+        case HTTP_POST:
+          _H2 = md5str(String(F("POST:")) + _uri);
+          break;
+        case HTTP_PUT:
+          _H2 = md5str(String(F("PUT:")) + _uri);
+          break;
+        case HTTP_DELETE:
+          _H2 = md5str(String(F("DELETE:")) + _uri);
+          break;
+        default:
+          _H2 = md5str(String(F("GET:")) + _uri);
+          break;
       }
-      // ESP_LOGD(PH_TAG, "Hash of GET:uri=%s", _H2.c_str());
 
+      //ESP_LOGD(PH_TAG, "Hash of GET:uri=%s", _H2.c_str());
+      
       String _responsecheck = "";
       if (authReq.indexOf("qop=auth") != -1 || authReq.indexOf("qop=\"auth\"") != -1) {
         _responsecheck = md5str(_H1 + ':' + _nonce + ':' + _nc + ':' + _cnonce + F(":auth:") + _H2);
