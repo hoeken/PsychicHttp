@@ -137,7 +137,7 @@ class PsychicRequest
 
     const String getFilename();
 
-    bool authenticate(const char* username, const char* password);
+    bool authenticate(const char * username, const char * password, bool passwordIsHashed = false);
     esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const char* authFailMsg);
 };
 
