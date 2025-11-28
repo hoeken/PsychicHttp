@@ -26,8 +26,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        idf_ver: ["v4.4.7", "v5.1.4", "v5.4.2"]
-        idf_target: ["esp32"]
+        idf_ver: ["v4.4.8", "latest-major:5"]
+        idf_target: ["esp32", "esp32s3"]
 
     steps:
       - uses: actions/checkout@v4
