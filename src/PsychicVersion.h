@@ -17,7 +17,7 @@
 /** Major version number (X.x.x) */
 #define PSYCHIC_VERSION_MAJOR 2
 /** Minor version number (x.X.x) */
-#define PSYCHIC_VERSION_MINOR 0
+#define PSYCHIC_VERSION_MINOR 1
 /** Patch version number (x.x.X) */
 #define PSYCHIC_VERSION_PATCH 0
 
@@ -39,9 +39,9 @@
  * Current PsychicHttp version, as string
  */
 #ifndef PSYCHIC_df2xstr
-#define PSYCHIC_df2xstr(s)          #s
+  #define PSYCHIC_df2xstr(s) #s
 #endif
 #ifndef PSYCHIC_df2str
-#define PSYCHIC_df2str(s)           PSYCHIC_df2xstr(s)
+  #define PSYCHIC_df2str(s) PSYCHIC_df2xstr(s)
 #endif
 #define PSYCHIC_VERSION_STR PSYCHIC_df2str(PSYCHIC_VERSION_MAJOR) "." PSYCHIC_df2str(PSYCHIC_VERSION_MINOR) "." PSYCHIC_df2str(PSYCHIC_VERSION_PATCH)
