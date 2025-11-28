@@ -208,3 +208,4 @@ esp_err_t httpd_req_async_handler_complete(httpd_req_t* r)
 }
 
 #endif
+#endif
