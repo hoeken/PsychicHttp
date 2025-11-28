@@ -144,15 +144,6 @@ esp_err_t PsychicFileResponse::send()
       return ESP_FAIL;
     }
 
-    /* Set status and content type before sending headers */
-    char* statusBuffer = (char*)malloc(60);
-    int code = _response->getCode();
-    sprintf(statusBuffer, "%u %s", code, http_status_reason(code));
-    httpd_resp_set_status(request(), statusBuffer);
-
-    // set the content type
-    httpd_resp_set_type(request(), getContentType().c_str());
-
     // now the headers
     sendHeaders();
 
@@ -176,9 +167,6 @@ esp_err_t PsychicFileResponse::send()
       ESP_LOGD(PH_TAG, "File sending complete");
       finishChunking();
     }
-
-    // Once sent, free our buffer
-    free(statusBuffer);
   }
 
   return err;
