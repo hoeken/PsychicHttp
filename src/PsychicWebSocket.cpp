@@ -229,7 +229,13 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request, Psychi
     }
     // ESP_LOGD(PH_TAG, "Got packet with message: %s", ws_pkt.payload);
   }
-
+  if (ws_pkt.type == HTTPD_WS_TYPE_PING) {
+      // Respond to ping with pong using the same payload
+      ret = wsRequest.reply(HTTPD_WS_TYPE_PONG, ws_pkt.payload, ws_pkt.len);
+      if (ret != ESP_OK) {
+          ESP_LOGE(PH_TAG, "Failed to send pong response: %s", esp_err_to_name(ret));
+      }
+  }
   // Text messages are our payload.
   if (ws_pkt.type == HTTPD_WS_TYPE_TEXT || ws_pkt.type == HTTPD_WS_TYPE_BINARY) {
     if (this->_onFrame != NULL)
