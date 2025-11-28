@@ -32,58 +32,61 @@ PsychicEventSource::PsychicEventSource() :
   _onClose(nullptr)
 {}
 
-PsychicEventSource::~PsychicEventSource() {
+PsychicEventSource::~PsychicEventSource()
+{
 }
 
-PsychicEventSourceClient * PsychicEventSource::getClient(int socket)
+PsychicEventSourceClient* PsychicEventSource::getClient(int socket)
 {
-  PsychicClient *client = PsychicHandler::getClient(socket);
+  PsychicClient* client = PsychicHandler::getClient(socket);
 
   if (client == nullptr)
     return nullptr;
 
-  return (PsychicEventSourceClient *)client->_friend;
+  return (PsychicEventSourceClient*)client->_friend;
 }
 
-PsychicEventSourceClient * PsychicEventSource::getClient(PsychicClient *client) {
+PsychicEventSourceClient* PsychicEventSource::getClient(PsychicClient* client)
+{
   return getClient(client->socket());
 }
 
-esp_err_t PsychicEventSource::handleRequest(PsychicRequest *request)
+esp_err_t PsychicEventSource::handleRequest(PsychicRequest* request, PsychicResponse* resp)
 {
-  //start our open ended HTTP response
-  PsychicEventSourceResponse response(request);
+  // start our open ended HTTP response
+  PsychicEventSourceResponse response(resp);
   esp_err_t err = response.send();
 
-  //lookup our client
-  PsychicClient *client = checkForNewClient(request->client());
-  if (client->isNew)
-  {
-    //did we get our last id?
-    if(request->hasHeader("Last-Event-ID"))
-    {
-      PsychicEventSourceClient *buddy = getClient(client);
+  // lookup our client
+  PsychicClient* client = checkForNewClient(request->client());
+  if (client->isNew) {
+    // did we get our last id?
+    if (request->hasHeader("Last-Event-ID")) {
+      PsychicEventSourceClient* buddy = getClient(client);
       buddy->_lastId = atoi(request->header("Last-Event-ID").c_str());
     }
 
-    //let our handler know.
+    // let our handler know.
     openCallback(client);
   }
 
   return err;
 }
 
-PsychicEventSource * PsychicEventSource::onOpen(PsychicEventSourceClientCallback fn) {
+PsychicEventSource* PsychicEventSource::onOpen(PsychicEventSourceClientCallback fn)
+{
   _onOpen = fn;
   return this;
 }
 
-PsychicEventSource * PsychicEventSource::onClose(PsychicEventSourceClientCallback fn) {
+PsychicEventSource* PsychicEventSource::onClose(PsychicEventSourceClientCallback fn)
+{
   _onClose = fn;
   return this;
 }
 
-void PsychicEventSource::addClient(PsychicClient *client) {
+void PsychicEventSource::addClient(PsychicClient* client)
+{
   client->_friend = new PsychicEventSourceClient(client);
   PsychicHandler::addClient(client);
 }
@@ -149,13 +152,13 @@ void PsychicEventSource::send(const char *message, const char *event, uint32_t i
 // PsychicEventSourceClient
 /*****************************************/
 
-PsychicEventSourceClient::PsychicEventSourceClient(PsychicClient *client) :
-  PsychicClient(client->server(), client->socket()),
-  _lastId(0)
+PsychicEventSourceClient::PsychicEventSourceClient(PsychicClient* client) : PsychicClient(client->server(), client->socket()),
+                                                                            _lastId(0)
 {
 }
 
-PsychicEventSourceClient::~PsychicEventSourceClient(){
+PsychicEventSourceClient::~PsychicEventSourceClient()
+{
 }
 
 /**
@@ -187,8 +190,7 @@ bool PsychicEventSourceClient::sendEvent(const char *event) {
 // PsychicEventSourceResponse
 /*****************************************/
 
-PsychicEventSourceResponse::PsychicEventSourceResponse(PsychicRequest *request) 
-  : PsychicResponse(request)
+PsychicEventSourceResponse::PsychicEventSourceResponse(PsychicResponse* response) : PsychicResponseDelegate(response)
 {
 }
 
@@ -196,20 +198,21 @@ esp_err_t PsychicEventSourceResponse::send() {
   //build our main header
   String out = String();
   out.concat("HTTP/1.1 200 OK\r\n");
-  out.concat("Content-Type: text/event-stream\r\n");
-  out.concat("Cache-Control: no-cache\r\n");
-  out.concat("Connection: keep-alive\r\n");
 
-  //get our global headers out of the way first
-  for (HTTPHeader header : DefaultHeaders::Instance().getHeaders())
-    out.concat(String(header.field) + ": " + String(header.value) + "\r\n");
+  // get our global headers out of the way first
+  for (auto& header : DefaultHeaders::Instance().getHeaders())
+    out.concat(header.field + ": " + header.value + "\r\n");
 
-  //separator
+  // now do our individual headers
+  for (auto& header : _response->headers())
+    out.concat(header.field + ": " + header.value + "\r\n");
+
+  // separator
   out.concat("\r\n");
 
   int result;
   do {
-    result = httpd_send(_request->request(), out.c_str(), out.length());
+    result = httpd_send(request(), out.c_str(), out.length());
   } while (result == HTTPD_SOCK_ERR_TIMEOUT);
 
   if (result < 0)
@@ -228,25 +231,25 @@ esp_err_t PsychicEventSourceResponse::send() {
 String generateEventMessage(const char* message, const char* event, uint32_t id, uint32_t reconnect) {
   String ev = "";
 
-  if(reconnect){
+  if (reconnect) {
     ev += "retry: ";
     ev += String(reconnect);
     ev += "\r\n";
   }
 
-  if(id){
+  if (id) {
     ev += "id: ";
     ev += String(id);
     ev += "\r\n";
   }
 
-  if(event != NULL){
+  if (event != NULL) {
     ev += "event: ";
     ev += String(event);
     ev += "\r\n";
   }
 
-  if(message != NULL){
+  if (message != NULL) {
     ev += "data: ";
     ev += String(message);
     ev += "\r\n";
