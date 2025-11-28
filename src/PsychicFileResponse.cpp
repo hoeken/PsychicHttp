@@ -123,7 +123,7 @@ esp_err_t PsychicFileResponse::send()
   size_t size = getContentLength();
   if (size < FILE_CHUNK_SIZE) {
     uint8_t* buffer = (uint8_t*)malloc(size);
-    if (buffer == NULL) {
+    if (buffer == NULL && size > 0) {
       ESP_LOGE(PH_TAG, "Unable to allocate %" PRIu32 " bytes to send chunk", size);
       httpd_resp_send_err(request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
       return ESP_FAIL;
