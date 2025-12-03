@@ -1,3 +1,20 @@
+## 2.1.0 (since 2.0.0)
+
+- send to all clients, not bail on the first one.
+- Fix issue whereby H2 encoding ignores method and defaults to HTTP_GET. (#202)
+- now using the stable version of pioarduino.
+- V2 dev rollup: update PsychicFileResponse (set status and content type before chunked responses), fix getCookie, and add pong reply to ping. (#228, #207, #209, #222)
+- Update async_worker.cpp to fix compatibility with Arduino ESP32 3.3.0. (#225)
+- fixed a mistake from the pull merge.
+- Moved setting content type and response code into sendHeaders(). (PR #220)
+- Check if content size is 0 before sending a response. (#218)
+- Fix crash with Event Source and update CI / IDF examples. (#221)
+- fixed EventSource error with missing headers (content type, cache-control, keep-alive).
+- fixed the CI to use the latest stable versions.
+- ugh. CI so annoying.
+- bump to v2.1.0.
+
+
 # v2.0
 
 I apologize for sitting on this release for so long.  Its been almost a year and life just sort of got away from me.  I'd like to get this release out and then start working through the backlog of issues.  v2.0 has been very stable for me, so it's more than time to release it.
