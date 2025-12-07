@@ -126,6 +126,11 @@ void start_async_req_workers(void)
 
 #ifndef ESP_HTTPD_HAS_ASYNC_API
 
+
+#ifndef MAX
+  #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#endif
+
 /* Calculate the maximum size needed for the scratch buffer */
 #if ESP_ARDUINO_VERSION_MAJOR < 3
 	#define HTTPD_SCRATCH_BUF  MAX(HTTPD_MAX_REQ_HDR_LEN, HTTPD_MAX_URI_LEN)
