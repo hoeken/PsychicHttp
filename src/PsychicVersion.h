@@ -19,7 +19,7 @@
 /** Minor version number (x.X.x) */
 #define PSYCHIC_VERSION_MINOR 1
 /** Patch version number (x.x.X) */
-#define PSYCHIC_VERSION_PATCH 0
+#define PSYCHIC_VERSION_PATCH 1
 
 /**
  * Macro to convert PsychicHttp version number into an integer

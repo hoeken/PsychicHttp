@@ -1,3 +1,7 @@
+## 2.1.1
+
+- Re-added deleted MAX function per #230
+
 ## 2.1.0 (since 2.0.0)
 
 - send to all clients, not bail on the first one.
