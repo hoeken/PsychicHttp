@@ -124,7 +124,7 @@ esp_err_t PsychicFileResponse::send()
   if (size < FILE_CHUNK_SIZE) {
     uint8_t* buffer = (uint8_t*)malloc(size);
     if (buffer == NULL && size > 0) {
-      ESP_LOGE(PH_TAG, "Unable to allocate %" PRIu32 " bytes to send chunk", size);
+      ESP_LOGE(PH_TAG, "Unable to allocate %zu bytes to send chunk", size);
       httpd_resp_send_err(request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
       return ESP_FAIL;
     }
@@ -139,7 +139,7 @@ esp_err_t PsychicFileResponse::send()
     /* Retrieve the pointer to scratch buffer for temporary storage */
     char* chunk = (char*)malloc(FILE_CHUNK_SIZE);
     if (chunk == NULL) {
-      ESP_LOGE(PH_TAG, "Unable to allocate %" PRIu32 " bytes to send chunk", FILE_CHUNK_SIZE);
+      ESP_LOGE(PH_TAG, "Unable to allocate %zu bytes to send chunk", (size_t)FILE_CHUNK_SIZE);
       httpd_resp_send_err(request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
       return ESP_FAIL;
     }
