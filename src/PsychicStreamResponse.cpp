@@ -34,10 +34,9 @@ esp_err_t PsychicStreamResponse::beginSend()
   // Buffer to hold ChunkPrinter and stream buffer. Using placement new will keep us at a single allocation.
   _buffer = (uint8_t*)malloc(STREAM_CHUNK_SIZE + sizeof(ChunkPrinter));
 
-  if (!_buffer)
-  {
+  if (!_buffer) {
     /* Respond with 500 Internal Server Error */
-    ESP_LOGE(PH_TAG, "Unable to allocate %" PRIu32 " bytes to send chunk", STREAM_CHUNK_SIZE + sizeof(ChunkPrinter));
+    ESP_LOGE(PH_TAG, "Unable to allocate %zu bytes to send chunk", STREAM_CHUNK_SIZE + sizeof(ChunkPrinter));
     httpd_resp_send_err(request(), HTTPD_500_INTERNAL_SERVER_ERROR, "Unable to allocate memory.");
     return ESP_FAIL;
   }
@@ -54,8 +53,7 @@ esp_err_t PsychicStreamResponse::endSend()
 
   if (!_buffer)
     err = ESP_FAIL;
-  else
-  {
+  else {
     _printer->~ChunkPrinter(); // flushed on destruct
     err = finishChunking();
     free(_buffer);
