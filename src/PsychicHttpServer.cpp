@@ -364,10 +364,10 @@ bool PsychicHttpServer::removeEndpoint(const char* uri, int method)
     if (!strcmp(endpoint.uri, uri) && method == endpoint.method) {
       ESP_LOGD(PH_TAG, "Unregistering endpoint %s | %s", endpoint.uri, http_method_str((http_method)endpoint.method));
 
-      // Register endpoint with ESP-IDF server
-      esp_err_t ret = httpd_register_uri_handler(this->server, &endpoint);
+      // Unregister endpoint with ESP-IDF server
+      esp_err_t ret = httpd_unregister_uri_handler(this->server, endpoint.uri, endpoint.method);
       if (ret != ESP_OK)
-        ESP_LOGE(PH_TAG, "Add endpoint failed (%s)", esp_err_to_name(ret));
+        ESP_LOGE(PH_TAG, "Remove endpoint failed (%s)", esp_err_to_name(ret));
     }
   }
 
