@@ -20,7 +20,7 @@ PsychicHttp is a webserver library for ESP32 that supports both the **Arduino fr
 * Websocket support with onOpen, onFrame, and onClose callbacks
 * EventSource / SSE support with onOpen, and onClose callbacks
 * Request filters, including Client vs AP mode (ON_STA_FILTER / ON_AP_FILTER)
-* TemplatePrinter class for dynamic variables at runtime
+* TemplatePrinter class for dynamic variables at runtime *(Arduino only)*
 
 ## Differences from ESPAsyncWebserver
 
@@ -74,6 +74,76 @@ See `examples/esp-idf-pio/` for a complete working example.
 ### Installation - Arduino IDE
 
 Open *Tools -> Manage Libraries...* and search for PsychicHttp.
+
+# Upgrading from v2.x to v3.0
+
+## Arduino Users
+
+**No code changes are required in almost all cases.** All getter methods that returned `String` in v2.x still return `String` on Arduino.
+
+The one small exception: `PsychicResponse::getContentType()` previously returned `String&` (a mutable reference to an internal field) and now returns `String` by value. Code that only reads the value is completely unaffected. Code that captured it as `String&` to mutate the internal field (an unsupported usage pattern for a getter) will no longer compile.
+
+## ESP-IDF Native Users (new in v3.0)
+
+PsychicHttp now supports native ESP-IDF projects without the Arduino component.
+
+Key differences from the Arduino API:
+
+- **String-returning getters return `const char*`** — `request->uri()`, `request->body()`, `request->header()`, `param->value()`, etc. all return `const char*` instead of `String`.
+- **Upload callback uses `const char* filename`** — the `onUpload` callback signature changes from `const String& filename` to `const char* filename`.
+- **`IPAddress` vs `esp_ip4_addr_t`** — `client->localIP()` and `client->remoteIP()` return `esp_ip4_addr_t` instead of `IPAddress`.
+
+### Feature availability
+
+| Feature | ESP-IDF native |
+|---|---|
+| HTTP handlers (GET/POST/etc.) | ✅ |
+| Static file serving with chunking | ✅ |
+| File uploads (basic + multipart) | ✅ |
+| WebSocket | ✅ |
+| EventSource / SSE | ✅ |
+| JSON responses (`PsychicJsonResponse`) | ✅ |
+| Authentication (basic + digest) | ✅ |
+| Middleware, CORS | ✅ |
+| HTTPS / SSL (`PsychicHttpsServer`) | ✅ |
+| `PsychicStreamResponse` | ❌ Arduino only |
+| `TemplatePrinter` | ❌ Arduino only |
+| `ChunkPrinter` | ❌ Arduino only (internal, used by the above two) |
+
+**`PsychicStreamResponse`** is unavailable because it inherits from Arduino's `Stream`/`Print` base classes which have no ESP-IDF equivalent. Workarounds on ESP-IDF native:
+- For static files: use `PsychicFileResponse` (backed by POSIX, works on both platforms).
+- For large dynamic content: allocate the full buffer and send with `PsychicResponse::send()`.
+- For large JSON: `PsychicJsonResponse` handles this transparently — on ESP-IDF it falls back to a single full allocation instead of the chunked `ChunkPrinter` path.
+
+**`TemplatePrinter`** is unavailable for the same reason. Perform template substitution manually before passing the result to `response->send()`.
+
+See `examples/esp-idf-pio/` for a complete working native ESP-IDF project.
+
+Add the following to your `sdkconfig.defaults`:
+
+```ini
+CONFIG_HTTPD_WS_SUPPORT=y
+# CONFIG_MBEDTLS_ROM_MD5 is not set
+```
+
+## Writing Handlers That Compile on Both Platforms
+
+Use the `*CStr()` helper methods which always return `const char*` regardless of framework:
+
+```cpp
+// These work identically on both Arduino and ESP-IDF native:
+request->uriCStr()              // instead of request->uri()
+request->bodyCStr()             // instead of request->body()
+request->headerCStr(name)       // instead of request->header(name)
+request->pathCStr()             // instead of request->path()
+request->queryCStr()            // instead of request->query()
+request->methodStrCStr()        // instead of request->methodStr()
+request->getFilenameCStr()      // instead of request->getFilename()
+request->getSessionKeyCStr(key) // instead of request->getSessionKey(key)
+endpoint->uriCStr()             // instead of endpoint->uri()
+param->nameCStr()               // instead of param->name()
+param->valueCStr()              // instead of param->value()
+```
 
 # Principles of Operation
 
@@ -144,7 +214,6 @@ If you have existing code using ESPAsyncWebserver, you will feel right at home w
 ## setup() Stuff
 
 * add your handlers and call server.begin()
-* server has a configurable limit on .on() endpoints. change it with ```server.config.max_uri_handlers = 20;``` as needed.
 * check your callback function definitions:
    * AsyncWebServerRequest -> PsychicRequest
    * no more onBody() event
@@ -153,7 +222,7 @@ If you have existing code using ESPAsyncWebserver, you will feel right at home w
    * websocket callbacks are much different (and simpler!)
    * websocket / eventsource handlers get attached to url in server.on("/url", &handler) instead of passing url to handler constructor.
    * eventsource callbacks are onOpen and onClose now.
-* HTTP_ANY is not supported by ESP-IDF, so we can't use it either.
+* HTTP_ANY is supported via `server.on("/url", HTTP_ANY, callback)`
 * NO server.onFileUpload(onUpload); (you could attach an UploadHandler to the default endpoint i guess?)
 * NO server.onRequestBody(onBody); (same)
 
@@ -165,7 +234,7 @@ If you have existing code using ESPAsyncWebserver, you will feel right at home w
 * No AsyncCallbackJsonWebHandler (for now... can add if needed)
 * No request->beginResponse().  Instanciate a PsychicResponse instead: ```PsychicResponse response(request);```
 * No PROGMEM suppport (its not relevant to ESP32: https://esp32.com/viewtopic.php?t=20595)
-* No Stream response support just yet
+* Stream response (`PsychicStreamResponse`) is Arduino-only — not available on native ESP-IDF
 
 # Usage
 
@@ -182,15 +251,16 @@ void setup()
    //optional low level setup server config stuff here.
    //server.config is an ESP-IDF httpd_config struct
    //see: https://docs.espressif.com/projects/esp-idf/en/v4.4.6/esp32/api-reference/protocols/esp_http_server.html#_CPPv412httpd_config
-   //increase maximum number of uri endpoint handlers (.on() calls)
-   server.config.max_uri_handlers = 20;
 
    //connect to wifi
 
    //call server methods to attach endpoints and handlers
    server.on(...);
    server.serveStatic(...);
-   server.attachHandler(...);
+   server.addHandler(...);
+
+   //must be called after all server.on() registrations
+   server.begin();
 }
 ```
 
@@ -214,18 +284,19 @@ PsychicWebSocketHandler websocketHandler;
 server.on("/ws", &websocketHandler);
 ```
 
-The ```server.on(...)``` returns a pointer to the endpoint, which can be used to call various functions like ```setHandler()```, ```setFilter()```, and ```setAuthentication()```.
+The ```server.on(...)``` returns a pointer to the endpoint, which can be used to call various functions like ```setHandler()```, ```setFilter()```, and ```addMiddleware()```.
 
 ```cpp
 //respond to /url only from requests to the AP
 server.on("/url", HTTP_GET, request_callback)->addFilter(ON_AP_FILTER);
 
-//require authentication on /url
-server.on("/url", HTTP_GET, request_callback)->setAuthentication("user", "pass");
-
-//attach websocket handler to /ws
-PsychicWebSocketHandler websocketHandler;
-server.on("/ws")->attachHandler(&websocketHandler);
+//require authentication on /url using middleware
+AuthenticationMiddleware auth;
+auth.setUsername("user");
+auth.setPassword("pass");
+auth.setRealm("My Realm");
+auth.setAuthType(BASIC_AUTH);
+server.on("/url", HTTP_GET, request_callback)->addMiddleware(&auth);
 ```
 
 ### Basic Requests

@@ -20,7 +20,7 @@ PsychicHttp can now be used in pure ESP-IDF projects without the Arduino compone
 
 ### Bug Fixes
 
-- `PsychicJsonResponse::send()` was calling itself recursively — the bare `send()` inside the method resolved to `this->send()` instead of the base `PsychicResponse::send()`, causing infinite recursion and a stack overflow on any JSON response. Fixed by calling `_response->send()` explicitly. This affected all JSON responses when not using the chunked path.
+- `PsychicJsonResponse::send()`: `err = send()` was calling the method itself recursively, causing a stack overflow on any JSON response when not using the chunked path. Fixed to `err = _response->send()`.
 - `PsychicResponse::redirect()` was always returning HTTP 200 instead of 301 due to `_code` being initialised to 200 and the guard `if (!_code)` never triggering.
 - `getContentDisposition()` and `_setUri()` used `if (start)` / `if (index)` to check `std::string::find()` results, which incorrectly skipped matches at position 0. Fixed to `!= std::string::npos`.
 - `setSessionKey()` used `insert(pair<>)` which silently ignores updates to existing keys. Fixed to `operator[]`.
@@ -31,42 +31,45 @@ PsychicHttp can now be used in pure ESP-IDF projects without the Arduino compone
 - `PsychicHttpServer::serveStatic(const char* uri, const char* path, const char* cache_control = nullptr)` — new overload that does not require an Arduino `fs::FS` reference; backed by POSIX via an ESP-IDF VFS partition. The existing `serveStatic(uri, fs::FS&, ...)` overload is preserved unchanged.
 - `PsychicFileResponse(PsychicResponse*, const char* path, const char* contentType = nullptr, bool download = false)` — new constructor that opens the file by path directly via POSIX, no `FS` object required. Existing Arduino constructors (`fs::FS&` + path and `fs::File` + path) are preserved unchanged.
 
-### API Changes: getter methods now return `const char*` instead of `String`
+### API Changes: dual return types for Arduino / ESP-IDF compatibility
 
-The following getter methods have changed their return type from `String` to `const char*` to enable native ESP-IDF support (no Arduino framework dependency):
+All public getter methods that previously returned `String` in v2.x **continue to return `String` on Arduino — no code changes required for existing Arduino projects**. On native ESP-IDF (no Arduino framework), those same methods return `const char*`:
 
-| Method | Class |
-|---|---|
-| `uri()` | `PsychicEndpoint` |
-| `getContentType()` | `PsychicResponse` / `PsychicResponseDelegate` |
-| `name()`, `value()` | `PsychicWebParameter` |
-| `from()`, `toUrl()`, `params()` | `PsychicRewrite` |
-| `getSubprotocol()` | `PsychicHandler` |
-| `getUsername()`, `getPassword()`, `getRealm()`, `getAuthFailureMessage()` | `AuthenticationMiddleware` |
-| `getOrigin()`, `getMethods()`, `getHeaders()` | `CorsMiddleware` |
-| `methodStr()`, `path()`, `uri()`, `query()`, `header()`, `host()`, `contentType()`, `body()`, `getCookie()`, `getFilename()` | `PsychicRequest` |
+| Method | Class | v2.x | v3.x Arduino | v3.x ESP-IDF native |
+|---|---|---|---|---|
+| `uri()` | `PsychicEndpoint` | `String` | `String` | `const char*` |
+| `getContentType()` | `PsychicResponse` / `PsychicResponseDelegate` | `String&` | `String` | `const char*` |
+| `name()`, `value()` | `PsychicWebParameter` | `String` | `String` | `const char*` |
+| `from()`, `toUrl()`, `params()` | `PsychicRewrite` | `String` | `String` | `const char*` |
+| `getSubprotocol()` | `PsychicHandler` | `const char*` | `const char*` | `const char*` |
+| `getUsername()`, `getPassword()`, `getRealm()`, `getAuthFailureMessage()` | `AuthenticationMiddleware` | `String` | `String` | `const char*` |
+| `getOrigin()`, `getMethods()`, `getHeaders()` | `CorsMiddleware` | `String` | `String` | `const char*` |
+| `methodStr()`, `path()`, `uri()`, `query()`, `header()`, `host()`, `contentType()`, `body()`, `getCookie()`, `getFilename()`, `getParam(key, default)` | `PsychicRequest` | `String` | `String` | `const char*` |
 
-**For Arduino users, existing code will continue to compile without changes** — `String` has an implicit constructor from `const char*`:
+**One minor breaking change on Arduino** — `PsychicResponse::getContentType()` previously returned `String&` (a mutable reference to an internal field); it now returns `String` by value. Normal read usage is unaffected. Storing the result as `String&` in order to mutate internal state — which was never an intended usage pattern for a getter — no longer works.
 
-| Before | After | Result |
-|--------|-------|--------|
-| `String path = request->path();` | `String path = request->path();` | ✅ unchanged |
-| `String ct = request->contentType();` | `const char* ct = request->contentType();` | ✅ now also works |
+**`SessionData` and `ContentDisposition` on Arduino** — `SessionData` is `std::map<String, String>` on Arduino (matching v2.x behaviour) and `std::map<std::string, std::string>` on ESP-IDF. `ContentDisposition.filename` and `.name` fields are `String` on Arduino, `std::string` on ESP-IDF.
 
-**One edge case that breaks** — concatenating with `+` when the left operand is a string literal (you'd know if you hit this, it's a compile error):
+**`PsychicUploadCallback` filename parameter** — on Arduino the `onUpload` callback preserves `const String& filename`. On native ESP-IDF it is `const char* filename`.
+
+**For code that must compile on both platforms**, use the `*CStr()` helper methods which always return `const char*` regardless of framework:
 
 ```cpp
-// ❌ Compile error: cannot add const char* + const char*
-String url = "/prefix" + request->getFilename();
-
-// ✅ Fix: use String() cast or +=
-String url = String("/prefix") + request->getFilename();
-// or (recommended)
-String url = "/prefix";
-url += request->getFilename();
+request->uriCStr()              // instead of request->uri()
+request->bodyCStr()             // instead of request->body()
+request->headerCStr(name)       // instead of request->header(name)
+request->pathCStr()             // instead of request->path()
+request->queryCStr()            // instead of request->query()
+request->methodStrCStr()        // instead of request->methodStr()
+request->getFilenameCStr()      // instead of request->getFilename()
+request->getSessionKeyCStr(key) // instead of request->getSessionKey(key)
+endpoint->uriCStr()             // instead of endpoint->uri()
+rewrite->toUrlCStr()            // instead of rewrite->toUrl()
+param->nameCStr()               // instead of param->name()
+param->valueCStr()              // instead of param->value()
 ```
 
-### Example Updates (v2.x API)
+### Example Updates and Fixes
 
 - **All examples**: `server.begin()` must be called *after* all `server.on()` registrations. WebSocket and SSE endpoints are registered with `httpd` inside `begin()` / `start()`; calling `on()` after `begin()` silently registers the URL but the WS upgrade or SSE accept is never wired up.
 - `examples/arduino/arduino.ino`: `StaticJsonDocument<N>` → `JsonDocument` (ArduinoJson v7); inline `request->authenticate()` / `requestAuthentication()` → `AuthenticationMiddleware` with `addMiddleware()`; `httpd_ws_frame` → `httpd_ws_frame_t`.
