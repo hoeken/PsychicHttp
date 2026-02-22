@@ -28,7 +28,11 @@ class PsychicResponse
     int getCode() { return _code; }
 
     void setContentType(const char* contentType);
+#ifdef ARDUINO
+    String getContentType() { return String(_contentType.c_str()); }
+#else
     const char* getContentType() { return _contentType.c_str(); }
+#endif
 
     void setContentLength(int64_t contentLength) { _contentLength = contentLength; }
     int64_t getContentLength(int64_t contentLength) { return _contentLength; }
@@ -74,7 +78,11 @@ class PsychicResponseDelegate
     void setCode(int code) { _response->setCode(code); }
 
     void setContentType(const char* contentType) { _response->setContentType(contentType); }
+#ifdef ARDUINO
+    String getContentType() { return _response->getContentType(); }
+#else
     const char* getContentType() { return _response->getContentType(); }
+#endif
 
     void setContentLength(int64_t contentLength) { _response->setContentLength(contentLength); }
     int64_t getContentLength(int64_t contentLength) { return _response->getContentLength(); }

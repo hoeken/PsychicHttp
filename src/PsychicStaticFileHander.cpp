@@ -76,12 +76,12 @@ PsychicStaticFileHandler* PsychicStaticFileHandler::setLastModified(struct tm* l
 bool PsychicStaticFileHandler::canHandle(PsychicRequest* request)
 {
   if (request->method() != HTTP_GET) {
-    ESP_LOGD(PH_TAG, "Request %s refused by PsychicStaticFileHandler: %s", request->uri(), request->methodStr());
+    ESP_LOGD(PH_TAG, "Request %s refused by PsychicStaticFileHandler: %s", request->uriCStr(), request->methodStrCStr());
     return false;
   }
 
-  if (strncmp(request->uri(), _uri.c_str(), _uri.length()) != 0) {
-    ESP_LOGD(PH_TAG, "Request %s refused by PsychicStaticFileHandler: does not start with %s", request->uri(), _uri.c_str());
+  if (strncmp(request->uriCStr(), _uri.c_str(), _uri.length()) != 0) {
+    ESP_LOGD(PH_TAG, "Request %s refused by PsychicStaticFileHandler: does not start with %s", request->uriCStr(), _uri.c_str());
     return false;
   }
 
@@ -89,14 +89,14 @@ bool PsychicStaticFileHandler::canHandle(PsychicRequest* request)
     return true;
   }
 
-  ESP_LOGD(PH_TAG, "Request %s refused by PsychicStaticFileHandler: file not found", request->uri());
+  ESP_LOGD(PH_TAG, "Request %s refused by PsychicStaticFileHandler: file not found", request->uriCStr());
   return false;
 }
 
 bool PsychicStaticFileHandler::_getFile(PsychicRequest* request)
 {
   // Remove the matched uri prefix to get the relative file path
-  std::string path(request->uri() + _uri.size());
+  std::string path(request->uriCStr() + _uri.size());
 
   // We can skip the file check and look for default if request is to the root
   // of a directory or that request path ends with '/'

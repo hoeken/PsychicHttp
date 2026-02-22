@@ -11,7 +11,11 @@
   #include <regex>
 #endif
 
+#ifdef ARDUINO
+typedef std::map<String, String> SessionData;
+#else
 typedef std::map<std::string, std::string> SessionData;
+#endif
 
 enum Disposition {
   NONE,
@@ -22,8 +26,13 @@ enum Disposition {
 
 struct ContentDisposition {
     Disposition disposition;
+#ifdef ARDUINO
+    String filename;
+    String name;
+#else
     std::string filename;
     std::string name;
+#endif
 };
 
 class PsychicRequest
@@ -100,11 +109,15 @@ class PsychicRequest
 
     static void freeSession(void* ctx);
     bool hasSessionKey(const char* key);
+#ifdef ARDUINO
+    String getSessionKey(const char* key);
+#else
     const char* getSessionKey(const char* key);
+#endif
     void setSessionKey(const char* key, const char* value);
 #ifdef ARDUINO
     bool hasSessionKey(const String& key) { return hasSessionKey(key.c_str()); }
-    const char* getSessionKey(const String& key) { return getSessionKey(key.c_str()); }
+    String getSessionKey(const String& key) { return getSessionKey(key.c_str()); }
     void setSessionKey(const String& key, const String& value) { setSessionKey(key.c_str(), value.c_str()); }
 #endif
 
@@ -133,13 +146,29 @@ class PsychicRequest
     esp_err_t getCookie(const char* key, char* buffer, size_t* size);
 
     // convenience / lazy function for getting cookies.
+#ifdef ARDUINO
+    String getCookie(const char* key);
+#else
     const char* getCookie(const char* key);
+#endif
 
-    http_method method();    // returns the HTTP method used as enum value (eg. HTTP_GET)
+    http_method method(); // returns the HTTP method used as enum value (eg. HTTP_GET)
+#ifdef ARDUINO
+    String methodStr(); // returns the HTTP method used as a string (eg. "GET")
+    String path();      // returns the request path (eg /page?foo=bar returns "/page")
+    String uri();       // returns the full request uri (eg /page?foo=bar)
+    String query();     // returns the request query data (eg /page?foo=bar returns "foo=bar")
+#else
     const char* methodStr(); // returns the HTTP method used as a string (eg. "GET")
     const char* path();      // returns the request path (eg /page?foo=bar returns "/page")
     const char* uri();       // returns the full request uri (eg /page?foo=bar)
     const char* query();     // returns the request query data (eg /page?foo=bar returns "foo=bar")
+#endif
+    // Always returns const char* regardless of platform — use these in library internals.
+    const char* methodStrCStr();
+    const char* pathCStr();
+    const char* uriCStr();
+    const char* queryCStr();
 #ifdef ARDUINO
     String host();        // returns the requested host (request to http://psychic.local/foo will return "psychic.local")
     String contentType(); // returns the Content-Type header value
@@ -148,12 +177,22 @@ class PsychicRequest
     const char* contentType(); // returns the Content-Type header value
 #endif
     size_t contentLength(); // returns the Content-Length header value
-    const char* body();     // returns the body of the request
+#ifdef ARDUINO
+    String body(); // returns the body of the request
+#else
+    const char* body(); // returns the body of the request
+#endif
+    const char* bodyCStr(); // Always returns const char* regardless of platform — use in library internals.
     const ContentDisposition getContentDisposition();
     const char* version() { return "HTTP/1.1"; }
 
+#ifdef ARDUINO
+    String queryString() { return query(); } // compatability function.  same as query()
+    String url() { return uri(); }           // compatability function.  same as uri()
+#else
     const char* queryString() { return query(); } // compatability function.  same as query()
     const char* url() { return uri(); }           // compatability function.  same as uri()
+#endif
 
     void loadParams();
     PsychicWebParameter* addParam(PsychicWebParameter* param);
@@ -165,9 +204,20 @@ class PsychicRequest
     bool hasParam(const char* key, bool isPost, bool isFile = false);
     PsychicWebParameter* getParam(const char* name);
     PsychicWebParameter* getParam(const char* name, bool isPost, bool isFile = false);
+#ifdef ARDUINO
+    String getParam(const char* name, const char* defaultValue);
+#else
     const char* getParam(const char* name, const char* defaultValue);
+#endif
 
+#ifdef ARDUINO
+    String getFilename();
+#else
     const char* getFilename();
+#endif
+    // Always returns const char* regardless of platform — use in library internals.
+    const char* getFilenameCStr();
+    const char* getSessionKeyCStr(const char* key);
 
     bool authenticate(const char* username, const char* password, bool passwordIsHashed = false);
     esp_err_t requestAuthentication(HTTPAuthMethod mode, const char* realm, const char* authFailMsg);

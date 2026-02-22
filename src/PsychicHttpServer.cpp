@@ -379,7 +379,7 @@ bool PsychicHttpServer::removeEndpoint(const char* uri, int method)
 
   // loop through our endpoints and see if anyone matches
   for (auto* endpoint : _endpoints) {
-    if (strcmp(endpoint->uri(), uri) == 0 && method == endpoint->_method)
+    if (strcmp(endpoint->uriCStr(), uri) == 0 && method == endpoint->_method)
       return removeEndpoint(endpoint);
   }
 
@@ -447,7 +447,7 @@ bool PsychicHttpServer::_rewriteRequest(PsychicRequest* request)
 {
   for (auto* r : _rewrites) {
     if (r->match(request)) {
-      request->_setUri(r->toUrl());
+      request->_setUri(r->toUrlCStr());
       return true;
     }
   }
@@ -465,7 +465,7 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
 
   // run it through our global server filter list
   if (!server->_filter(&request)) {
-    ESP_LOGD(PH_TAG, "Request %s refused by global filter", request.uri());
+    ESP_LOGD(PH_TAG, "Request %s refused by global filter", request.uriCStr());
     return request.response()->send(400);
   }
 
@@ -478,7 +478,7 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
   } else {
     ret = server->_process(&request);
   }
-  ESP_LOGD(PH_TAG, "Request %s processed by global middleware: %s", request.uri(), esp_err_to_name(ret));
+  ESP_LOGD(PH_TAG, "Request %s processed by global middleware: %s", request.uriCStr(), esp_err_to_name(ret));
 
   if (ret == HTTPD_404_NOT_FOUND) {
     return PsychicHttpServer::notFoundHandler(req, HTTPD_404_NOT_FOUND);
@@ -491,7 +491,7 @@ esp_err_t PsychicHttpServer::_process(PsychicRequest* request)
 {
   // loop through our endpoints and see if anyone wants it.
   for (auto* endpoint : _endpoints) {
-    if (endpoint->matches(request->uri())) {
+    if (endpoint->matches(request->uriCStr())) {
       if (endpoint->_method == request->method() || endpoint->_method == HTTP_ANY) {
         request->setEndpoint(endpoint);
         return endpoint->process(request);

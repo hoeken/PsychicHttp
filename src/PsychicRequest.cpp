@@ -84,10 +84,10 @@ void PsychicRequest::setEndpoint(PsychicEndpoint* endpoint)
 bool PsychicRequest::getRegexMatches(std::smatch& matches, bool use_full_uri)
 {
   if (_endpoint != nullptr) {
-    std::regex pattern(_endpoint->uri());
-    std::string s(this->path());
+    std::regex pattern(_endpoint->uriCStr());
+    std::string s(this->pathCStr());
     if (use_full_uri)
-      s = this->uri();
+      s = this->uriCStr();
 
     return std::regex_search(s, matches, pattern);
   }
@@ -96,6 +96,33 @@ bool PsychicRequest::getRegexMatches(std::smatch& matches, bool use_full_uri)
 }
 #endif
 
+#ifdef ARDUINO
+String PsychicRequest::getFilename()
+{
+  // parse the content-disposition header
+  if (this->hasHeader("Content-Disposition")) {
+    ContentDisposition cd = this->getContentDisposition();
+    if (cd.filename.length() > 0)
+      return cd.filename;
+  }
+
+  // fall back to passed in query string
+  PsychicWebParameter* param = getParam("_filename");
+  if (param != NULL)
+    return param->name();
+
+  // fall back to parsing it from url (useful for wildcard uploads)
+  const char* u = _uri.c_str();
+  const char* slash = strrchr(u, '/');
+  std::string fname = slash ? slash + 1 : u;
+  if (!fname.empty())
+    return String(fname.c_str());
+
+  // finally, unknown.
+  ESP_LOGE(PH_TAG, "Did not get a valid filename from the upload.");
+  return String("unknown.txt");
+}
+#else
 const char* PsychicRequest::getFilename()
 {
   // parse the content-disposition header
@@ -113,7 +140,36 @@ const char* PsychicRequest::getFilename()
     return param->name();
 
   // fall back to parsing it from url (useful for wildcard uploads)
-  const char* u = this->uri();
+  const char* u = _uri.c_str();
+  const char* slash = strrchr(u, '/');
+  _filename = slash ? slash + 1 : u;
+  if (!_filename.empty())
+    return _filename.c_str();
+
+  // finally, unknown.
+  ESP_LOGE(PH_TAG, "Did not get a valid filename from the upload.");
+  return "unknown.txt";
+}
+#endif
+
+const char* PsychicRequest::getFilenameCStr()
+{
+  // parse the content-disposition header
+  if (this->hasHeader("Content-Disposition")) {
+    ContentDisposition cd = this->getContentDisposition();
+    if (cd.filename.length() > 0) {
+      _filename = cd.filename.c_str();
+      return _filename.c_str();
+    }
+  }
+
+  // fall back to passed in query string
+  PsychicWebParameter* param = getParam("_filename");
+  if (param != NULL)
+    return param->nameCStr();
+
+  // fall back to parsing it from url (useful for wildcard uploads)
+  const char* u = _uri.c_str();
   const char* slash = strrchr(u, '/');
   _filename = slash ? slash + 1 : u;
   if (!_filename.empty())
@@ -143,14 +199,22 @@ const ContentDisposition PsychicRequest::getContentDisposition()
   if (start != std::string::npos) {
     end = hdr.find('"', start + 10);
     if (end != std::string::npos)
+#ifdef ARDUINO
+      cd.filename = hdr.substr(start + 10, end - start - 11).c_str();
+#else
       cd.filename = hdr.substr(start + 10, end - start - 11);
+#endif
   }
 
   start = hdr.find("name=");
   if (start != std::string::npos) {
     end = hdr.find('"', start + 6);
     if (end != std::string::npos)
+#ifdef ARDUINO
+      cd.name = hdr.substr(start + 6, end - start - 7).c_str();
+#else
       cd.name = hdr.substr(start + 6, end - start - 7);
+#endif
   }
 
   return cd;
@@ -206,6 +270,30 @@ http_method PsychicRequest::method()
   return (http_method)this->_req->method;
 }
 
+#ifdef ARDUINO
+String PsychicRequest::methodStr()
+{
+  return String(http_method_str((http_method)this->_req->method));
+}
+
+String PsychicRequest::path()
+{
+  size_t index = _uri.find('?');
+  if (index == std::string::npos)
+    return String(_uri.c_str());
+  return String(_uri.substr(0, index).c_str());
+}
+
+String PsychicRequest::uri()
+{
+  return String(_uri.c_str());
+}
+
+String PsychicRequest::query()
+{
+  return String(_query.c_str());
+}
+#else
 const char* PsychicRequest::methodStr()
 {
   _tmp = http_method_str((http_method)this->_req->method);
@@ -228,6 +316,33 @@ const char* PsychicRequest::uri()
 }
 
 const char* PsychicRequest::query()
+{
+  return _query.c_str();
+}
+#endif
+
+const char* PsychicRequest::methodStrCStr()
+{
+  _tmp = http_method_str((http_method)this->_req->method);
+  return _tmp.c_str();
+}
+
+const char* PsychicRequest::pathCStr()
+{
+  size_t index = _uri.find('?');
+  if (index == std::string::npos)
+    _tmp = _uri;
+  else
+    _tmp = _uri.substr(0, index);
+  return _tmp.c_str();
+}
+
+const char* PsychicRequest::uriCStr()
+{
+  return _uri.c_str();
+}
+
+const char* PsychicRequest::queryCStr()
 {
   return _query.c_str();
 }
@@ -301,7 +416,19 @@ size_t PsychicRequest::contentLength()
   return this->_req->content_len;
 }
 
+#ifdef ARDUINO
+String PsychicRequest::body()
+{
+  return String(_body.c_str());
+}
+#else
 const char* PsychicRequest::body()
+{
+  return _body.c_str();
+}
+#endif
+
+const char* PsychicRequest::bodyCStr()
 {
   return _body.c_str();
 }
@@ -332,6 +459,24 @@ esp_err_t PsychicRequest::getCookie(const char* key, char* buffer, size_t* size)
   return httpd_req_get_cookie_val(this->_req, key, buffer, size);
 }
 
+#ifdef ARDUINO
+String PsychicRequest::getCookie(const char* key)
+{
+  size_t size;
+  if (!hasCookie(key, &size))
+    return String();
+
+  std::string tmp;
+  tmp.resize(size + 1);
+  esp_err_t err = getCookie(key, &tmp[0], &size);
+  if (err == ESP_OK)
+    tmp.resize(size);
+  else
+    tmp.clear();
+
+  return String(tmp.c_str());
+}
+#else
 const char* PsychicRequest::getCookie(const char* key)
 {
   _tmp.clear();
@@ -349,6 +494,7 @@ const char* PsychicRequest::getCookie(const char* key)
 
   return _tmp.c_str();
 }
+#endif
 
 void PsychicRequest::replaceResponse(PsychicResponse* response)
 {
@@ -450,7 +596,7 @@ bool PsychicRequest::hasParam(const char* key, bool isPost, bool isFile)
 PsychicWebParameter* PsychicRequest::getParam(const char* key)
 {
   for (auto* param : _params)
-    if (strcmp(param->name(), key) == 0)
+    if (strcmp(param->nameCStr(), key) == 0)
       return param;
 
   return NULL;
@@ -459,23 +605,51 @@ PsychicWebParameter* PsychicRequest::getParam(const char* key)
 PsychicWebParameter* PsychicRequest::getParam(const char* key, bool isPost, bool isFile)
 {
   for (auto* param : _params)
-    if (strcmp(param->name(), key) == 0 && isPost == param->isPost() && isFile == param->isFile())
+    if (strcmp(param->nameCStr(), key) == 0 && isPost == param->isPost() && isFile == param->isFile())
       return param;
   return NULL;
 }
 
+#ifdef ARDUINO
+String PsychicRequest::getParam(const char* key, const char* defaultValue)
+{
+  PsychicWebParameter* param = getParam(key);
+  return param ? String(param->valueCStr()) : String(defaultValue);
+}
+#else
 const char* PsychicRequest::getParam(const char* key, const char* defaultValue)
 {
   PsychicWebParameter* param = getParam(key);
-  return param ? param->value() : defaultValue;
+  return param ? param->valueCStr() : defaultValue;
 }
+#endif
 
 bool PsychicRequest::hasSessionKey(const char* key)
 {
   return this->_session->find(key) != this->_session->end();
 }
 
+#ifdef ARDUINO
+String PsychicRequest::getSessionKey(const char* key)
+{
+  auto it = this->_session->find(key);
+  if (it != this->_session->end())
+    return String(it->second.c_str());
+  else
+    return String();
+}
+#else
 const char* PsychicRequest::getSessionKey(const char* key)
+{
+  auto it = this->_session->find(key);
+  if (it != this->_session->end())
+    return it->second.c_str();
+  else
+    return "";
+}
+#endif
+
+const char* PsychicRequest::getSessionKeyCStr(const char* key)
 {
   auto it = this->_session->find(key);
   if (it != this->_session->end())
@@ -578,7 +752,7 @@ bool PsychicRequest::authenticate(const char* username, const char* password, bo
         authReq.clear();
         return false;
       }
-      if ((_opaque != this->getSessionKey("opaque")) || (_nonce != this->getSessionKey("nonce")) || (_realm != this->getSessionKey("realm"))) {
+      if ((_opaque != this->getSessionKeyCStr("opaque")) || (_nonce != this->getSessionKeyCStr("nonce")) || (_realm != this->getSessionKeyCStr("realm"))) {
         authReq.clear();
         return false;
       }
@@ -670,22 +844,22 @@ esp_err_t PsychicRequest::requestAuthentication(HTTPAuthMethod mode, const char*
   // what kind of auth?
   if (mode == BASIC_AUTH) {
     authStr = "Basic realm=\"";
-    authStr += this->getSessionKey("realm");
+    authStr += this->getSessionKeyCStr("realm");
     authStr += "\"";
     response.addHeader("WWW-Authenticate", authStr.c_str());
   } else {
     // only make new ones if we havent sent them yet
-    if (!strlen(this->getSessionKey("nonce")))
+    if (!strlen(this->getSessionKeyCStr("nonce")))
       this->setSessionKey("nonce", _getRandomHexString().c_str());
-    if (!strlen(this->getSessionKey("opaque")))
+    if (!strlen(this->getSessionKeyCStr("opaque")))
       this->setSessionKey("opaque", _getRandomHexString().c_str());
 
     authStr = "Digest realm=\"";
-    authStr += this->getSessionKey("realm");
+    authStr += this->getSessionKeyCStr("realm");
     authStr += "\", qop=\"auth\", nonce=\"";
-    authStr += this->getSessionKey("nonce");
+    authStr += this->getSessionKeyCStr("nonce");
     authStr += "\", opaque=\"";
-    authStr += this->getSessionKey("opaque");
+    authStr += this->getSessionKeyCStr("opaque");
     authStr += "\"";
     response.addHeader("WWW-Authenticate", authStr.c_str());
   }

@@ -42,7 +42,13 @@ class PsychicEndpoint
     PsychicEndpoint* addMiddleware(PsychicMiddlewareCallback fn);
     void removeMiddleware(PsychicMiddleware* middleware);
 
+#ifdef ARDUINO
+    String uri();
+#else
     const char* uri();
+#endif
+    // Always returns const char* regardless of platform — use in library internals.
+    const char* uriCStr();
 
     static esp_err_t requestCallback(httpd_req_t* req);
 };

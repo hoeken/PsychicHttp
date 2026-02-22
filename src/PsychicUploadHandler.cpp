@@ -55,7 +55,7 @@ esp_err_t PsychicUploadHandler::_basicUploadHandler(PsychicRequest* request)
 {
   esp_err_t err = ESP_OK;
 
-  const char* filename = request->getFilename();
+  const char* filename = request->getFilenameCStr();
 
   /* Retrieve the pointer to scratch buffer for temporary storage */
   char* buf = (char*)malloc(FILE_CHUNK_SIZE);
