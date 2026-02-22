@@ -1,11 +1,9 @@
 #ifndef PsychicStreamResponse_h
 #define PsychicStreamResponse_h
 
-#ifdef ARDUINO
-
-  #include "ChunkPrinter.h"
-  #include "PsychicCore.h"
-  #include "PsychicResponse.h"
+#include "ChunkPrinter.h"
+#include "PsychicCore.h"
+#include "PsychicResponse.h"
 
 class PsychicRequest;
 
@@ -16,8 +14,13 @@ class PsychicStreamResponse : public PsychicResponseDelegate, public Print
     uint8_t* _buffer;
 
   public:
+#ifdef ARDUINO
     PsychicStreamResponse(PsychicResponse* response, const String& contentType);
     PsychicStreamResponse(PsychicResponse* response, const String& contentType, const String& name); // Download
+#else
+    PsychicStreamResponse(PsychicResponse* response, const char* contentType);
+    PsychicStreamResponse(PsychicResponse* response, const char* contentType, const char* name); // Download
+#endif
 
     ~PsychicStreamResponse();
 
@@ -29,11 +32,11 @@ class PsychicStreamResponse : public PsychicResponseDelegate, public Print
     size_t write(uint8_t data) override;
     size_t write(const uint8_t* buffer, size_t size) override;
 
+#ifdef ARDUINO
     size_t copyFrom(Stream& stream);
+#endif
 
     using Print::write;
 };
-
-#endif // ARDUINO
 
 #endif // PsychicStreamResponse_h

@@ -106,16 +106,11 @@ Key differences from the Arduino API:
 | Authentication (basic + digest) | ✅ |
 | Middleware, CORS | ✅ |
 | HTTPS / SSL (`PsychicHttpsServer`) | ✅ |
-| `PsychicStreamResponse` | ❌ Arduino only |
-| `TemplatePrinter` | ❌ Arduino only |
-| `ChunkPrinter` | ❌ Arduino only (internal, used by the above two) |
+| `PsychicStreamResponse` | ✅ |
+| `TemplatePrinter` | ✅ |
+| `ChunkPrinter` | ✅ (internal) |
 
-**`PsychicStreamResponse`** is unavailable because it inherits from Arduino's `Stream`/`Print` base classes which have no ESP-IDF equivalent. Workarounds on ESP-IDF native:
-- For static files: use `PsychicFileResponse` (backed by POSIX, works on both platforms).
-- For large dynamic content: allocate the full buffer and send with `PsychicResponse::send()`.
-- For large JSON: `PsychicJsonResponse` handles this transparently — on ESP-IDF it falls back to a single full allocation instead of the chunked `ChunkPrinter` path.
-
-**`TemplatePrinter`** is unavailable for the same reason. Perform template substitution manually before passing the result to `response->send()`.
+Use `PsychicStreamResponse` on ESP-IDF by calling `beginSend()`, then writing with `write()` / `print()` / `printf()`, then `endSend()`. Use `PsychicFileResponse` for static files on both platforms.
 
 See `examples/esp-idf-pio/` for a complete working native ESP-IDF project.
 

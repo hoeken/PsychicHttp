@@ -15,12 +15,11 @@
 #include "PsychicRequest.h"
 #include "PsychicResponse.h"
 #include "PsychicStaticFileHandler.h"
-#ifdef ARDUINO
-  #include "PsychicStreamResponse.h"
-#endif
+#include "PsychicStreamResponse.h"
 #include "PsychicUploadHandler.h"
 #include "PsychicVersion.h"
 #include "PsychicWebSocket.h"
+#include "TemplatePrinter.h"
 #include <http_status.h>
 
 #ifdef ENABLE_ASYNC

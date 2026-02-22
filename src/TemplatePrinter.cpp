@@ -11,8 +11,7 @@ Written by Christopher Andrews (https://github.com/Chris--A)
 ************************************************************/
 
 #include "TemplatePrinter.h"
-
-#ifdef ARDUINO
+#include <cctype>
 
 void TemplatePrinter::resetParam(bool flush)
 {
@@ -84,6 +83,7 @@ size_t TemplatePrinter::write(uint8_t data)
   return 1;
 }
 
+#ifdef ARDUINO
 size_t TemplatePrinter::copyFrom(Stream& stream)
 {
   size_t count = 0;
@@ -93,5 +93,4 @@ size_t TemplatePrinter::copyFrom(Stream& stream)
 
   return count;
 }
-
 #endif // ARDUINO

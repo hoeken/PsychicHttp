@@ -1,10 +1,8 @@
 #ifndef TemplatePrinter_h
 #define TemplatePrinter_h
 
-#ifdef ARDUINO
-
-  #include "PsychicCore.h"
-  #include <Print.h>
+#include "PsychicCore.h"
+#include "PsychicPrint.h"
 
 /************************************************************
 
@@ -49,8 +47,9 @@ class TemplatePrinter : public Print
 
     void flush() override;
     size_t write(uint8_t data) override;
+#ifdef ARDUINO
     size_t copyFrom(Stream& stream);
+#endif
 };
 
-#endif // ARDUINO
 #endif // TemplatePrinter_h

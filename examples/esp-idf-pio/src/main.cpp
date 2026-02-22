@@ -12,6 +12,8 @@
     - PsychicWebSocket   : WebSocket echo
     - ON_STA_FILTER / ON_AP_FILTER : network-interface filters
     - serveStatic(uri, path) : POSIX-VFS static-file handler
+    - PsychicStreamResponse  : chunked response via Print API (/stream)
+    - TemplatePrinter        : template substitution on top of stream (/template)
 
   WiFi, LittleFS and mDNS are initialised before the server starts so the
   device is fully usable out-of-the-box after flashing.
@@ -128,6 +130,7 @@ static void server_setup()
   server.config.max_uri_handlers = 20;
 
   server.on("/hello", HTTP_GET, [](PsychicRequest* req, PsychicResponse* res) {
+    ESP_LOGI(TAG, "GET /hello");
     res->setCode(200);
     res->setContentType("text/plain");
     res->setContent("Hello from native ESP-IDF PsychicHttp!");
@@ -136,8 +139,11 @@ static void server_setup()
 
   server.on("/api/v1/info", HTTP_GET, [](PsychicRequest* req, PsychicResponse* res) {
     JsonDocument doc;
-    doc["uptime_ms"] = (uint64_t)(esp_timer_get_time() / 1000ULL);
-    doc["free_heap"] = esp_get_free_heap_size();
+    uint64_t uptime = (uint64_t)(esp_timer_get_time() / 1000ULL);
+    uint32_t heap = esp_get_free_heap_size();
+    ESP_LOGI(TAG, "GET /api/v1/info — uptime=%" PRIu64 "ms heap=%" PRIu32, uptime, heap);
+    doc["uptime_ms"] = uptime;
+    doc["free_heap"] = heap;
     std::string body;
     serializeJson(doc, body);
     res->setCode(200);
@@ -156,13 +162,56 @@ static void server_setup()
 
   // Authenticated (basic) — STA-only
   server.on("/auth", HTTP_GET, [](PsychicRequest* req, PsychicResponse* res) {
+          ESP_LOGI(TAG, "GET /auth — user authenticated");
           return res->send(200, "text/plain", "Authenticated!");
         })
     ->addMiddleware(&basicAuth)
     ->addFilter(ON_STA_FILTER);
 
+  // PsychicStreamResponse — chunked plain-text response using Print API
+  server.on("/stream", HTTP_GET, [](PsychicRequest* req, PsychicResponse* res) {
+    ESP_LOGI(TAG, "GET /stream — starting chunked response");
+    PsychicStreamResponse stream(res, "text/plain");
+    esp_err_t err = stream.beginSend();
+    if (err != ESP_OK)
+      return err;
+    for (int i = 0; i < 5; i++)
+      stream.printf("line %d: uptime=%llu ms\n", i, (unsigned long long)(esp_timer_get_time() / 1000ULL));
+    return stream.endSend();
+  });
+
+  // TemplatePrinter — template substitution on top of PsychicStreamResponse
+  server.on("/template", HTTP_GET, [](PsychicRequest* req, PsychicResponse* res) {
+    ESP_LOGI(TAG, "GET /template — rendering template response");
+    PsychicStreamResponse stream(res, "text/html");
+    esp_err_t err = stream.beginSend();
+    if (err != ESP_OK)
+      return err;
+    TemplatePrinter::start(
+      stream,
+      [](Print& out, const char* param) -> bool {
+        if (strcmp(param, "uptime") == 0) {
+          out.printf("%llu", (unsigned long long)(esp_timer_get_time() / 1000ULL));
+          return true;
+        }
+        if (strcmp(param, "heap") == 0) {
+          out.print((unsigned long)esp_get_free_heap_size());
+          return true;
+        }
+        return false;
+      },
+      [](TemplatePrinter& p) {
+        p.print("<html><body>");
+        p.print("<p>Uptime: %uptime% ms</p>");
+        p.print("<p>Free heap: %heap% bytes</p>");
+        p.print("</body></html>");
+      });
+    return stream.endSend();
+  });
+
   // WebSocket echo
   wsHandler.onFrame([](PsychicWebSocketRequest* req, httpd_ws_frame_t* frame) -> esp_err_t {
+    ESP_LOGI(TAG, "WS /ws — frame len=%d type=%d", (int)frame->len, (int)frame->type);
     return req->reply(frame);
   });
   server.on("/ws", &wsHandler);
@@ -185,6 +234,7 @@ static void sse_task(void*)
     uint64_t uptime_ms = (uint64_t)(esp_timer_get_time() / 1000ULL);
     char payload[32];
     snprintf(payload, sizeof(payload), "%llu", (unsigned long long)uptime_ms);
+    ESP_LOGI(TAG, "SSE /events — sending uptime event: %s ms", payload);
     eventSource.send(payload, "uptime", (uint32_t)(uptime_ms / 1000), 5000);
   }
 }

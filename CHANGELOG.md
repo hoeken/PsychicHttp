@@ -6,7 +6,7 @@ PsychicHttp can now be used in pure ESP-IDF projects without the Arduino compone
 
 **Library source:**
 - `PsychicCore.h`: `urlEncode`/`urlDecode` refactored to `_impl` functions returning `std::string`; thin `#ifdef ARDUINO` wrappers preserve the `String` API for Arduino users. `PsychicUploadCallback` typedef is now conditional — Arduino keeps `const String& filename` (no user-code changes required); native IDF uses `const char* filename`. `HTTPHeader` fields are `std::string` internally; `addHeader(const String&, ...)` kept under `#ifdef ARDUINO`.
-- `ChunkPrinter`, `TemplatePrinter`, `PsychicStreamResponse`: gated `#ifdef ARDUINO` (depend on Arduino `Print`/`Stream` which have no IDF equivalent); excluded from `PsychicHttp.h` on non-Arduino builds.
+- `ChunkPrinter`, `TemplatePrinter`, `PsychicStreamResponse`: backed by `PsychicPrint.h`, which maps to `<Print.h>` on Arduino and a self-contained `Print` shim on native IDF.
 - `PsychicClient`: `localIP()` / `remoteIP()` return `esp_ip4_addr_t` on native IDF; `#ifdef ARDUINO` overloads returning `IPAddress` preserved for Arduino users.
 - `PsychicMiddlewares` `LoggingMiddleware`: Arduino uses `Print&` / `Serial`; native IDF uses `ESP_LOGI` — same public interface.
 - `PsychicEventSource`: `generateEventMessage` returns `std::string` in native IDF via internal `_generateEventMessage_impl`.
@@ -16,7 +16,7 @@ PsychicHttp can now be used in pure ESP-IDF projects without the Arduino compone
 - `MultipartProcessor`, `PsychicUploadHandler`: `std::min()` with explicit casts; `const char*` for internal string access.
 - `sdkconfig.defaults` (`examples/esp-idf-pio/`): `CONFIG_HTTPD_WS_SUPPORT=y` required for WebSocket types; `CONFIG_MBEDTLS_ROM_MD5` disabled (ROM-only MD5 makes `mbedtls_md5_*` unavailable at link time).
 
-**New example:** `examples/esp-idf-pio/` — fully native ESP-IDF PlatformIO example (WiFi STA+AP, HTTP handlers, basic auth middleware, WebSocket echo, SSE). Live tested on hardware. Builds with `[env:esp-idf-pio]` (`framework = espidf`).
+**New example:** `examples/esp-idf-pio/` — fully native ESP-IDF PlatformIO example (WiFi STA+AP, HTTP handlers, basic auth middleware, WebSocket echo, SSE, per-request `ESP_LOGI` logging on every handler). Live tested on hardware. Builds with `[env:esp-idf-pio]` (`framework = espidf`).
 
 ### Bug Fixes
 
@@ -33,25 +33,26 @@ PsychicHttp can now be used in pure ESP-IDF projects without the Arduino compone
 
 ### API Changes: dual return types for Arduino / ESP-IDF compatibility
 
-All public getter methods that previously returned `String` in v2.x **continue to return `String` on Arduino — no code changes required for existing Arduino projects**. On native ESP-IDF (no Arduino framework), those same methods return `const char*`:
+All public string getter methods **continue to return `String` on Arduino — no code changes required for existing Arduino projects**. On native ESP-IDF (no Arduino framework), those same methods return `const char*`:
 
 | Method | Class | v2.x | v3.x Arduino | v3.x ESP-IDF native |
 |---|---|---|---|---|
 | `uri()` | `PsychicEndpoint` | `String` | `String` | `const char*` |
 | `getContentType()` | `PsychicResponse` / `PsychicResponseDelegate` | `String&` | `String` | `const char*` |
-| `name()`, `value()` | `PsychicWebParameter` | `String` | `String` | `const char*` |
-| `from()`, `toUrl()`, `params()` | `PsychicRewrite` | `String` | `String` | `const char*` |
+| `name()`, `value()` | `PsychicWebParameter` | `const String&` | `String` | `const char*` |
+| `from()`, `toUrl()`, `params()` | `PsychicRewrite` | `const String&` | `String` | `const char*` |
 | `getSubprotocol()` | `PsychicHandler` | `const char*` | `const char*` | `const char*` |
-| `getUsername()`, `getPassword()`, `getRealm()`, `getAuthFailureMessage()` | `AuthenticationMiddleware` | `String` | `String` | `const char*` |
-| `getOrigin()`, `getMethods()`, `getHeaders()` | `CorsMiddleware` | `String` | `String` | `const char*` |
-| `methodStr()`, `path()`, `uri()`, `query()`, `header()`, `host()`, `contentType()`, `body()`, `getCookie()`, `getFilename()`, `getParam(key, default)` | `PsychicRequest` | `String` | `String` | `const char*` |
+| `getUsername()`, `getPassword()`, `getRealm()`, `getAuthFailureMessage()` | `AuthenticationMiddleware` | `const String&` | `String` | `const char*` |
+| `getOrigin()`, `getMethods()`, `getHeaders()` | `CorsMiddleware` | `const String&` | `String` | `const char*` |
+| `uri()`, `query()`, `body()` | `PsychicRequest` | `const String&` | `String` | `const char*` |
+| `methodStr()`, `path()`, `header()`, `host()`, `contentType()`, `getCookie()`, `getFilename()`, `getSessionKey()`, `getParam(key, default)` | `PsychicRequest` | `const String` | `String` | `const char*` |
 
-**One minor breaking change on Arduino** — `PsychicResponse::getContentType()` previously returned `String&` (a mutable reference to an internal field); it now returns `String` by value. Normal read usage is unaffected. Storing the result as `String&` in order to mutate internal state — which was never an intended usage pattern for a getter — no longer works.
+**Breaking change on Arduino** — all methods that previously returned `const String&` or `String&` now return `String` by value. Normal usage (`String x = method()`, passing to functions taking `const String&`) is unaffected. Code that stored the raw reference (`const String& x = request->uri()`) would now hold a dangling reference; assign to `String` instead. `getContentType()` additionally dropped mutatability — it was `String&` (writable reference into internals) and is now `String` by value.
 
 **`SessionData` and `ContentDisposition` on Arduino** — `SessionData` is `std::map<String, String>` on Arduino (matching v2.x behaviour) and `std::map<std::string, std::string>` on ESP-IDF. `ContentDisposition.filename` and `.name` fields are `String` on Arduino, `std::string` on ESP-IDF.
 
 **`PsychicUploadCallback` filename parameter** — on Arduino the `onUpload` callback preserves `const String& filename`. On native ESP-IDF it is `const char* filename`.
-
+**`copyFrom(Stream&)`** on `ChunkPrinter`, `TemplatePrinter`, and `PsychicStreamResponse` is Arduino-only. Arduino's `Stream` class has no ESP-IDF equivalent. On ESP-IDF, use `write()` / `print()` / `printf()` directly.
 **For code that must compile on both platforms**, use the `*CStr()` helper methods which always return `const char*` regardless of framework:
 
 ```cpp

@@ -1,6 +1,4 @@
-#ifdef ARDUINO
-
-  #include "ChunkPrinter.h"
+#include "ChunkPrinter.h"
 
 ChunkPrinter::ChunkPrinter(PsychicResponse* response, uint8_t* buffer, size_t len) : _response(response),
                                                                                      _buffer(buffer),
@@ -62,6 +60,7 @@ void ChunkPrinter::flush()
   }
 }
 
+#ifdef ARDUINO
 size_t ChunkPrinter::copyFrom(Stream& stream)
 {
   size_t count = 0;
@@ -79,5 +78,4 @@ size_t ChunkPrinter::copyFrom(Stream& stream)
   }
   return count;
 }
-
 #endif // ARDUINO
