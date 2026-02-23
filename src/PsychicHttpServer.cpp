@@ -87,9 +87,13 @@ uint16_t PsychicHttpServer::getPort()
 
 bool PsychicHttpServer::isConnected()
 {
-  // Use esp_netif API to enumerate all network interfaces
-  // This works universally across all ESP32 variants including P4 with co-processor WiFi/Ethernet
+// Use esp_netif API to enumerate all network interfaces
+// This works universally across all ESP32 variants including P4 with co-processor WiFi/Ethernet
+#if ESP_IDF_VERSION_MAJOR >= 5 && ESP_IDF_VERSION_MINOR >= 5
+  esp_netif_t* netif = esp_netif_next_unsafe(NULL);
+#else
   esp_netif_t* netif = esp_netif_next(NULL);
+#endif
   while (netif != NULL) {
     if (esp_netif_is_netif_up(netif)) {
       esp_netif_ip_info_t ip_info;
@@ -99,7 +103,11 @@ bool PsychicHttpServer::isConnected()
         return true;
       }
     }
+#if ESP_IDF_VERSION_MAJOR >= 5 && ESP_IDF_VERSION_MINOR >= 5
+    netif = esp_netif_next_unsafe(netif);
+#else
     netif = esp_netif_next(netif);
+#endif
   }
   ESP_LOGD(PH_TAG, "No active network interfaces found");
   return false;
