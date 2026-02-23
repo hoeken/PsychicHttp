@@ -82,8 +82,8 @@ All example and benchmark projects read Wi-Fi credentials from a `secrets.h` fil
 Each example directory contains a `secrets.h.example` template. Before building, rename it and fill in your network details:
 
 ```bash
-# standalone example (e.g. examples/platformio)
-mv examples/platformio/src/secrets.h.example examples/platformio/src/secrets.h
+# standalone example (e.g. examples/pio-arduino)
+mv examples/pio-arduino/src/secrets.h.example examples/pio-arduino/src/secrets.h
 # then edit secrets.h and set WIFI_SSID / WIFI_PASS
 ```
 

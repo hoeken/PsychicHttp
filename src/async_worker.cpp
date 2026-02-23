@@ -126,17 +126,18 @@ void start_async_req_workers(void)
 
 #ifndef ESP_HTTPD_HAS_ASYNC_API
 
+  #ifndef MAX
+    #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+  #endif
 
-#ifndef MAX
-  #define MAX(a, b) (((a) > (b)) ? (a) : (b))
-#endif
-
-/* Calculate the maximum size needed for the scratch buffer */
-#if ESP_ARDUINO_VERSION_MAJOR < 3
-	#define HTTPD_SCRATCH_BUF  MAX(HTTPD_MAX_REQ_HDR_LEN, HTTPD_MAX_URI_LEN)
-#else
-	#define HTTPD_SCRATCH_BUF  MAX(CONFIG_HTTPD_MAX_REQ_HDR_LEN, CONFIG_HTTPD_MAX_URI_LEN)
-#endif
+  /* Calculate the maximum size needed for the scratch buffer */
+  #if defined(CONFIG_HTTPD_MAX_REQ_HDR_LEN) && defined(CONFIG_HTTPD_MAX_URI_LEN)
+    #define HTTPD_SCRATCH_BUF MAX(CONFIG_HTTPD_MAX_REQ_HDR_LEN, CONFIG_HTTPD_MAX_URI_LEN)
+  #elif defined(HTTPD_MAX_REQ_HDR_LEN) && defined(HTTPD_MAX_URI_LEN)
+    #define HTTPD_SCRATCH_BUF MAX(HTTPD_MAX_REQ_HDR_LEN, HTTPD_MAX_URI_LEN)
+  #else
+    #error "Missing HTTP server request buffer size macros"
+  #endif
 
 /**
  * @brief   Auxiliary data structure for use during reception and processing
@@ -164,8 +165,8 @@ struct httpd_req_aux {
   #endif
 };
 
-#if ESP_ARDUINO_VERSION_MAJOR < 3
-esp_err_t httpd_req_async_handler_begin(httpd_req_t *r, httpd_req_t **out)
+  #if !defined(ESP_ARDUINO_VERSION_MAJOR) || (ESP_ARDUINO_VERSION_MAJOR < 3)
+esp_err_t httpd_req_async_handler_begin(httpd_req_t* r, httpd_req_t** out)
 {
   if (r == NULL || out == NULL) {
     return ESP_ERR_INVALID_ARG;
@@ -212,5 +213,5 @@ esp_err_t httpd_req_async_handler_complete(httpd_req_t* r)
   return ESP_OK;
 }
 
-#endif
+  #endif
 #endif

@@ -13,7 +13,13 @@
  * PlatformIO -> Build Filesystem Image and then PlatformIO -> Upload Filesystem Image
  **********************************************************************************************/
 
-#include "secrets.h"
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#elif __has_include("../../../secrets.h")
+  #include "../../../secrets.h"
+#else
+  #error "Missing secrets.h (place it next to this example or in repository root)"
+#endif
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>

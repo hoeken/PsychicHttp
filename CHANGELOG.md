@@ -1,5 +1,11 @@
 ## Unreleased
 
+### Build and CI
+
+- `src/async_worker.cpp`: Arduino 2/3 compatibility hardened by selecting HTTPD scratch-buffer macros via symbol detection (`CONFIG_HTTPD_*` first, then legacy `HTTPD_*`) instead of version-only checks, and by guarding use of `ESP_ARDUINO_VERSION_MAJOR` when undefined.
+- Root/standalone credential flow improved in examples and benchmarks: `secrets.h` is now included with `__has_include` fallback to repository root (`../../../secrets.h`) with a clear compile-time error if neither file exists.
+- Root `platformio.ini` CI environments split for reliability: local-safe `[env:ci]` uses fixed defaults; GitHub Actions matrix now builds `[env:ci-matrix]` with `PIO_BOARD` / `PIO_PLATFORM` from workflow variables.
+
 ### Wi-Fi Credentials Setup
 
 All example and benchmark projects now use a consistent `secrets.h` / `secrets.h.example` pattern for Wi-Fi credentials, replacing the previous `secret.h` / `_secret.h` approach:
@@ -84,7 +90,7 @@ param->valueCStr()              // instead of param->value()
 - **All examples**: `server.begin()` must be called *after* all `server.on()` registrations. WebSocket and SSE endpoints are registered with `httpd` inside `begin()` / `start()`; calling `on()` after `begin()` silently registers the URL but the WS upgrade or SSE accept is never wired up.
 - `examples/arduino/arduino.ino`: `StaticJsonDocument<N>` → `JsonDocument` (ArduinoJson v7); inline `request->authenticate()` / `requestAuthentication()` → `AuthenticationMiddleware` with `addMiddleware()`; `httpd_ws_frame` → `httpd_ws_frame_t`.
 - `examples/arduino/arduino_ota/`, `examples/arduino/arduino_captive_portal/`: `server.begin()` added after all `server.on()` calls (was missing).
-- `examples/websockets/src/main.cpp`, `examples/platformio/src/main.cpp`: `httpd_ws_frame` → `httpd_ws_frame_t`.
+- `examples/websockets/src/main.cpp`, `examples/pio-arduino/src/main.cpp`: `httpd_ws_frame` → `httpd_ws_frame_t`.
 - `examples/esp-idf/main/main.cpp`: `server.begin()` ordering fixed; `websocketHandler.onMessage` → `onFrame`; `httpd_ws_frame` → `httpd_ws_frame_t`.
 
 ### Internal Changes

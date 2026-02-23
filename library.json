@@ -18,7 +18,7 @@
   "examples": [
     {
       "name": "platformio",
-      "base": "examples/platformio",
+      "base": "examples/pio-arduino",
       "files": [
         "src/main.cpp"
       ]
@@ -35,7 +35,7 @@
   ],
   "export": {
     "include": [
-      "examples/platformio",
+      "examples/pio-arduino",
       "src",
       "library.json",
       "library.properties",
