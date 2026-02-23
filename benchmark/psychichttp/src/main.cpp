@@ -7,7 +7,7 @@
    CONDITIONS OF ANY KIND, either express or implied.
 
 */
-#include "_secret.h"
+#include "secrets.h"
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
@@ -16,10 +16,10 @@
 #include <WiFi.h>
 
 #ifndef WIFI_SSID
-  #error "You need to enter your wifi credentials.  Copy secret.h to _secret.h and enter your credentials there."
+  #error "You need to enter your wifi credentials. Rename secrets.h.example to secrets.h and enter your credentials there."
 #endif
 
-// Enter your WIFI credentials in secret.h
+// Enter your WIFI credentials in secrets.h
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASS;
 

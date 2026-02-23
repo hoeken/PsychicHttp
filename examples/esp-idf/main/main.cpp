@@ -12,10 +12,10 @@
  * Note: this demo requires various files to be uploaded to the LittleFS
  * partition. See the README for instructions.
  *
- * Note: edit secret.h to fill in your Wi-Fi credentials.
+ * Note: copy secrets.h.example to secrets.h and fill in your Wi-Fi credentials.
  ******************************************************************************/
 
-#include "secret.h"
+#include "secrets.h"
 #include <ArduinoJson.h>
 #include <PsychicHttp.h>
 #include <esp_event.h>
@@ -32,7 +32,7 @@
 
 static const char* TAG = "PsychicHttp";
 
-// Wi-Fi credentials — edit secret.h
+// Wi-Fi credentials — from secrets.h
 static const char* WIFI_SSID_STR = WIFI_SSID;
 static const char* WIFI_PASS_STR = WIFI_PASS;
 

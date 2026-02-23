@@ -1,4 +1,4 @@
-_secret.h
+**/secrets.h
 .$request flow.drawio.bkp
 .$request flow.drawio.dtmp
 .clang_complete
@@ -51,6 +51,5 @@ examples/arduino/
 examples/platformio/lib/PsychicHttp
 examples/websockets/lib/PsychicHttp
 src/cookie.txt
-src/secret.h
 Visual\ Micro
 MIGRATION.md

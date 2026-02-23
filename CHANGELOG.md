@@ -1,5 +1,13 @@
 ## Unreleased
 
+### Wi-Fi Credentials Setup
+
+All example and benchmark projects now use a consistent `secrets.h` / `secrets.h.example` pattern for Wi-Fi credentials, replacing the previous `secret.h` / `_secret.h` approach:
+
+- Each example and benchmark directory contains a committed `secrets.h.example` with placeholder values and rename instructions. The actual `secrets.h` is listed in `.gitignore` and is never committed.
+- When building an example as a **standalone project**, rename `secrets.h.example` → `secrets.h` inside that project's `src/` (or `main/`) directory and fill in your credentials.
+- When building from the **root `platformio.ini`**, rename the root-level `secrets.h.example` → `secrets.h` once — it is picked up by all examples automatically via `-I${PROJECT_DIR}` in the shared build flags (local `src/secrets.h` still takes priority if present).
+
 ### Native ESP-IDF Support (no Arduino framework required)
 
 PsychicHttp can now be used in pure ESP-IDF projects without the Arduino component.

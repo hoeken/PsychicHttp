@@ -75,6 +75,27 @@ See `examples/esp-idf-pio/` for a complete working example.
 
 Open *Tools -> Manage Libraries...* and search for PsychicHttp.
 
+## Wi-Fi Credentials
+
+All example and benchmark projects read Wi-Fi credentials from a `secrets.h` file that you create locally and is never committed to git.
+
+Each example directory contains a `secrets.h.example` template. Before building, rename it and fill in your network details:
+
+```bash
+# standalone example (e.g. examples/platformio)
+mv examples/platformio/src/secrets.h.example examples/platformio/src/secrets.h
+# then edit secrets.h and set WIFI_SSID / WIFI_PASS
+```
+
+When building from the **root `platformio.ini`** you only need one file at the repo root:
+
+```bash
+mv secrets.h.example secrets.h
+# then edit secrets.h and set WIFI_SSID / WIFI_PASS
+```
+
+The root `secrets.h` is found automatically by all example builds via `-I${PROJECT_DIR}` in the shared build flags. A local `src/secrets.h` inside an example always takes priority if present.
+
 # Upgrading from v2.x to v3.0
 
 ## Arduino Users

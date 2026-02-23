@@ -18,10 +18,10 @@
   WiFi, LittleFS and mDNS are initialised before the server starts so the
   device is fully usable out-of-the-box after flashing.
 
-  Edit src/secret.h to set your Wi-Fi credentials.
+  Copy src/secrets.h.example to src/secrets.h and fill in your Wi-Fi credentials.
 */
 
-#include "secret.h"
+#include "secrets.h"
 #include <ArduinoJson.h>
 #include <PsychicHttp.h>
 #include <esp_event.h>
