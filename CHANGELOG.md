@@ -14,7 +14,8 @@ PsychicHttp can now be used in pure ESP-IDF projects without the Arduino compone
 - `PsychicRequest`: base64 encoding for digest auth selects `mbedtls_base64_encode` (IDF ≥ 5) vs `base64_encode_chars` (IDF 4) via `ESP_IDF_VERSION_MAJOR` guard.
 - `PsychicResponse`: `equalsIgnoreCase()` → `strcasecmp()` for `std::string` compatibility; `#include <strings.h>` added.
 - `MultipartProcessor`, `PsychicUploadHandler`: `std::min()` with explicit casts; `const char*` for internal string access.
-- `sdkconfig.defaults` (`examples/esp-idf-pio/`): `CONFIG_HTTPD_WS_SUPPORT=y` required for WebSocket types; `CONFIG_MBEDTLS_ROM_MD5` disabled (ROM-only MD5 makes `mbedtls_md5_*` unavailable at link time).
+- `sdkconfig.defaults` (`examples/esp-idf-pio/`): `CONFIG_HTTPD_WS_SUPPORT=y` required for WebSocket types; `CONFIG_MBEDTLS_ROM_MD5` disabled (ROM-only MD5 makes `mbedtls_md5_*` unavailable at link time); `CONFIG_ESP_HTTPS_SERVER_ENABLE=y` required when using `PsychicHttpsServer`.
+- `PsychicHttpsServer`: fully functional on native ESP-IDF — it uses only `<esp_https_server.h>` (an official Espressif component) with zero Arduino dependencies. `esp_https_server` is already an explicit `COMPONENT_REQUIRES` entry in `CMakeLists.txt` for both Arduino and native IDF builds. Usage is identical to Arduino: `#include <PsychicHttpsServer.h>` and call `server.setCertificate(cert, key)` before `server.begin()`.
 
 **New example:** `examples/esp-idf-pio/` — fully native ESP-IDF PlatformIO example (WiFi STA+AP, HTTP handlers, basic auth middleware, WebSocket echo, SSE, per-request `ESP_LOGI` logging on every handler). Live tested on hardware. Builds with `[env:esp-idf-pio]` (`framework = espidf`).
 

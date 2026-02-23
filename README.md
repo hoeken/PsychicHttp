@@ -20,7 +20,7 @@ PsychicHttp is a webserver library for ESP32 that supports both the **Arduino fr
 * Websocket support with onOpen, onFrame, and onClose callbacks
 * EventSource / SSE support with onOpen, and onClose callbacks
 * Request filters, including Client vs AP mode (ON_STA_FILTER / ON_AP_FILTER)
-* TemplatePrinter class for dynamic variables at runtime *(Arduino only)*
+* TemplatePrinter class for dynamic variables at runtime
 
 ## Differences from ESPAsyncWebserver
 
@@ -119,6 +119,9 @@ Add the following to your `sdkconfig.defaults`:
 ```ini
 CONFIG_HTTPD_WS_SUPPORT=y
 # CONFIG_MBEDTLS_ROM_MD5 is not set
+
+# Add this if you are using PsychicHttpsServer:
+CONFIG_ESP_HTTPS_SERVER_ENABLE=y
 ```
 
 ## Writing Handlers That Compile on Both Platforms
@@ -229,7 +232,6 @@ If you have existing code using ESPAsyncWebserver, you will feel right at home w
 * No AsyncCallbackJsonWebHandler (for now... can add if needed)
 * No request->beginResponse().  Instanciate a PsychicResponse instead: ```PsychicResponse response(request);```
 * No PROGMEM suppport (its not relevant to ESP32: https://esp32.com/viewtopic.php?t=20595)
-* Stream response (`PsychicStreamResponse`) is Arduino-only — not available on native ESP-IDF
 
 # Usage
 
@@ -604,7 +606,7 @@ if (client != NULL)
 
 ### HTTPS / SSL
 
-PsychicHttp supports HTTPS / SSL out of the box, however there are some limitations (see performance below).  Enabling it also increases the code size by about 100kb.  To use HTTPS, you need to modify your setup like so:
+PsychicHttp supports HTTPS / SSL out of the box on both Arduino and native ESP-IDF, however there are some limitations (see performance below).  Enabling it also increases the code size by about 100kb.  To use HTTPS, you need to modify your setup like so:
 
 ```cpp
 #include <PsychicHttp.h>
