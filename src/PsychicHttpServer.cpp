@@ -87,19 +87,21 @@ uint16_t PsychicHttpServer::getPort()
 
 bool PsychicHttpServer::isConnected()
 {
-  esp_netif_ip_info_t ip_info;
-  esp_netif_t* ap_netif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
-  if (ap_netif && esp_netif_get_ip_info(ap_netif, &ip_info) == ESP_OK && ip_info.ip.addr != 0)
-    return true;
-  esp_netif_t* sta_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-  if (sta_netif && esp_netif_get_ip_info(sta_netif, &ip_info) == ESP_OK && ip_info.ip.addr != 0)
-    return true;
-
-#ifdef PSY_ENABLE_ETHERNET
-  if (ETH.localIP())
-    return true;
-#endif
-
+  // Use esp_netif API to enumerate all network interfaces
+  // This works universally across all ESP32 variants including P4 with co-processor WiFi/Ethernet
+  esp_netif_t* netif = esp_netif_next(NULL);
+  while (netif != NULL) {
+    if (esp_netif_is_netif_up(netif)) {
+      esp_netif_ip_info_t ip_info;
+      if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK && ip_info.ip.addr != 0) {
+        const char* desc = esp_netif_get_desc(netif);
+        ESP_LOGD(PH_TAG, "Network connected via interface: %s (IP: " IPSTR ")", desc ? desc : "unknown", IP2STR(&ip_info.ip));
+        return true;
+      }
+    }
+    netif = esp_netif_next(netif);
+  }
+  ESP_LOGD(PH_TAG, "No active network interfaces found");
   return false;
 }
 
@@ -108,9 +110,10 @@ esp_err_t PsychicHttpServer::start()
   if (_running)
     return ESP_OK;
 
-  // starting without network will crash us.
+  // starting without network will crash us
+  // isConnected() now checks all network interfaces including co-processor connections
   if (!isConnected()) {
-    ESP_LOGE(PH_TAG, "Server start failed - no network.");
+    ESP_LOGE(PH_TAG, "Server start failed - no network interface available.");
     return ESP_FAIL;
   }
 
