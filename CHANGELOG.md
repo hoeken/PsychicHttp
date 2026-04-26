@@ -1,3 +1,7 @@
+## 2.1.2
+
+- fix: close _file before PsychicFileResponse to prevent LittleFS remove() failure
+
 ## 2.1.1
 
 - Re-added deleted MAX function per #230
