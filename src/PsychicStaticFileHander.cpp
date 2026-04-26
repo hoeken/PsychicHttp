@@ -180,6 +180,7 @@ esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest* request, Psych
     }
     // nope, send them the full file.
     else {
+      _file.close();
       PsychicFileResponse response(res, _fs, _filename);
 
       if (_last_modified.length())
