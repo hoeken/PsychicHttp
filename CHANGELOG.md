@@ -1,3 +1,7 @@
+## 2.1.3
+
+- fix: Added getParams() to access all parameters from issue #236
+
 ## 2.1.2
 
 - fix: close _file before PsychicFileResponse to prevent LittleFS remove() failure
