@@ -1,2 +1,2 @@
-#define WIFI_SSID "WIFI_SSID"
-#define WIFI_PASS "WIFI_PASS"
+#define WIFI_SSID "Your_SSID"
+#define WIFI_PASS "Your_PASS"
