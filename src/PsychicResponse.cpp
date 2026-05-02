@@ -3,7 +3,7 @@
 #include <http_status.h>
 
 PsychicResponse::PsychicResponse(PsychicRequest* request) : _request(request),
-                                                            _code(200),
+                                                            _code(0),
                                                             _status(""),
                                                             _contentType(emptyString),
                                                             _contentLength(0),
@@ -96,6 +96,8 @@ size_t PsychicResponse::getContentLength()
 
 esp_err_t PsychicResponse::send()
 {
+  if (!_code)
+    setCode(200);
   // our headers too
   this->sendHeaders();
 
