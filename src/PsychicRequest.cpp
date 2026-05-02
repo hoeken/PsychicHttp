@@ -138,13 +138,13 @@ const ContentDisposition PsychicRequest::getContentDisposition()
     cd.disposition = NONE;
 
   start = header.indexOf("filename=");
-  if (start) {
+  if (start >= 0) {
     end = header.indexOf('"', start + 10);
     cd.filename = header.substring(start + 10, end - 1);
   }
 
   start = header.indexOf("name=");
-  if (start) {
+  if (start >= 0) {
     end = header.indexOf('"', start + 6);
     cd.name = header.substring(start + 6, end - 1);
   }
@@ -364,7 +364,7 @@ void PsychicRequest::_setUri(const char* uri)
 
   // look for our query separator
   int index = _uri.indexOf('?', 0);
-  if (index) {
+  if (index >= 0) {
     // parse them.
     _query = _uri.substring(index + 1);
     _addParams(_query, false);
@@ -465,7 +465,7 @@ bool PsychicRequest::authenticate(const char * username, const char * password, 
     if (authReq.startsWith("Basic")) {
       authReq = authReq.substring(6);
       authReq.trim();
-      char toencodeLen = strlen(username) + strlen(password) + 1;
+      int toencodeLen = strlen(username) + strlen(password) + 1;
       char* toencode = new char[toencodeLen + 1];
       if (toencode == NULL) {
         authReq = "";

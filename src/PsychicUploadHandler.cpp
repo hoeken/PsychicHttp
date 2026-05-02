@@ -17,7 +17,7 @@ esp_err_t PsychicUploadHandler::handleRequest(PsychicRequest* request, PsychicRe
   /* File cannot be larger than a limit */
   if (request->contentLength() > request->server()->maxUploadSize)
   {
-    ESP_LOGE(PH_TAG, "File too large : %d bytes", request->contentLength());
+    ESP_LOGE(PH_TAG, "File too large : %zu bytes", request->contentLength());
 
     /* Respond with 400 Bad Request */
     char error[50];

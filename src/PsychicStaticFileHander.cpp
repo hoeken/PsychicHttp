@@ -85,6 +85,10 @@ bool PsychicStaticFileHandler::_getFile(PsychicRequest* request)
   // Remove the found uri
   String path = request->uri().substring(_uri.length());
 
+  // Reject any path that contains directory traversal sequences
+  if (path.indexOf("..") >= 0)
+    return false;
+
   // We can skip the file check and look for default if request is to the root of a directory or that request path ends with '/'
   bool canSkipFileCheck = (_isDir && path.length() == 0) || (path.length() && path[path.length() - 1] == '/');
 
