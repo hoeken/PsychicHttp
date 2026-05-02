@@ -56,7 +56,7 @@ esp_err_t PsychicJsonResponse::send()
     setContent((uint8_t*)buffer, length);
     setContentType(JSON_MIMETYPE);
 
-    err = send();
+    err = PsychicResponseDelegate::send();
   } else {
     // helper class that acts as a stream to print chunked responses
     ChunkPrinter dest(_response, (uint8_t*)buffer, buffer_size);
