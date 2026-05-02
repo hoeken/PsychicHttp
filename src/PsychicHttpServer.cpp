@@ -25,7 +25,7 @@ PsychicHttpServer::PsychicHttpServer(uint16_t port)
   config.global_user_ctx = this;
   config.global_user_ctx_free_fn = PsychicHttpServer::destroy;
   config.uri_match_fn = MATCH_WILDCARD; // new internal endpoint matching - do not change this!!!
-  config.stack_size = 4608;             // default stack is just a little bit too small.
+  config.stack_size = 8192;             // file I/O via VFS/LittleFS needs a deep call chain
 
   // our internal matching function for endpoints
   _uri_match_fn = MATCH_WILDCARD; // use this change the endpoint matching function.

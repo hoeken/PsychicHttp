@@ -465,7 +465,7 @@ void setup()
     // handle a very basic upload as post body
     PsychicUploadHandler* uploadHandler = new PsychicUploadHandler();
     uploadHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last) {
-      File file;
+      static File file;
       String path = "/www/" + filename;
 
       Serial.printf("Writing %d/%d bytes to: %s\n", (int)index + (int)len, request->contentLength(), path.c_str());
@@ -473,11 +473,8 @@ void setup()
       if (last)
         Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
 
-      // our first call?
       if (!index)
         file = LittleFS.open(path, FILE_WRITE);
-      else
-        file = LittleFS.open(path, FILE_APPEND);
 
       if (!file) {
         Serial.println("Failed to open file");
@@ -488,6 +485,9 @@ void setup()
         Serial.println("Write failed");
         return ESP_FAIL;
       }
+
+      if (last)
+        file.close();
 
       return ESP_OK;
     });
@@ -507,7 +507,7 @@ void setup()
     // a little bit more complicated multipart form
     PsychicUploadHandler* multipartHandler = new PsychicUploadHandler();
     multipartHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last) {
-      File file;
+      static File file;
       String path = "/www/" + filename;
 
       // some progress over serial.
@@ -515,11 +515,8 @@ void setup()
       if (last)
         Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
 
-      // our first call?
       if (!index)
         file = LittleFS.open(path, FILE_WRITE);
-      else
-        file = LittleFS.open(path, FILE_APPEND);
 
       if (!file) {
         Serial.println("Failed to open file");
@@ -530,6 +527,9 @@ void setup()
         Serial.println("Write failed");
         return ESP_FAIL;
       }
+
+      if (last)
+        file.close();
 
       return ESP_OK;
     });
