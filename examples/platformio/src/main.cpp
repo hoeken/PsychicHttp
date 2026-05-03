@@ -322,6 +322,7 @@ void setup()
       // this creates a 2nd server listening on port 80 and redirects all requests HTTPS
       PsychicHttpServer* redirectServer = new PsychicHttpServer();
       redirectServer->config.ctrl_port = 20424; // just a random port different from the default one
+      redirectServer->config.stack_size = 4096; // we dont need a large stack size for this.
       redirectServer->onNotFound([](PsychicRequest* request, PsychicResponse* response) {
         String url = "https://" + request->host() + request->url();
         return response->redirect(url.c_str()); });
