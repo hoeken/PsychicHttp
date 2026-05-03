@@ -462,6 +462,7 @@ Here is a basic example of using WebSockets:
  });
 
  //attach the handler to /ws.  You can then connect to ws://ip.address/ws
+ //NOTE: the handler must be registered before server.begin() is called, otherwise it will not work.
  server.on("/ws", &websocketHandler);
 ```
 

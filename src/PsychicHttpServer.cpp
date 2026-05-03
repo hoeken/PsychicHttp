@@ -296,6 +296,8 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicHandl
 
   // websockets need a real endpoint in esp-idf
   if (handler->isWebSocket()) {
+    if (_running)
+      ESP_LOGW(PH_TAG, "WebSocket handler for '%s' registered after server started — it will not work. Call server.on() before server.begin().", uri);
     // URI handler structure
     httpd_uri_t my_uri;
     my_uri.uri = uri;
