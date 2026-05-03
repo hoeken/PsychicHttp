@@ -79,7 +79,7 @@ uint16_t PsychicHttpServer::getPort()
   return this->config.server_port;
 }
 
-static bool _netif_is_connected(esp_netif_t* netif, void*)
+static bool _netif_is_connected(esp_netif_t* netif)
 {
   if (!esp_netif_is_netif_up(netif)) return false;
   esp_netif_ip_info_t ip;
@@ -89,7 +89,9 @@ static bool _netif_is_connected(esp_netif_t* netif, void*)
 
 bool PsychicHttpServer::isConnected()
 {
-  return esp_netif_find_if(_netif_is_connected, nullptr) != nullptr;
+  for (esp_netif_t* netif = esp_netif_next(nullptr); netif != nullptr; netif = esp_netif_next(netif))
+    if (_netif_is_connected(netif)) return true;
+  return false;
 }
 
 esp_err_t PsychicHttpServer::start()
@@ -625,25 +627,26 @@ const std::list<PsychicClient*>& PsychicHttpServer::getClientList()
   return _clients;
 }
 
-static bool _netif_matches_ip(esp_netif_t* netif, void* ctx)
+static esp_netif_t* _find_netif_by_ip(const IPAddress& addr)
 {
-  esp_netif_ip_info_t ip;
-  if (esp_netif_get_ip_info(netif, &ip) != ESP_OK) return false;
-  return IPAddress(ip.ip.addr) == *static_cast<IPAddress*>(ctx);
+  for (esp_netif_t* netif = esp_netif_next(nullptr); netif != nullptr; netif = esp_netif_next(netif)) {
+    esp_netif_ip_info_t ip;
+    if (esp_netif_get_ip_info(netif, &ip) != ESP_OK) continue;
+    if (IPAddress(ip.ip.addr) == addr) return netif;
+  }
+  return nullptr;
 }
 
 bool ON_STA_FILTER(PsychicRequest* request)
 {
-  IPAddress local = request->client()->localIP();
-  esp_netif_t* netif = esp_netif_find_if(_netif_matches_ip, &local);
+  esp_netif_t* netif = _find_netif_by_ip(request->client()->localIP());
   if (netif == nullptr) return false;
   return !(esp_netif_get_flags(netif) & ESP_NETIF_DHCP_SERVER);
 }
 
 bool ON_AP_FILTER(PsychicRequest* request)
 {
-  IPAddress local = request->client()->localIP();
-  esp_netif_t* netif = esp_netif_find_if(_netif_matches_ip, &local);
+  esp_netif_t* netif = _find_netif_by_ip(request->client()->localIP());
   if (netif == nullptr) return false;
   return (esp_netif_get_flags(netif) & ESP_NETIF_DHCP_SERVER) != 0;
 }
