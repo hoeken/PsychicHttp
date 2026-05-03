@@ -125,7 +125,7 @@ If you have existing code using ESPAsyncWebserver, you will feel right at home w
 
 ## setup() Stuff
 
-* add your handlers and call `server.begin()` at the end
+* add your handlers and call `server.start()` at the end
 * server now supports unlimited endpoints — no need to set `config.max_uri_handlers`
 * check your callback function definitions:
    * All request callbacks now take two parameters: `PsychicRequest *request` and `PsychicResponse *response`
@@ -168,7 +168,7 @@ void setup()
    server.serveStatic(...);
 
    //must call begin() after all handlers are added
-   server.begin();
+   server.start();
 }
 ```
 
@@ -462,7 +462,7 @@ Here is a basic example of using WebSockets:
  });
 
  //attach the handler to /ws.  You can then connect to ws://ip.address/ws
- //NOTE: the handler must be registered before server.begin() is called, otherwise it will not work.
+ //NOTE: the handler must be registered before server.start() is called, otherwise it will not work.
  server.on("/ws", &websocketHandler);
 ```
 
