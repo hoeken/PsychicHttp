@@ -736,7 +736,7 @@ redirectServer->onNotFound([](PsychicRequest *request, PsychicResponse *response
    String url = "https://" + request->host() + request->url();
    return response->redirect(url.c_str());
 });
-redirectServer->begin();
+redirectServer->start();
 ```
 
 # TemplatePrinter

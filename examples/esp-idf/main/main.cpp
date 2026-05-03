@@ -239,6 +239,7 @@ void setup()
       redirectServer->onNotFound([](PsychicRequest* request, PsychicResponse* response) {
         String url = "https://" + request->host() + request->url();
         return response->redirect(url.c_str()); });
+      redirectServer->start();
     }
 #endif
 
@@ -420,14 +421,16 @@ void setup()
     // how to do basic auth
     //  curl -i --user admin:admin http://psychic.local/auth-basic
     server.on("/auth-basic", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
-      return response->send("Auth Basic Success!");
-    })->addMiddleware(&basicAuth);
+            return response->send("Auth Basic Success!");
+          })
+      ->addMiddleware(&basicAuth);
 
     // how to do digest auth
     //  curl -i --user admin:admin http://psychic.local/auth-digest
     server.on("/auth-digest", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
-      return response->send("Auth Digest Success!");
-    })->addMiddleware(&digestAuth);
+            return response->send("Auth Digest Success!");
+          })
+      ->addMiddleware(&digestAuth);
 
     // example of getting / setting cookies
     //  curl -i -b cookie.txt -c cookie.txt http://psychic.local/cookies
