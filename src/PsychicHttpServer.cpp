@@ -6,6 +6,13 @@
 #include "PsychicWebHandler.h"
 #include "PsychicWebSocket.h"
 #include "esp_netif.h"
+#include "esp_idf_version.h"
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 0)
+  #define esp_netif_next_compat(n) esp_netif_next_unsafe(n)
+#else
+  #define esp_netif_next_compat(n) esp_netif_next(n)
+#endif
 
 PsychicHttpServer::PsychicHttpServer(uint16_t port)
 {
@@ -89,7 +96,7 @@ static bool _netif_is_connected(esp_netif_t* netif)
 
 bool PsychicHttpServer::isConnected()
 {
-  for (esp_netif_t* netif = esp_netif_next(nullptr); netif != nullptr; netif = esp_netif_next(netif))
+  for (esp_netif_t* netif = esp_netif_next_compat(nullptr); netif != nullptr; netif = esp_netif_next_compat(netif))
     if (_netif_is_connected(netif)) return true;
   return false;
 }
@@ -629,7 +636,7 @@ const std::list<PsychicClient*>& PsychicHttpServer::getClientList()
 
 static esp_netif_t* _find_netif_by_ip(const IPAddress& addr)
 {
-  for (esp_netif_t* netif = esp_netif_next(nullptr); netif != nullptr; netif = esp_netif_next(netif)) {
+  for (esp_netif_t* netif = esp_netif_next_compat(nullptr); netif != nullptr; netif = esp_netif_next_compat(netif)) {
     esp_netif_ip_info_t ip;
     if (esp_netif_get_ip_info(netif, &ip) != ESP_OK) continue;
     if (IPAddress(ip.ip.addr) == addr) return netif;
