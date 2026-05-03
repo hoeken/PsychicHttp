@@ -1,3 +1,23 @@
+## 2.2.0
+
+- fix: memory leaks — add PsychicEndpoint destructor to delete handler; removeEndpoint/removeHandler/removeRewrite now delete removed objects; reset() deletes middleware chain
+- fix: stale endpoint state — removeEndpoint now cleans up _esp_idf_endpoints so WebSocket entries are properly unregistered across server restarts
+- fix: HTTPS server now syncs max_uri_handlers and stack_size from config before starting (both were silently ignored before)
+- fix: path traversal attack blocked in static file handler (#security)
+- fix: redirect response code was initialized wrong, breaking redirects (#239)
+- fix: correct integer comparisons in indexOf() checks, char overflow in auth buffer, and format specifiers for size_t
+- fix: urlDecode bounds-checks before reading past a trailing %
+- fix: regex URI matching now catches invalid patterns instead of crashing
+- fix: closeCallback guards against null handler before calling checkForClosedClient
+- fix: improper delegation call in PsychicJSONResponse
+- feat: removed urlencode external dependency — pulled into repository as src/UrlEncode.cpp
+- feat: replaced WiFi.h/ETH.h dependencies with generic esp_netif API; isConnected(), ON_STA_FILTER, and ON_AP_FILTER now work on all interface types including ESP32-P4
+- feat: esp_netif compatibility — use esp_netif_next loop for older ESP-IDF versions (#235)
+- feat: added warning when registering WebSocket handler after start() call (#233)
+- feat: ESP-IDF v5.5 support added; v6.0 removed pending Arduino support
+- fix: NTP/DHCP handling for ESP-IDF
+- examples: increased stack size to fix multipart file upload issues; added start() call to HTTPS redirect server example
+
 ## 2.1.3
 
 - fix: Added getParams() to access all parameters from issue #236

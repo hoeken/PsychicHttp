@@ -17,9 +17,9 @@
 /** Major version number (X.x.x) */
 #define PSYCHIC_VERSION_MAJOR 2
 /** Minor version number (x.X.x) */
-#define PSYCHIC_VERSION_MINOR 1
+#define PSYCHIC_VERSION_MINOR 2
 /** Patch version number (x.x.X) */
-#define PSYCHIC_VERSION_PATCH 3
+#define PSYCHIC_VERSION_PATCH 0
 
 /**
  * Macro to convert PsychicHttp version number into an integer

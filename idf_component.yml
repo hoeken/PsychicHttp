@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "2.1.3"
+version: "2.2.0"
 license: "MIT"
 description: "Asyncronous Webserver library for ESP32 + Arduino framework"
 url: "https://github.com/hoeken/PsychicHttp"
