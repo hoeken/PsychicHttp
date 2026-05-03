@@ -698,7 +698,11 @@ DefaultHeaders::Instance().addHeader("X-Custom-Header", "value");
 
 ### HTTPS / SSL
 
-PsychicHttp supports HTTPS / SSL out of the box, however there are some limitations (see performance below).  Enabling it also increases the code size by about 100kb.  To use HTTPS, you need to modify your setup like so:
+PsychicHttp supports HTTPS / SSL out of the box, however there are some limitations (see performance below).  Enabling it also increases the code size by about 100kb.
+
+SSL connections require significant RAM — each TLS session consumes roughly 40–100KB of internal RAM plus two 16KB record buffers.  **A board with PSRAM is strongly recommended**, and PSRAM must be enabled in your project configuration (see below).  Without PSRAM, you will likely be limited to a single simultaneous SSL connection before the heap is exhausted.
+
+To use HTTPS, you need to modify your setup like so:
 
 ```cpp
 #include <PsychicHttp.h>
@@ -714,6 +718,8 @@ To generate your own key and self signed certificate, you can use the command be
 ```
 openssl req -x509 -newkey rsa:4096 -nodes -keyout server.key -out server.crt -sha256 -days 365
 ```
+
+You can also generate a self-signed certificate directly on the ESP32 at runtime using mbedTLS, which is already bundled with ESP-IDF.  This is useful for devices that need a unique certificate without any external tooling — generate once on first boot, store the PEM strings to NVS or LittleFS, and load them on every subsequent boot.  An example implementation can be found [here](https://github.com/hoeken/YarrboardFramework/blob/34be5c9457355a5e0dcdc0afacca9e2907cfab03/src/controllers/HTTPController.cpp#L328).
 
 Including the ```PsychicHttpsServer.h``` also defines ```PSY_ENABLE_SSL``` which you can use in your code to allow enabling / disabling calls in your code based on if the HTTPS server is available:
 
@@ -738,6 +744,40 @@ redirectServer->onNotFound([](PsychicRequest *request, PsychicResponse *response
    return response->redirect(url.c_str());
 });
 redirectServer->start();
+```
+
+#### Enabling PSRAM for SSL
+
+To offload mbedTLS allocations to PSRAM and avoid exhausting internal heap under multiple SSL connections, add the following to your project.  The example below targets an **ESP32-S3-WROOM-1-N16R8** (8 MB OPI PSRAM) but the mbedTLS options apply to any ESP32 variant with PSRAM.
+
+`sdkconfig.defaults`:
+```
+# Enable OPI PSRAM (8MB on ESP32-S3-WROOM-1-N16R8).
+# board_build.arduino.memory_type = qio_opi selects the right bootloader/linker,
+# but IDF still needs these Kconfig options to actually map PSRAM into the heap.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_USE_MALLOC=y
+
+# Move mbedTLS dynamic allocations to PSRAM.
+# Without this, each TLS session chews ~40-100KB of internal RAM plus two 16KB
+# record buffers, exhausting internal heap when multiple clients connect.
+# Has no effect on targets without SPIRAM (CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC
+# depends on SPIRAM in Kconfig, so it is silently ignored on C3/C5/C6/esp32).
+CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
+
+# Use asymmetric record buffer sizes: full 16KB in (needed for receiving TLS
+# records from browsers) but only 4KB out (sufficient for JSON API responses).
+# Saves ~24KB of PSRAM per session vs the default symmetric 32KB allocation.
+CONFIG_MBEDTLS_ASYMMETRIC_CONTENT_LEN=y
+CONFIG_MBEDTLS_SSL_IN_CONTENT_LEN=16384
+CONFIG_MBEDTLS_SSL_OUT_CONTENT_LEN=4096
+```
+
+`platformio.ini`:
+```ini
+build_flags = -D BOARD_HAS_PSRAM
 ```
 
 # TemplatePrinter
@@ -938,7 +978,7 @@ In order to really see the differences between libraries, I created some basic b
 
 Yes, PsychicHttp supports SSL out of the box, but there are a few caveats:
 
-* Due to memory limitations, it can only handle 2 connections at a time. Each SSL connection takes about 45k ram, and a blank PsychicHttp sketch has about 150k ram free.
+* SSL connections are memory-intensive — each TLS session consumes roughly 40–100KB of internal RAM plus two 16KB record buffers.  On a board without PSRAM, a blank PsychicHttp sketch has around 150KB free, which limits you to 1–2 simultaneous SSL connections.  **A board with PSRAM is strongly recommended** for any production HTTPS use.  See the [Enabling PSRAM for SSL](#enabling-psram-for-ssl) section above for the required `sdkconfig.defaults` and `platformio.ini` settings to route mbedTLS allocations to PSRAM.
 * Speed and latency are still pretty good (see graph above) but the SSH handshake seems to take 1500ms.  With websockets or browser its not an issue since the connection is kept alive, but if you are loading requests in another way it will be a bit slow
 * Unless you want to expose your ESP to the internet, you are limited to self signed keys and the annoying browser security warnings that come with them.
 
