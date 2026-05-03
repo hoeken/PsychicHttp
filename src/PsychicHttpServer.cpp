@@ -236,6 +236,9 @@ void PsychicHttpServer::reset()
 
   _esp_idf_endpoints.clear();
 
+  delete _chain;
+  _chain = nullptr;
+
   onNotFound(PsychicHttpServer::defaultNotFoundHandler);
   _onOpen = nullptr;
   _onClose = nullptr;
@@ -260,6 +263,7 @@ PsychicHandler* PsychicHttpServer::addHandler(PsychicHandler* handler)
 void PsychicHttpServer::removeHandler(PsychicHandler* handler)
 {
   _handlers.remove(handler);
+  delete handler;
 }
 
 PsychicRewrite* PsychicHttpServer::addRewrite(PsychicRewrite* rewrite)
@@ -271,6 +275,7 @@ PsychicRewrite* PsychicHttpServer::addRewrite(PsychicRewrite* rewrite)
 void PsychicHttpServer::removeRewrite(PsychicRewrite* rewrite)
 {
   _rewrites.remove(rewrite);
+  delete rewrite;
 }
 
 PsychicRewrite* PsychicHttpServer::rewrite(const char* from, const char* to)
@@ -364,31 +369,31 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicJsonR
 
 bool PsychicHttpServer::removeEndpoint(const char* uri, int method)
 {
-  // some handlers (aka websockets) need actual endpoints in esp-idf http_server
-  // don't return from here, because its added to the _endpoints list too.
-  for (auto& endpoint : _esp_idf_endpoints) {
-    if (!strcmp(endpoint.uri, uri) && method == endpoint.method) {
-      ESP_LOGD(PH_TAG, "Unregistering endpoint %s | %s", endpoint.uri, http_method_str((http_method)endpoint.method));
-
-      // Unregister endpoint with ESP-IDF server
-      esp_err_t ret = httpd_unregister_uri_handler(this->server, endpoint.uri, endpoint.method);
-      if (ret != ESP_OK)
-        ESP_LOGE(PH_TAG, "Remove endpoint failed (%s)", esp_err_to_name(ret));
-    }
-  }
-
-  // loop through our endpoints and see if anyone matches
   for (auto* endpoint : _endpoints) {
     if (endpoint->uri().equals(uri) && method == endpoint->_method)
       return removeEndpoint(endpoint);
   }
-
   return false;
 }
 
 bool PsychicHttpServer::removeEndpoint(PsychicEndpoint* endpoint)
 {
+  // unregister any ESP-IDF native handler (e.g. WebSocket) for this endpoint
+  for (auto it = _esp_idf_endpoints.begin(); it != _esp_idf_endpoints.end(); ) {
+    if (endpoint->uri().equals(it->uri) && endpoint->_method == (int)it->method) {
+      ESP_LOGD(PH_TAG, "Unregistering endpoint %s | %s", it->uri, http_method_str((http_method)it->method));
+      if (_running) {
+        esp_err_t ret = httpd_unregister_uri_handler(this->server, it->uri, it->method);
+        if (ret != ESP_OK)
+          ESP_LOGE(PH_TAG, "Remove endpoint failed (%s)", esp_err_to_name(ret));
+      }
+      it = _esp_idf_endpoints.erase(it);
+    } else {
+      ++it;
+    }
+  }
   _endpoints.remove(endpoint);
+  delete endpoint;
   return true;
 }
 
@@ -575,7 +580,8 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
     // give our handlers a chance to handle a disconnect first
     for (PsychicEndpoint* endpoint : server->_endpoints) {
       PsychicHandler* handler = endpoint->handler();
-      handler->checkForClosedClient(client);
+      if (handler != nullptr)
+        handler->checkForClosedClient(client);
     }
 
     // do we have a callback attached?
@@ -668,7 +674,7 @@ String urlDecode(const char* encoded)
 
   size_t i, j = 0;
   for (i = 0; i < length; ++i) {
-    if (encoded[i] == '%' && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2])) {
+    if (encoded[i] == '%' && i + 2 < length && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2])) {
       // Valid percent-encoded sequence
       int hex;
       sscanf(encoded + i + 1, "%2x", &hex);
@@ -700,14 +706,14 @@ bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2)
 #ifdef PSY_ENABLE_REGEX
 bool psychic_uri_match_regex(const char* uri1, const char* uri2, size_t len2)
 {
-  std::regex pattern(uri1);
-  std::smatch matches;
-  std::string s(uri2);
-
-  // len2 is passed in to tell us to match up to a point.
-  if (s.length() > len2)
-    s = s.substr(0, len2);
-
-  return std::regex_search(s, matches, pattern);
+  try {
+    std::regex pattern(uri1);
+    std::smatch matches;
+    std::string s(uri2, len2);
+    return std::regex_search(s, matches, pattern);
+  } catch (const std::regex_error& e) {
+    ESP_LOGE(PH_TAG, "Invalid regex pattern '%s': %s", uri1, e.what());
+    return false;
+  }
 }
 #endif

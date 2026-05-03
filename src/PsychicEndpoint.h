@@ -24,6 +24,7 @@ class PsychicEndpoint
   public:
     PsychicEndpoint();
     PsychicEndpoint(PsychicHttpServer* server, int method, const char* uri);
+    ~PsychicEndpoint();
 
     PsychicEndpoint* setHandler(PsychicHandler* handler);
     PsychicHandler* handler();
