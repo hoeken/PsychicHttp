@@ -167,7 +167,7 @@ void setup()
    server.on(...);
    server.serveStatic(...);
 
-   //must call begin() after all handlers are added
+   //call start at the end.  you can add/remove handlers after, except for websockets.
    server.start();
 }
 ```
