@@ -5,11 +5,7 @@
 #include "PsychicStaticFileHandler.h"
 #include "PsychicWebHandler.h"
 #include "PsychicWebSocket.h"
-#include "WiFi.h"
 #include "esp_netif.h"
-#ifdef PSY_ENABLE_ETHERNET
-  #include "ETH.h"
-#endif
 
 PsychicHttpServer::PsychicHttpServer(uint16_t port)
 {
@@ -83,26 +79,17 @@ uint16_t PsychicHttpServer::getPort()
   return this->config.server_port;
 }
 
+static bool _netif_is_connected(esp_netif_t* netif, void*)
+{
+  if (!esp_netif_is_netif_up(netif)) return false;
+  esp_netif_ip_info_t ip;
+  if (esp_netif_get_ip_info(netif, &ip) != ESP_OK) return false;
+  return ip.ip.addr != 0 && (ip.ip.addr & 0xFF) != 127;
+}
+
 bool PsychicHttpServer::isConnected()
 {
-  // Use esp_netif API to enumerate all network interfaces
-  // This works universally across all ESP32 variants including P4 with co-processor WiFi/Ethernet
-  esp_netif_t* netif = esp_netif_next(NULL);
-  while (netif != NULL) {
-    if (esp_netif_is_netif_up(netif)) {
-      esp_netif_ip_info_t ip_info;
-      if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK && ip_info.ip.addr != 0) {
-        const char* desc = esp_netif_get_desc(netif);
-        ESP_LOGD(PH_TAG, "Network connected via interface: %s (IP: " IPSTR ")", 
-                 desc ? desc : "unknown", IP2STR(&ip_info.ip));
-        return true;
-      }
-    }
-    netif = esp_netif_next(netif);
-  }
-
-  ESP_LOGD(PH_TAG, "No active network interfaces found");
-  return false;
+  return esp_netif_find_if(_netif_is_connected, nullptr) != nullptr;
 }
 
 esp_err_t PsychicHttpServer::start()
@@ -111,7 +98,6 @@ esp_err_t PsychicHttpServer::start()
     return ESP_OK;
 
   // starting without network will crash us
-  // isConnected() now checks all network interfaces including co-processor connections
   if (!isConnected()) {
     ESP_LOGE(PH_TAG, "Server start failed - no network interface available.");
     return ESP_FAIL;
@@ -637,14 +623,27 @@ const std::list<PsychicClient*>& PsychicHttpServer::getClientList()
   return _clients;
 }
 
+static bool _netif_matches_ip(esp_netif_t* netif, void* ctx)
+{
+  esp_netif_ip_info_t ip;
+  if (esp_netif_get_ip_info(netif, &ip) != ESP_OK) return false;
+  return IPAddress(ip.ip.addr) == *static_cast<IPAddress*>(ctx);
+}
+
 bool ON_STA_FILTER(PsychicRequest* request)
 {
-  return WiFi.localIP() == request->client()->localIP();
+  IPAddress local = request->client()->localIP();
+  esp_netif_t* netif = esp_netif_find_if(_netif_matches_ip, &local);
+  if (netif == nullptr) return false;
+  return !(esp_netif_get_flags(netif) & ESP_NETIF_DHCP_SERVER);
 }
 
 bool ON_AP_FILTER(PsychicRequest* request)
 {
-  return WiFi.softAPIP() == request->client()->localIP();
+  IPAddress local = request->client()->localIP();
+  esp_netif_t* netif = esp_netif_find_if(_netif_matches_ip, &local);
+  if (netif == nullptr) return false;
+  return (esp_netif_get_flags(netif) & ESP_NETIF_DHCP_SERVER) != 0;
 }
 
 String urlDecode(const char* encoded)
