@@ -10,7 +10,6 @@ set(COMPONENT_REQUIRES
     "arduino-esp32"
     "esp_https_server"
     "arduinojson"
-    "urlencode"
 )
 
 register_component()
