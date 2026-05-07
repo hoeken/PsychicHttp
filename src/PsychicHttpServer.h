@@ -83,6 +83,7 @@ class PsychicHttpServer
     esp_err_t end() { return stop(); }
     esp_err_t start();
     esp_err_t stop();
+    esp_err_t restart();
     void reset();
 
     httpd_uri_match_func_t getURIMatchFunction();

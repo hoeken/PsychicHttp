@@ -247,6 +247,19 @@ void PsychicHttpServer::reset()
   _onClose = nullptr;
 }
 
+esp_err_t PsychicHttpServer::restart()
+{
+  esp_err_t ret = ESP_OK;
+
+  if (_running) {
+    ret = stop();
+    if (ret != ESP_OK)
+      return ret;
+  }
+
+  return start();
+}
+
 httpd_uri_match_func_t PsychicHttpServer::getURIMatchFunction()
 {
   return _uri_match_fn;
