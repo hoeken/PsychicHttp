@@ -275,11 +275,7 @@ void setup()
   if (connectToWifi()) {
     // Setup our NTP to get the current time.
     sntp_set_time_sync_notification_cb(timeAvailable);
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 2)
-    esp_sntp_servermode_dhcp(1); // (optional)
-#else
     sntp_servermode_dhcp(1); // (optional)
-#endif
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
 
     // set up our esp32 to listen on the psychic.local domain
@@ -328,11 +324,13 @@ void setup()
       // this creates a 2nd server listening on port 80 and redirects all requests HTTPS
       PsychicHttpServer* redirectServer = new PsychicHttpServer();
       redirectServer->config.ctrl_port = 20424; // just a random port different from the default one
+      redirectServer->config.stack_size = 4096; // we dont need a large stack size for this.
       redirectServer->onNotFound([](PsychicRequest* request, PsychicResponse* response) {
         String url = "https://";
         url += request->host();
         url += request->url();
         return response->redirect(url.c_str()); });
+      redirectServer->start();
     }
 #endif
 
@@ -578,7 +576,7 @@ void setup()
     // handle a very basic upload as post body
     PsychicUploadHandler* uploadHandler = new PsychicUploadHandler();
     uploadHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last) {
-      File file;
+      static File file;
       String path = "/www/" + filename;
 
       Serial.printf("Writing %d/%d bytes to: %s\n", (int)index + (int)len, request->contentLength(), path.c_str());
@@ -586,11 +584,8 @@ void setup()
       if (last)
         Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
 
-      // our first call?
       if (!index)
         file = LittleFS.open(path, FILE_WRITE);
-      else
-        file = LittleFS.open(path, FILE_APPEND);
 
       if (!file) {
         Serial.println("Failed to open file");
@@ -601,6 +596,9 @@ void setup()
         Serial.println("Write failed");
         return ESP_FAIL;
       }
+
+      if (last)
+        file.close();
 
       return ESP_OK;
     });
@@ -625,7 +623,7 @@ void setup()
     // a little bit more complicated multipart form
     PsychicUploadHandler* multipartHandler = new PsychicUploadHandler();
     multipartHandler->onUpload([](PsychicRequest* request, const String& filename, uint64_t index, uint8_t* data, size_t len, bool last) {
-      File file;
+      static File file;
       String path = "/www/" + filename;
 
       // some progress over serial.
@@ -633,11 +631,8 @@ void setup()
       if (last)
         Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index + (uint64_t)len);
 
-      // our first call?
       if (!index)
         file = LittleFS.open(path, FILE_WRITE);
-      else
-        file = LittleFS.open(path, FILE_APPEND);
 
       if (!file) {
         Serial.println("Failed to open file");
@@ -648,6 +643,9 @@ void setup()
         Serial.println("Write failed");
         return ESP_FAIL;
       }
+
+      if (last)
+        file.close();
 
       return ESP_OK;
     });

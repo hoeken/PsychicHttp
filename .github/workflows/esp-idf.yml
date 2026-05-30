@@ -22,13 +22,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        idf_ver: ["v4.4.8", "release-v5.4"]
+        idf_ver: ["v4.4.8", "release-v5.5"] # "release-v6.0" removed until arduino-esp32 v4.0 ships with ESP-IDF v6.0 support
         idf_target: ["esp32", "esp32s3"]
 
     steps:
       - uses: actions/checkout@v4
         with:
           path: ${{ github.workspace }}/app
+
+      - name: Prepare Secret
+        run: cp ${{ github.workspace }}/app/examples/esp-idf/main/secret.h ${{ github.workspace }}/app/examples/esp-idf/main/_secret.h
 
       - name: Compile
         uses: espressif/esp-idf-ci-action@v1
