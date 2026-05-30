@@ -275,7 +275,11 @@ void setup()
   if (connectToWifi()) {
     // Setup our NTP to get the current time.
     sntp_set_time_sync_notification_cb(timeAvailable);
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+    esp_sntp_servermode_dhcp(true); // (optional)
+#else
     sntp_servermode_dhcp(1); // (optional)
+#endif
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
 
     // set up our esp32 to listen on the psychic.local domain
