@@ -15,7 +15,7 @@
   #error "Missing secrets.h (place it next to this example or in repository root)"
 #endif
 #include <Arduino.h>
-#include <ArduinoJSON.h>
+#include <ArduinoJson.h>
 #include <LittleFS.h>
 #include <PsychicHttp.h>
 #include <PsychicHttpsServer.h>
@@ -188,19 +188,19 @@ void setup()
     server.setCertificate(server_cert.c_str(), server_key.c_str());
 
     // our index
-    server.on("/", HTTP_GET, [](PsychicRequest* request) { return response->send(200, "text/html", htmlContent); });
+    server.on("/", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) { return response->send(200, "text/html", htmlContent); });
 
     // serve static files from LittleFS/www on /
     server.serveStatic("/", LittleFS, "/www/");
 
     // a websocket echo server
     websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame) {
-      response->send(frame);
-      return ESP_OK; });
+      return request->reply(frame);
+    });
     server.on("/ws", &websocketHandler);
 
     // api - parameters passed in via query eg. /api/endpoint?foo=bar
-    server.on("/api", HTTP_GET, [](PsychicRequest* request) {
+    server.on("/api", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
       //create a response object
       StaticJsonDocument<128> output;
       output["msg"] = "status";
@@ -210,14 +210,17 @@ void setup()
       //work with some params
       if (request->hasParam("foo"))
       {
-        String foo = request->getParam("foo", "");
-        output["foo"] = foo;
+        PsychicWebParameter* foo = request->getParam("foo");
+        if (foo)
+          output["foo"] = foo->value();
       }
 
       //serialize and return
       String jsonBuffer;
       serializeJson(output, jsonBuffer);
       return response->send(200, "application/json", jsonBuffer.c_str()); });
+
+    server.begin();
   }
 }
 

@@ -47,8 +47,10 @@ benchmark/psychic-http-loadtest.log
 benchmark/psychic-websocket-loadtest.json
 benchmark/psychic-websocket-loadtest.log
 benchmark/websocket-loadtest-results.csv
-examples/arduino/
-examples/pio-arduino/lib/PsychicHttp
+examples/platformio/lib/PsychicHttp
+examples/platformio/src/idf_component.yml.orig
+benchmark/**/src/idf_component.yml
+benchmark/**/src/idf_component.yml.orig
 examples/websockets/lib/PsychicHttp
 src/cookie.txt
 Visual\ Micro

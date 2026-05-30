@@ -5,9 +5,13 @@
 #include "PsychicStaticFileHandler.h"
 #include "PsychicWebHandler.h"
 #include "PsychicWebSocket.h"
+#include "esp_idf_version.h"
 #include "esp_netif.h"
-#ifdef PSY_ENABLE_ETHERNET
-  #include "ETH.h"
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
+  #define esp_netif_next_compat(n) esp_netif_next_unsafe(n)
+#else
+  #define esp_netif_next_compat(n) esp_netif_next(n)
 #endif
 
 PsychicHttpServer::PsychicHttpServer(uint16_t port)
@@ -25,10 +29,7 @@ PsychicHttpServer::PsychicHttpServer(uint16_t port)
   config.global_user_ctx = this;
   config.global_user_ctx_free_fn = PsychicHttpServer::destroy;
   config.uri_match_fn = MATCH_WILDCARD; // new internal endpoint matching - do not change this!!!
-  config.stack_size = 5120;             // 4608 is too small: std::string frames are slightly larger than
-                                        // Arduino String due to libstdc++ EH cleanup stubs, pushing deep
-                                        // call chains (upload + middlewares + digest auth) over the limit.
-                                        // Confirmed crash at 4608, stable at 4800; 5120 gives ~512 byte margin.
+  config.stack_size = 8192;             // file I/O via VFS/LittleFS needs a deep call chain
 
   // our internal matching function for endpoints
   _uri_match_fn = MATCH_WILDCARD; // use this change the endpoint matching function.
@@ -85,31 +86,21 @@ uint16_t PsychicHttpServer::getPort()
   return this->config.server_port;
 }
 
+static bool _netif_is_connected(esp_netif_t* netif)
+{
+  if (!esp_netif_is_netif_up(netif))
+    return false;
+  esp_netif_ip_info_t ip;
+  if (esp_netif_get_ip_info(netif, &ip) != ESP_OK)
+    return false;
+  return ip.ip.addr != 0 && (ip.ip.addr & 0xFF) != 127;
+}
+
 bool PsychicHttpServer::isConnected()
 {
-// Use esp_netif API to enumerate all network interfaces
-// This works universally across all ESP32 variants including P4 with co-processor WiFi/Ethernet
-#if ESP_IDF_VERSION_MAJOR >= 5 && ESP_IDF_VERSION_MINOR >= 5
-  esp_netif_t* netif = esp_netif_next_unsafe(NULL);
-#else
-  esp_netif_t* netif = esp_netif_next(NULL);
-#endif
-  while (netif != NULL) {
-    if (esp_netif_is_netif_up(netif)) {
-      esp_netif_ip_info_t ip_info;
-      if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK && ip_info.ip.addr != 0) {
-        const char* desc = esp_netif_get_desc(netif);
-        ESP_LOGD(PH_TAG, "Network connected via interface: %s (IP: " IPSTR ")", desc ? desc : "unknown", IP2STR(&ip_info.ip));
-        return true;
-      }
-    }
-#if ESP_IDF_VERSION_MAJOR >= 5 && ESP_IDF_VERSION_MINOR >= 5
-    netif = esp_netif_next_unsafe(netif);
-#else
-    netif = esp_netif_next(netif);
-#endif
-  }
-  ESP_LOGD(PH_TAG, "No active network interfaces found");
+  for (esp_netif_t* netif = esp_netif_next_compat(nullptr); netif != nullptr; netif = esp_netif_next_compat(netif))
+    if (_netif_is_connected(netif))
+      return true;
   return false;
 }
 
@@ -119,7 +110,6 @@ esp_err_t PsychicHttpServer::start()
     return ESP_OK;
 
   // starting without network will crash us
-  // isConnected() now checks all network interfaces including co-processor connections
   if (!isConnected()) {
     ESP_LOGE(PH_TAG, "Server start failed - no network interface available.");
     return ESP_FAIL;
@@ -249,9 +239,25 @@ void PsychicHttpServer::reset()
 
   _esp_idf_endpoints.clear();
 
+  delete _chain;
+  _chain = nullptr;
+
   onNotFound(PsychicHttpServer::defaultNotFoundHandler);
   _onOpen = nullptr;
   _onClose = nullptr;
+}
+
+esp_err_t PsychicHttpServer::restart()
+{
+  esp_err_t ret = ESP_OK;
+
+  if (_running) {
+    ret = stop();
+    if (ret != ESP_OK)
+      return ret;
+  }
+
+  return start();
 }
 
 httpd_uri_match_func_t PsychicHttpServer::getURIMatchFunction()
@@ -273,6 +279,7 @@ PsychicHandler* PsychicHttpServer::addHandler(PsychicHandler* handler)
 void PsychicHttpServer::removeHandler(PsychicHandler* handler)
 {
   _handlers.remove(handler);
+  delete handler;
 }
 
 PsychicRewrite* PsychicHttpServer::addRewrite(PsychicRewrite* rewrite)
@@ -284,6 +291,7 @@ PsychicRewrite* PsychicHttpServer::addRewrite(PsychicRewrite* rewrite)
 void PsychicHttpServer::removeRewrite(PsychicRewrite* rewrite)
 {
   _rewrites.remove(rewrite);
+  delete rewrite;
 }
 
 PsychicRewrite* PsychicHttpServer::rewrite(const char* from, const char* to)
@@ -318,6 +326,8 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicHandl
 
   // websockets need a real endpoint in esp-idf
   if (handler->isWebSocket()) {
+    if (_running)
+      ESP_LOGW(PH_TAG, "WebSocket handler for '%s' registered after server started — it will not work. Call server.on() before server.start().", uri);
     // URI handler structure
     httpd_uri_t my_uri;
     my_uri.uri = uri;
@@ -375,31 +385,31 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicJsonR
 
 bool PsychicHttpServer::removeEndpoint(const char* uri, int method)
 {
-  // some handlers (aka websockets) need actual endpoints in esp-idf http_server
-  // don't return from here, because its added to the _endpoints list too.
-  for (auto& endpoint : _esp_idf_endpoints) {
-    if (!strcmp(endpoint.uri, uri) && method == endpoint.method) {
-      ESP_LOGD(PH_TAG, "Unregistering endpoint %s | %s", endpoint.uri, http_method_str((http_method)endpoint.method));
-
-      // Unregister endpoint with ESP-IDF server
-      esp_err_t ret = httpd_unregister_uri_handler(this->server, endpoint.uri, endpoint.method);
-      if (ret != ESP_OK)
-        ESP_LOGE(PH_TAG, "Remove endpoint failed (%s)", esp_err_to_name(ret));
-    }
-  }
-
-  // loop through our endpoints and see if anyone matches
   for (auto* endpoint : _endpoints) {
     if (strcmp(endpoint->uriCStr(), uri) == 0 && method == endpoint->_method)
       return removeEndpoint(endpoint);
   }
-
   return false;
 }
 
 bool PsychicHttpServer::removeEndpoint(PsychicEndpoint* endpoint)
 {
+  // unregister any ESP-IDF native handler (e.g. WebSocket) for this endpoint
+  for (auto it = _esp_idf_endpoints.begin(); it != _esp_idf_endpoints.end();) {
+    if (strcmp(endpoint->uriCStr(), it->uri) == 0 && endpoint->_method == (int)it->method) {
+      ESP_LOGD(PH_TAG, "Unregistering endpoint %s | %s", it->uri, http_method_str((http_method)it->method));
+      if (_running) {
+        esp_err_t ret = httpd_unregister_uri_handler(this->server, it->uri, it->method);
+        if (ret != ESP_OK)
+          ESP_LOGE(PH_TAG, "Remove endpoint failed (%s)", esp_err_to_name(ret));
+      }
+      it = _esp_idf_endpoints.erase(it);
+    } else {
+      ++it;
+    }
+  }
   _endpoints.remove(endpoint);
+  delete endpoint;
   return true;
 }
 
@@ -586,7 +596,8 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
     // give our handlers a chance to handle a disconnect first
     for (PsychicEndpoint* endpoint : server->_endpoints) {
       PsychicHandler* handler = endpoint->handler();
-      handler->checkForClosedClient(client);
+      if (handler != nullptr)
+        handler->checkForClosedClient(client);
     }
 
     // do we have a callback attached?
@@ -655,40 +666,46 @@ const std::list<PsychicClient*>& PsychicHttpServer::getClientList()
   return _clients;
 }
 
+#ifdef ARDUINO
+static esp_netif_t* _find_netif_by_ip(const IPAddress& addr)
+{
+  for (esp_netif_t* netif = esp_netif_next_compat(nullptr); netif != nullptr; netif = esp_netif_next_compat(netif)) {
+    esp_netif_ip_info_t ip;
+    if (esp_netif_get_ip_info(netif, &ip) != ESP_OK)
+      continue;
+    if (IPAddress(ip.ip.addr) == addr)
+      return netif;
+  }
+  return nullptr;
+}
+#else
+static esp_netif_t* _find_netif_by_ip(const esp_ip4_addr_t& addr)
+{
+  for (esp_netif_t* netif = esp_netif_next_compat(nullptr); netif != nullptr; netif = esp_netif_next_compat(netif)) {
+    esp_netif_ip_info_t ip;
+    if (esp_netif_get_ip_info(netif, &ip) != ESP_OK)
+      continue;
+    if (ip.ip.addr == addr.addr)
+      return netif;
+  }
+  return nullptr;
+}
+#endif
+
 bool ON_STA_FILTER(PsychicRequest* request)
 {
-  // cache the handle: it's stable for the lifetime of the netif after WiFi is up
-  static esp_netif_t* sta_netif = nullptr;
-  if (!sta_netif)
-    sta_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-  if (!sta_netif)
+  esp_netif_t* netif = _find_netif_by_ip(request->client()->localIP());
+  if (netif == nullptr)
     return false;
-  esp_netif_ip_info_t ip_info;
-  if (esp_netif_get_ip_info(sta_netif, &ip_info) != ESP_OK)
-    return false;
-#ifdef ARDUINO
-  return ip_info.ip.addr == (uint32_t)request->client()->localIP();
-#else
-  return ip_info.ip.addr == request->client()->localIP().addr;
-#endif
+  return !(esp_netif_get_flags(netif) & ESP_NETIF_DHCP_SERVER);
 }
 
 bool ON_AP_FILTER(PsychicRequest* request)
 {
-  // cache the handle: it's stable for the lifetime of the netif after WiFi is up
-  static esp_netif_t* ap_netif = nullptr;
-  if (!ap_netif)
-    ap_netif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
-  if (!ap_netif)
+  esp_netif_t* netif = _find_netif_by_ip(request->client()->localIP());
+  if (netif == nullptr)
     return false;
-  esp_netif_ip_info_t ip_info;
-  if (esp_netif_get_ip_info(ap_netif, &ip_info) != ESP_OK)
-    return false;
-#ifdef ARDUINO
-  return ip_info.ip.addr == (uint32_t)request->client()->localIP();
-#else
-  return ip_info.ip.addr == request->client()->localIP().addr;
-#endif
+  return (esp_netif_get_flags(netif) & ESP_NETIF_DHCP_SERVER) != 0;
 }
 
 static std::string _urlEncode_impl(const char* str)
@@ -723,7 +740,7 @@ static std::string _urlDecode_impl(const char* encoded)
   std::string output;
   output.reserve(length);
   for (size_t i = 0; i < length; ++i) {
-    if (encoded[i] == '%' && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2])) {
+    if (encoded[i] == '%' && i + 2 < length && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2])) {
       output += (char)((hexVal(encoded[i + 1]) << 4) | hexVal(encoded[i + 2]));
       i += 2;
     } else if (encoded[i] == '+') {
@@ -752,14 +769,14 @@ bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2)
 #ifdef PSY_ENABLE_REGEX
 bool psychic_uri_match_regex(const char* uri1, const char* uri2, size_t len2)
 {
-  std::regex pattern(uri1);
-  std::smatch matches;
-  std::string s(uri2);
-
-  // len2 is passed in to tell us to match up to a point.
-  if (s.length() > len2)
-    s = s.substr(0, len2);
-
-  return std::regex_search(s, matches, pattern);
+  try {
+    std::regex pattern(uri1);
+    std::smatch matches;
+    std::string s(uri2, len2);
+    return std::regex_search(s, matches, pattern);
+  } catch (const std::regex_error& e) {
+    ESP_LOGE(PH_TAG, "Invalid regex pattern '%s': %s", uri1, e.what());
+    return false;
+  }
 }
 #endif

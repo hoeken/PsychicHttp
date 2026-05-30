@@ -186,8 +186,8 @@ void setup()
       // client->sendMessage("Hello!");
     });
     websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame) {
-      response->send(frame);
-      return ESP_OK; });
+      return request->reply(frame);
+    });
     server.on("/ws", &websocketHandler);
 
     // EventSource server
@@ -205,8 +205,9 @@ void setup()
       //work with some params
       if (request->hasParam("foo"))
       {
-        String foo = request->getParam("foo", "");
-        output["foo"] = foo;
+        PsychicWebParameter* foo = request->getParam("foo");
+        if (foo)
+          output["foo"] = foo->value();
       }
 
       //serialize and return
