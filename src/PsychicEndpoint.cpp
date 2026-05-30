@@ -15,6 +15,8 @@ PsychicEndpoint::PsychicEndpoint(PsychicHttpServer* server, int method, const ch
 {
 }
 
+PsychicEndpoint::~PsychicEndpoint() = default;
+
 PsychicEndpoint* PsychicEndpoint::setHandler(PsychicHandler* handler)
 {
   // clean up old / default handler

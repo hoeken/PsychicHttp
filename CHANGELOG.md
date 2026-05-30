@@ -5,6 +5,7 @@
 - `src/async_worker.cpp`: Arduino 2/3 compatibility hardened by selecting HTTPD scratch-buffer macros via symbol detection (`CONFIG_HTTPD_*` first, then legacy `HTTPD_*`) instead of version-only checks, and by guarding use of `ESP_ARDUINO_VERSION_MAJOR` when undefined.
 - Root/standalone credential flow improved in examples and benchmarks: `secrets.h` is now included with `__has_include` fallback to repository root (`../../../secrets.h`) with a clear compile-time error if neither file exists.
 - Root `platformio.ini` CI environments split for reliability: local-safe `[env:ci]` uses fixed defaults; GitHub Actions matrix now builds `[env:ci-matrix]` with `PIO_BOARD` / `PIO_PLATFORM` from workflow variables.
+- Dependency floor raised: ArduinoJson minimum version is now `^7.4.3` (from `^7.3.0`) in project manifests to pick up the upstream parser security fix while remaining API-compatible within v7.
 
 ### Wi-Fi Credentials Setup
 
@@ -62,11 +63,12 @@ All public string getter methods **continue to return `String` on Arduino — no
 | `uri()`, `query()`, `body()` | `PsychicRequest` | `const String&` | `String` | `const char*` |
 | `methodStr()`, `path()`, `header()`, `host()`, `contentType()`, `getCookie()`, `getFilename()`, `getSessionKey()`, `getParam(key, default)` | `PsychicRequest` | `const String` | `String` | `const char*` |
 
-**Breaking change on Arduino** — all methods that previously returned `const String&` or `String&` now return `String` by value. Normal usage (`String x = method()`, passing to functions taking `const String&`) is unaffected. Code that stored the raw reference (`const String& x = request->uri()`) would now hold a dangling reference; assign to `String` instead. `getContentType()` additionally dropped mutatability — it was `String&` (writable reference into internals) and is now `String` by value.
+**Breaking change on Arduino** — all methods that previously returned `const String&` or `String&` now return `String` by value. Normal usage (`String x = method()`, passing to functions taking `const String&`) is unaffected. Code that stored a reference (`const String& x = request->uri()`) now binds to a temporary copy, not to the object's internal storage; assign to `String` if you need ownership, and avoid assuming aliasing/mutability of internal state. `getContentType()` additionally dropped mutatability — it was `String&` (writable reference into internals) and is now `String` by value.
 
 **`SessionData` and `ContentDisposition` on Arduino** — `SessionData` is `std::map<String, String>` on Arduino (matching v2.x behaviour) and `std::map<std::string, std::string>` on ESP-IDF. `ContentDisposition.filename` and `.name` fields are `String` on Arduino, `std::string` on ESP-IDF.
 
 **`PsychicUploadCallback` filename parameter** — on Arduino the `onUpload` callback preserves `const String& filename`. On native ESP-IDF it is `const char* filename`.
+
 **`copyFrom(Stream&)`** on `ChunkPrinter`, `TemplatePrinter`, and `PsychicStreamResponse` is Arduino-only. Arduino's `Stream` class has no ESP-IDF equivalent. On ESP-IDF, use `write()` / `print()` / `printf()` directly.
 **For code that must compile on both platforms**, use the `*CStr()` helper methods which always return `const char*` regardless of framework:
 

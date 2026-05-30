@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "2.1.1"
+version: "3.0.0-rc.1"
 license: "MIT"
 description: "Asyncronous Webserver library for ESP32 + Arduino framework"
 url: "https://github.com/hoeken/PsychicHttp"
@@ -12,7 +12,7 @@ tags:
   - https
 
 dependencies:
-  bblanchon/arduinojson: ^7.3.0
+  bblanchon/arduinojson: ^7.4.3
   # espressif/arduino-esp32 intentionally omitted — pure ESP-IDF builds must not
   # pull in the Arduino framework.  If you need Arduino support, add the
   # arduino component via EXTRA_COMPONENT_DIRS in your project CMakeLists.txt

@@ -113,6 +113,7 @@ Key differences from the Arduino API:
 - **String-returning getters return `const char*`** — `request->uri()`, `request->body()`, `request->header()`, `param->value()`, etc. all return `const char*` instead of `String`.
 - **Upload callback uses `const char* filename`** — the `onUpload` callback signature changes from `const String& filename` to `const char* filename`.
 - **`IPAddress` vs `esp_ip4_addr_t`** — `client->localIP()` and `client->remoteIP()` return `esp_ip4_addr_t` instead of `IPAddress`.
+- **`urlEncode` / `urlDecode` return type differs by platform** — on Arduino they return `String`, while on native ESP-IDF they return `std::string`.
 
 ### Feature availability
 
