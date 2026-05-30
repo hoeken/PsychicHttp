@@ -1,4 +1,4 @@
-## Unreleased
+## 3.0.0-rc.1
 
 ### Build and CI
 
