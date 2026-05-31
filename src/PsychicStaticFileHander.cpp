@@ -196,6 +196,9 @@ esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest* request, Psych
     }
     // nope, send them the full file.
     else {
+      // PsychicFileResponse reopens the file from _fs/_filename, so release our
+      // own handle first to avoid holding two descriptors per served file.
+      _file.close();
       PsychicFileResponse response(res, _fs, _filename.c_str());
 
       if (_last_modified.length())

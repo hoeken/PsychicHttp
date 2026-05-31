@@ -154,7 +154,11 @@ esp_err_t PsychicResponse::finishChunking()
 
 esp_err_t PsychicResponse::redirect(const char* url)
 {
-  if (_code == 200)
+  // _code is 0 when the caller hasn't set a status; treat both "unset" and a
+  // default 200 as "no explicit code chosen" and use 301. (Without the !_code
+  // case, send() would later default _code to 200 and emit a 200 with a
+  // Location header, which browsers do not follow.)
+  if (!_code || _code == 200)
     setCode(301);
   addHeader("Location", url);
   return send();
