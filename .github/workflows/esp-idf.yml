@@ -31,7 +31,7 @@ jobs:
           path: ${{ github.workspace }}/app
 
       - name: Prepare Secret
-        run: cp ${{ github.workspace }}/app/examples/esp-idf/main/secret.h ${{ github.workspace }}/app/examples/esp-idf/main/_secret.h
+        run: cp ${{ github.workspace }}/app/examples/esp-idf/main/secrets.h.example ${{ github.workspace }}/app/examples/esp-idf/main/secrets.h
 
       - name: Compile
         uses: espressif/esp-idf-ci-action@v1
