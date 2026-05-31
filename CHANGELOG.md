@@ -5,7 +5,9 @@
 - `src/async_worker.cpp`: Arduino 2/3 compatibility hardened by selecting HTTPD scratch-buffer macros via symbol detection (`CONFIG_HTTPD_*` first, then legacy `HTTPD_*`) instead of version-only checks, and by guarding use of `ESP_ARDUINO_VERSION_MAJOR` when undefined.
 - Root/standalone credential flow improved in examples and benchmarks: `secrets.h` is now included with `__has_include` fallback to repository root (`../../../secrets.h`) with a clear compile-time error if neither file exists.
 - Root `platformio.ini` CI environments split for reliability: local-safe `[env:ci]` uses fixed defaults; GitHub Actions matrix now builds `[env:ci-matrix]` with `PIO_BOARD` / `PIO_PLATFORM` from workflow variables.
-- Dependency floor raised: ArduinoJson minimum version is now `^7.4.3` (from `^7.3.0`) in project manifests to pick up the upstream parser security fix while remaining API-compatible within v7.
+- PlatformIO migration to Espressif platform v7 started: `[env:arduino2]` now uses `espressif32@7.0.1` in the root `platformio.ini`.
+- ESP-IDF 6 compatibility added for digest-auth MD5 path: `PsychicCore.h` now selects MD5 headers by IDF major version (`esp_rom_md5.h` for IDF 6+, `mbedtls/md5.h` for older IDF), and `PsychicRequest.cpp` `md5str()` now uses `esp_rom_md5_*` on IDF 6+ while preserving the existing `mbedtls_md5_*` path for older versions.
+- Dependency floor raised: ArduinoJson minimum version is now `^7.4.3` in project manifests to pick up the upstream parser security fix while remaining API-compatible within v7.
 
 ### Wi-Fi Credentials Setup
 

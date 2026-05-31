@@ -37,7 +37,11 @@
 #include <functional>
 #include <list>
 #include <map>
-#include <mbedtls/md5.h>
+#if ESP_IDF_VERSION_MAJOR >= 6
+  #include <esp_rom_md5.h>
+#else
+  #include <mbedtls/md5.h>
+#endif
 #include <string>
 
 #ifdef PSY_DEVMODE
