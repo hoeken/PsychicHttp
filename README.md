@@ -71,6 +71,31 @@ CONFIG_HTTPD_WS_SUPPORT=y
 
 See `examples/esp-idf-pio/` for a complete working example.
 
+### Native ESP-IDF (component manager / `idf.py`)
+
+When you add PsychicHttp to a native ESP-IDF project (via `idf.py add-dependency`,
+`EXTRA_COMPONENT_DIRS`, or a git submodule), you must declare **ArduinoJson** in
+your *project's* `main/idf_component.yml`:
+
+```yaml
+dependencies:
+  bblanchon/arduinojson: ^7.4.3
+```
+
+PsychicHttp's `CMakeLists.txt` lists `arduinojson` in its `COMPONENT_REQUIRES`,
+but the library intentionally does **not** declare its own dependencies (its
+`idf_component.yml` is shipped disabled) so that pure-IDF builds aren't forced to
+pull in the `arduino-esp32` component. Because of that, the consuming project is
+responsible for providing `arduinojson`. If you skip this you'll see:
+
+```
+HINT: The component 'arduinojson' could not be found.
+```
+
+If you *do* want the Arduino framework, add the `arduino` component to your
+project's `EXTRA_COMPONENT_DIRS` — PsychicHttp detects it automatically at build
+time. See `examples/esp-idf/` for a complete working `idf.py` project.
+
 ### Installation - Arduino IDE
 
 Open *Tools -> Manage Libraries...* and search for PsychicHttp.
