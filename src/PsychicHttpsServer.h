@@ -39,7 +39,9 @@ class PsychicHttpsServer : public PsychicHttpServer
 
 #else
   #ifndef PSYCHIC_HTTP_SUPPRESS_HTTPS_WARNING
-    #warning ESP-IDF https server support not enabled. Define PSYCHIC_HTTP_SUPPRESS_HTTPS_WARNING to silence this.
+    #if defined(__GNUC__)
+      #pragma message "ESP-IDF https server support not enabled. Define PSYCHIC_HTTP_SUPPRESS_HTTPS_WARNING to silence this."
+    #endif
   #endif
 #endif // CONFIG_ESP_HTTPS_SERVER_ENABLE
 
