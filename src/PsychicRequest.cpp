@@ -703,24 +703,16 @@ bool PsychicRequest::authenticate(const char* username, const char* password, bo
         authReq.clear();
         return false;
       }
-#if ESP_IDF_VERSION_MAJOR >= 5
       char* encoded = new char[4 * ((toencodeLen + 2) / 3) + 1];
-#else
-      char* encoded = new char[base64_encode_expected_len(toencodeLen) + 1];
-#endif
       if (encoded == NULL) {
         authReq.clear();
         delete[] toencode;
         return false;
       }
       sprintf(toencode, "%s:%s", username, password);
-#if ESP_IDF_VERSION_MAJOR >= 5
       size_t encodedLen = 0;
       mbedtls_base64_encode((unsigned char*)encoded, 4 * ((toencodeLen + 2) / 3) + 1, &encodedLen, (unsigned char*)toencode, toencodeLen);
       if (encodedLen > 0) {
-#else
-      if (base64_encode_chars(toencode, toencodeLen, encoded) > 0) {
-#endif
         // constant-time comparison to prevent timing attacks
         uint8_t ct_result = (authReq.size() != strlen(encoded));
         for (size_t i = 0; i < authReq.size() && i < strlen(encoded); i++)
