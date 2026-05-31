@@ -15,6 +15,7 @@ idf_build_get_property(build_components BUILD_COMPONENTS)
 if("arduino" IN_LIST build_components)
     set(COMPONENT_REQUIRES
         "arduino"
+        "esp_rom"
         "esp_https_server"
         "esp_http_server"
         "mbedtls"
@@ -22,6 +23,7 @@ if("arduino" IN_LIST build_components)
     )
 else()
     set(COMPONENT_REQUIRES
+        "esp_rom"
         "esp_https_server"
         "esp_http_server"
         "esp_netif"
