@@ -1,4 +1,4 @@
 dependencies:
   bblanchon/arduinojson: ^7
   espressif/mdns: ^1
-  joltwallet/littlefs: ^1.22.1
+  joltwallet/littlefs: ^1
