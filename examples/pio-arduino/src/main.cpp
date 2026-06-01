@@ -13,7 +13,13 @@
  * PlatformIO -> Build Filesystem Image and then PlatformIO -> Upload Filesystem Image
  **********************************************************************************************/
 
-#include "_secret.h"
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#elif __has_include("../../../secrets.h")
+  #include "../../../secrets.h"
+#else
+  #error "Missing secrets.h (place it next to this example or in repository root)"
+#endif
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
@@ -66,10 +72,10 @@
 #endif
 
 #ifndef WIFI_SSID
-  #error "You need to enter your wifi credentials. Rename secret.h to _secret.h and enter your credentials there."
+  #error "You need to enter your wifi credentials. Rename secrets.h.example to secrets.h and enter your credentials there."
 #endif
 
-// Enter your WIFI credentials in secret.h
+// Enter your WIFI credentials in secrets.h
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASS;
 
@@ -269,7 +275,11 @@ void setup()
   if (connectToWifi()) {
     // Setup our NTP to get the current time.
     sntp_set_time_sync_notification_cb(timeAvailable);
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+    esp_sntp_servermode_dhcp(true); // (optional)
+#else
     sntp_servermode_dhcp(1); // (optional)
+#endif
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
 
     // set up our esp32 to listen on the psychic.local domain
@@ -320,7 +330,9 @@ void setup()
       redirectServer->config.ctrl_port = 20424; // just a random port different from the default one
       redirectServer->config.stack_size = 4096; // we dont need a large stack size for this.
       redirectServer->onNotFound([](PsychicRequest* request, PsychicResponse* response) {
-        String url = "https://" + request->host() + request->url();
+        String url = "https://";
+        url += request->host();
+        url += request->url();
         return response->redirect(url.c_str()); });
       redirectServer->start();
     }
@@ -400,7 +412,7 @@ void setup()
       output["method"] = request->methodStr();
 
       // work with some params
-      if (input.containsKey("foo")) {
+      if (!input["foo"].isNull()) {
         String foo = input["foo"];
         output["foo"] = foo;
       }
@@ -411,7 +423,8 @@ void setup()
     // ip - get info about the client
     //  curl -i http://psychic.local/ip
     server.on("/ip", HTTP_GET, [](PsychicRequest* request, PsychicResponse* response) {
-      String output = "Your IP is: " + request->client()->remoteIP().toString();
+      String output = "Your IP is: ";
+      output += request->client()->remoteIP().toString();
       return response->send(output.c_str());
     });
 
@@ -439,7 +452,7 @@ void setup()
 
       // work with some params
       if (request->hasParam("foo")) {
-        String foo = request->getParam("foo")->value();
+        String foo = request->getParam("foo", "");
         output["foo"] = foo;
       }
 
@@ -475,9 +488,15 @@ void setup()
             std::smatch matches;
             if (request->getRegexMatches(matches)) {
               String output;
-              output += "Matches: " + String(matches.size()) + "<br/>\n";
-              output += "Matched URI: " + String(matches.str(0).c_str()) + "<br/>\n";
-              output += "Match 1: " + String(matches.str(1).c_str()) + "<br/>\n";
+              output += "Matches: ";
+              output += matches.size();
+              output += "<br/>\n";
+              output += "Matched URI: ";
+              output += matches.str(0).c_str();
+              output += "<br/>\n";
+              output += "Match 1: ";
+              output += matches.str(1).c_str();
+              output += "<br/>\n";
 
               return response->send(output.c_str());
             } else
@@ -544,8 +563,12 @@ void setup()
     //  curl -F "param1=value1" -F "param2=value2" -X POST http://psychic.local/post
     server.on("/post", HTTP_POST, [](PsychicRequest* request, PsychicResponse* response) {
       String output;
-      output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
-      output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+      output += "Param 1: ";
+      output += request->getParam("param1", "");
+      output += "<br/>\n";
+      output += "Param 2: ";
+      output += request->getParam("param2", "");
+      output += "<br/>\n";
 
       return response->send(output.c_str());
     });
@@ -586,8 +609,13 @@ void setup()
 
     // gets called after upload has been handled
     uploadHandler->onRequest([](PsychicRequest* request, PsychicResponse* response) {
-      String url = "/" + request->getFilename();
-      String output = "<a href=\"" + url + "\">" + url + "</a>";
+      String url = "/";
+      url += request->getFilename();
+      String output = "<a href=\"";
+      output += url;
+      output += "\">";
+      output += url;
+      output += "</a>";
 
       return response->send(output.c_str());
     });
@@ -632,15 +660,28 @@ void setup()
       if (request->hasParam("file_upload")) {
         PsychicWebParameter* file = request->getParam("file_upload");
 
-        String url = "/" + file->value();
-        output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
-        output += "Bytes: " + String(file->size()) + "<br/>\n";
+        String url = "/";
+        url += file->value();
+        output += "<a href=\"";
+        output += url;
+        output += "\">";
+        output += url;
+        output += "</a><br/>\n";
+        output += "Bytes: ";
+        output += file->size();
+        output += "<br/>\n";
       }
 
-      if (request->hasParam("param1"))
-        output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
-      if (request->hasParam("param2"))
-        output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+      if (request->hasParam("param1")) {
+        output += "Param 1: ";
+        output += request->getParam("param1", "");
+        output += "<br/>\n";
+      }
+      if (request->hasParam("param2")) {
+        output += "Param 2: ";
+        output += request->getParam("param2", "");
+        output += "<br/>\n";
+      }
 
       return response->send(output.c_str());
     });
@@ -655,10 +696,16 @@ void setup()
     PsychicUploadHandler* multipartFormHandler = new PsychicUploadHandler();
     multipartFormHandler->onRequest([](PsychicRequest* request, PsychicResponse* response) {
       String output;
-      if (request->hasParam("param1"))
-        output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
-      if (request->hasParam("param2"))
-        output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
+      if (request->hasParam("param1")) {
+        output += "Param 1: ";
+        output += request->getParam("param1", "");
+        output += "<br/>\n";
+      }
+      if (request->hasParam("param2")) {
+        output += "Param 2: ";
+        output += request->getParam("param2", "");
+        output += "<br/>\n";
+      }
 
       return response->send(output.c_str());
     });
@@ -672,7 +719,7 @@ void setup()
       Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
       client->sendMessage("Hello!");
     });
-    websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame* frame) {
+    websocketHandler.onFrame([](PsychicWebSocketRequest* request, httpd_ws_frame_t* frame) {
       // Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), String((char*)frame->payload, frame->len).c_str());
       return request->reply(frame);
     });
@@ -693,7 +740,9 @@ void setup()
     // 404:   curl -F "foo=bar" http://psychic.local/post-filter
     server.on("/post-filter", HTTP_POST, [](PsychicRequest* request, PsychicResponse* response) {
             String output;
-            output += "Secret: " + request->getParam("secret")->value() + "<br/>\n";
+            output += "Secret: ";
+            output += request->getParam("secret", "");
+            output += "<br/>\n";
 
             return response->send(output.c_str());
           })

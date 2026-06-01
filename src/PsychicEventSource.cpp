@@ -66,7 +66,7 @@ esp_err_t PsychicEventSource::handleRequest(PsychicRequest* request, PsychicResp
     // did we get our last id?
     if (request->hasHeader("Last-Event-ID")) {
       PsychicEventSourceClient* buddy = getClient(client);
-      buddy->_lastId = atoi(request->header("Last-Event-ID").c_str());
+      buddy->_lastId = atoi(request->headerCStr("Last-Event-ID"));
     }
 
     // let our handler know.
@@ -135,7 +135,7 @@ void PsychicEventSource::closeCallback(PsychicClient* client)
  */
 void PsychicEventSource::send(const char* message, const char* event, uint32_t id, uint32_t reconnect)
 {
-  String ev = generateEventMessage(message, event, id, reconnect);
+  auto ev = generateEventMessage(message, event, id, reconnect);
   std::vector<PsychicClient*> clientsToRemove;
 
   // First, iterate and send, collecting disconnected clients
@@ -170,7 +170,7 @@ PsychicEventSourceClient::~PsychicEventSourceClient()
  */
 bool PsychicEventSourceClient::send(const char* message, const char* event, uint32_t id, uint32_t reconnect)
 {
-  String ev = generateEventMessage(message, event, id, reconnect);
+  auto ev = generateEventMessage(message, event, id, reconnect);
   return sendEvent(ev.c_str());
 }
 
@@ -202,16 +202,18 @@ PsychicEventSourceResponse::PsychicEventSourceResponse(PsychicResponse* response
 
 esp_err_t PsychicEventSourceResponse::send()
 {
-  // build our main header
-  String out = String();
-  out.concat("HTTP/1.1 200 OK\r\n");
+  std::string out = "HTTP/1.1 200 OK\r\n";
 
   // now do our individual headers
-  for (auto& header : _response->headers())
-    out.concat(header.field + ": " + header.value + "\r\n");
+  for (auto& header : _response->headers()) {
+    out += header.field.c_str();
+    out += ": ";
+    out += header.value.c_str();
+    out += "\r\n";
+  }
 
   // separator
-  out.concat("\r\n");
+  out += "\r\n";
 
   int result;
   do {
@@ -231,34 +233,45 @@ esp_err_t PsychicEventSourceResponse::send()
 // Event Message Generator
 /*****************************************/
 
-String generateEventMessage(const char* message, const char* event, uint32_t id, uint32_t reconnect)
+static std::string _generateEventMessage_impl(const char* message, const char* event, uint32_t id, uint32_t reconnect)
 {
-  String ev = "";
+  std::string ev;
 
   if (reconnect) {
     ev += "retry: ";
-    ev += String(reconnect);
+    ev += std::to_string(reconnect);
     ev += "\r\n";
   }
 
   if (id) {
     ev += "id: ";
-    ev += String(id);
+    ev += std::to_string(id);
     ev += "\r\n";
   }
 
   if (event != NULL) {
     ev += "event: ";
-    ev += String(event);
+    ev += event;
     ev += "\r\n";
   }
 
   if (message != NULL) {
     ev += "data: ";
-    ev += String(message);
+    ev += message;
     ev += "\r\n";
   }
   ev += "\r\n";
-
   return ev;
 }
+
+#ifdef ARDUINO
+String generateEventMessage(const char* message, const char* event, uint32_t id, uint32_t reconnect)
+{
+  return _generateEventMessage_impl(message, event, id, reconnect).c_str();
+}
+#else
+std::string generateEventMessage(const char* message, const char* event, uint32_t id, uint32_t reconnect)
+{
+  return _generateEventMessage_impl(message, event, id, reconnect);
+}
+#endif

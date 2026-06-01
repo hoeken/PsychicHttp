@@ -132,7 +132,11 @@ class PsychicHttpServer
     void onOpen(PsychicClientCallback handler);
     void onClose(PsychicClientCallback handler);
 
+#ifdef ARDUINO
     PsychicStaticFileHandler* serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control = NULL);
+#endif
+    // IDF / POSIX-VFS overload
+    PsychicStaticFileHandler* serveStatic(const char* uri, const char* path, const char* cache_control = NULL);
 };
 
 bool ON_STA_FILTER(PsychicRequest* request);

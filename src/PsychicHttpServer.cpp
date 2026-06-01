@@ -8,7 +8,7 @@
 #include "esp_idf_version.h"
 #include "esp_netif.h"
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
   #define esp_netif_next_compat(n) esp_netif_next_unsafe(n)
 #else
   #define esp_netif_next_compat(n) esp_netif_next(n)
@@ -386,7 +386,7 @@ PsychicEndpoint* PsychicHttpServer::on(const char* uri, int method, PsychicJsonR
 bool PsychicHttpServer::removeEndpoint(const char* uri, int method)
 {
   for (auto* endpoint : _endpoints) {
-    if (endpoint->uri().equals(uri) && method == endpoint->_method)
+    if (strcmp(endpoint->uriCStr(), uri) == 0 && method == endpoint->_method)
       return removeEndpoint(endpoint);
   }
   return false;
@@ -396,7 +396,7 @@ bool PsychicHttpServer::removeEndpoint(PsychicEndpoint* endpoint)
 {
   // unregister any ESP-IDF native handler (e.g. WebSocket) for this endpoint
   for (auto it = _esp_idf_endpoints.begin(); it != _esp_idf_endpoints.end();) {
-    if (endpoint->uri().equals(it->uri) && endpoint->_method == (int)it->method) {
+    if (strcmp(endpoint->uriCStr(), it->uri) == 0 && endpoint->_method == (int)it->method) {
       ESP_LOGD(PH_TAG, "Unregistering endpoint %s | %s", it->uri, http_method_str((http_method)it->method));
       if (_running) {
         esp_err_t ret = httpd_unregister_uri_handler(this->server, it->uri, it->method);
@@ -468,7 +468,7 @@ bool PsychicHttpServer::_rewriteRequest(PsychicRequest* request)
 {
   for (auto* r : _rewrites) {
     if (r->match(request)) {
-      request->_setUri(r->toUrl().c_str());
+      request->_setUri(r->toUrlCStr());
       return true;
     }
   }
@@ -486,7 +486,7 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
 
   // run it through our global server filter list
   if (!server->_filter(&request)) {
-    ESP_LOGD(PH_TAG, "Request %s refused by global filter", request.uri().c_str());
+    ESP_LOGD(PH_TAG, "Request %s refused by global filter", request.uriCStr());
     return request.response()->send(400);
   }
 
@@ -499,7 +499,7 @@ esp_err_t PsychicHttpServer::requestHandler(httpd_req_t* req)
   } else {
     ret = server->_process(&request);
   }
-  ESP_LOGD(PH_TAG, "Request %s processed by global middleware: %s", request.uri().c_str(), esp_err_to_name(ret));
+  ESP_LOGD(PH_TAG, "Request %s processed by global middleware: %s", request.uriCStr(), esp_err_to_name(ret));
 
   if (ret == HTTPD_404_NOT_FOUND) {
     return PsychicHttpServer::notFoundHandler(req, HTTPD_404_NOT_FOUND);
@@ -512,7 +512,7 @@ esp_err_t PsychicHttpServer::_process(PsychicRequest* request)
 {
   // loop through our endpoints and see if anyone wants it.
   for (auto* endpoint : _endpoints) {
-    if (endpoint->matches(request->uri().c_str())) {
+    if (endpoint->matches(request->uriCStr())) {
       if (endpoint->_method == request->method() || endpoint->_method == HTTP_ANY) {
         request->setEndpoint(endpoint);
         return endpoint->process(request);
@@ -613,9 +613,19 @@ void PsychicHttpServer::closeCallback(httpd_handle_t hd, int sockfd)
   close(sockfd);
 }
 
+#ifdef ARDUINO
 PsychicStaticFileHandler* PsychicHttpServer::serveStatic(const char* uri, fs::FS& fs, const char* path, const char* cache_control)
 {
   PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, fs, path, cache_control);
+  this->addHandler(handler);
+
+  return handler;
+}
+#endif
+
+PsychicStaticFileHandler* PsychicHttpServer::serveStatic(const char* uri, const char* path, const char* cache_control)
+{
+  PsychicStaticFileHandler* handler = new PsychicStaticFileHandler(uri, path, cache_control);
   this->addHandler(handler);
 
   return handler;
@@ -656,6 +666,7 @@ const std::list<PsychicClient*>& PsychicHttpServer::getClientList()
   return _clients;
 }
 
+#ifdef ARDUINO
 static esp_netif_t* _find_netif_by_ip(const IPAddress& addr)
 {
   for (esp_netif_t* netif = esp_netif_next_compat(nullptr); netif != nullptr; netif = esp_netif_next_compat(netif)) {
@@ -667,6 +678,19 @@ static esp_netif_t* _find_netif_by_ip(const IPAddress& addr)
   }
   return nullptr;
 }
+#else
+static esp_netif_t* _find_netif_by_ip(const esp_ip4_addr_t& addr)
+{
+  for (esp_netif_t* netif = esp_netif_next_compat(nullptr); netif != nullptr; netif = esp_netif_next_compat(netif)) {
+    esp_netif_ip_info_t ip;
+    if (esp_netif_get_ip_info(netif, &ip) != ESP_OK)
+      continue;
+    if (ip.ip.addr == addr.addr)
+      return netif;
+  }
+  return nullptr;
+}
+#endif
 
 bool ON_STA_FILTER(PsychicRequest* request)
 {
@@ -684,38 +708,57 @@ bool ON_AP_FILTER(PsychicRequest* request)
   return (esp_netif_get_flags(netif) & ESP_NETIF_DHCP_SERVER) != 0;
 }
 
-String urlDecode(const char* encoded)
+static std::string _urlEncode_impl(const char* str)
 {
-  size_t length = strlen(encoded);
-  char* decoded = (char*)malloc(length + 1);
-  if (!decoded) {
-    return "";
-  }
-
-  size_t i, j = 0;
-  for (i = 0; i < length; ++i) {
-    if (encoded[i] == '%' && i + 2 < length && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2])) {
-      // Valid percent-encoded sequence
-      int hex;
-      sscanf(encoded + i + 1, "%2x", &hex);
-      decoded[j++] = (char)hex;
-      i += 2; // Skip the two hexadecimal characters
-    } else if (encoded[i] == '+') {
-      // Convert '+' to space
-      decoded[j++] = ' ';
-    } else {
-      // Copy other characters as they are
-      decoded[j++] = encoded[i];
+  static const char hex[] = "0123456789ABCDEF";
+  std::string output;
+  output.reserve(strlen(str));
+  while (*str) {
+    unsigned char c = (unsigned char)*str++;
+    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+      output += (char)c;
+    else {
+      output += '%';
+      output += hex[c >> 4];
+      output += hex[c & 0xF];
     }
   }
-
-  decoded[j] = '\0'; // Null-terminate the decoded string
-
-  String output(decoded);
-  free(decoded);
-
   return output;
 }
+
+static std::string _urlDecode_impl(const char* encoded)
+{
+  auto hexVal = [](char c) -> unsigned char {
+    if (c >= '0' && c <= '9')
+      return c - '0';
+    if (c >= 'a' && c <= 'f')
+      return c - 'a' + 10;
+    return c - 'A' + 10;
+  };
+
+  size_t length = strlen(encoded);
+  std::string output;
+  output.reserve(length);
+  for (size_t i = 0; i < length; ++i) {
+    if (encoded[i] == '%' && i + 2 < length && isxdigit(encoded[i + 1]) && isxdigit(encoded[i + 2])) {
+      output += (char)((hexVal(encoded[i + 1]) << 4) | hexVal(encoded[i + 2]));
+      i += 2;
+    } else if (encoded[i] == '+') {
+      output += ' ';
+    } else {
+      output += encoded[i];
+    }
+  }
+  return output;
+}
+
+#ifdef ARDUINO
+String urlEncode(const char* str) { return _urlEncode_impl(str).c_str(); }
+String urlDecode(const char* encoded) { return _urlDecode_impl(encoded).c_str(); }
+#else
+std::string urlEncode(const char* str) { return _urlEncode_impl(str); }
+std::string urlDecode(const char* encoded) { return _urlDecode_impl(encoded); }
+#endif
 
 bool psychic_uri_match_simple(const char* uri1, const char* uri2, size_t len2)
 {

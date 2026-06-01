@@ -7,6 +7,9 @@ on:
     types:
       - released
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   release_number:
     name: Release Number Validation
@@ -14,7 +17,7 @@ jobs:
 
     steps:
       ### Check the version number in the code matches the tag number
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Retrieve the version number(s)
         run: |
@@ -49,10 +52,10 @@ jobs:
     needs: release_number
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
 
       - name: Install Platform IO
         run: |

@@ -4,4 +4,4 @@ sdkconfig.old
 components/
 managed_components/
 dependencies.lock
-main/_secret.h
+main/secrets.h
