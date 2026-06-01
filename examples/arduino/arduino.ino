@@ -18,7 +18,14 @@
  * Follow instructions here: https://randomnerdtutorials.com/esp32-littlefs-arduino-ide/
  **********************************************************************************************/
 
-#include "secrets.h"
+// Prefer local secrets.h in the example folder, then fall back to repo root.
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#elif __has_include("../../secrets.h")
+  #include "../../secrets.h"
+#else
+  #error "Missing Wi-Fi credentials. Create examples/arduino/secrets.h or repo-root secrets.h from secrets.h.example."
+#endif
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
