@@ -1,6 +1,6 @@
 # PsychicHttp - HTTP on your ESP 🧙🔮
 
-PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the [ESP-IDF HTTP Server](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/protocols/esp_http_server.html) library under the hood.  It is written in a similar style to the [Arduino WebServer](https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer), [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer), and [ArduinoMongoose](https://github.com/jeremypoulter/ArduinoMongoose) libraries to make writing code simple and porting from those other libraries straightforward.
+PsychicHttp is a webserver library for ESP32 that supports both the **Arduino framework** and **native ESP-IDF** (no Arduino component required).  It is built on top of the [ESP-IDF HTTP Server](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/protocols/esp_http_server.html) and is written in a similar style to the [Arduino WebServer](https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer), [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer), and [ArduinoMongoose](https://github.com/jeremypoulter/ArduinoMongoose) libraries to make writing code simple and porting from those other libraries straightforward.
 
 **Discord**: [https://discord.gg/TAQrTR3f9C](https://discord.gg/TAQrTR3f9C)
 
@@ -20,21 +20,18 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 * Websocket support with onOpen, onFrame, and onClose callbacks
 * EventSource / SSE support with onOpen, and onClose callbacks
 * Request filters, including Client vs AP mode (ON_STA_FILTER / ON_AP_FILTER)
-* Middleware system (logging, authentication, CORS, and custom)
-* URL rewriting
-* Regex URI matching
-* JSON request/response support (via ArduinoJson)
 * TemplatePrinter class for dynamic variables at runtime
 
 ## Differences from ESPAsyncWebserver
 
 * No templating system (anyone actually use this?)
+* No url rewriting (but you can use response->redirect)
 
 # Usage
 
 ## Installation
 
-### Platformio
+### PlatformIO (Arduino framework)
 
 [PlatformIO](http://platformio.org) is an open source ecosystem for IoT development.
 
@@ -42,7 +39,7 @@ PsychicHttp is a webserver library for ESP32 + Arduino framework which uses the 
 
 ```ini
 [env:myboard]
-platform = espressif...
+platform = espressif32
 board = ...
 framework = arduino
 
@@ -53,9 +50,145 @@ lib_deps = hoeken/PsychicHttp
 lib_deps = https://github.com/hoeken/PsychicHttp
 ```
 
-### Installation - Arduino
+### PlatformIO (native ESP-IDF framework)
+
+PsychicHttp supports native ESP-IDF projects (no Arduino component required):
+
+```ini
+[env:myboard]
+platform = espressif32
+board = ...
+framework = espidf
+lib_deps = hoeken/PsychicHttp
+```
+
+You must also add to your `sdkconfig.defaults`:
+
+```ini
+CONFIG_HTTPD_WS_SUPPORT=y
+# CONFIG_MBEDTLS_ROM_MD5 is not set
+```
+
+See `examples/esp-idf-pio/` for a complete working example.
+
+### Native ESP-IDF (component manager / `idf.py`)
+
+When you add PsychicHttp to a native ESP-IDF project (via `idf.py add-dependency`,
+`EXTRA_COMPONENT_DIRS`, or a git submodule), you must declare **ArduinoJson** in
+your *project's* `main/idf_component.yml`:
+
+```yaml
+dependencies:
+  bblanchon/arduinojson: ^7.4.3
+```
+
+PsychicHttp's `CMakeLists.txt` lists `arduinojson` in its `COMPONENT_REQUIRES`,
+but the library intentionally does **not** declare its own dependencies (its
+`idf_component.yml` is shipped disabled) so that pure-IDF builds aren't forced to
+pull in the `arduino-esp32` component. Because of that, the consuming project is
+responsible for providing `arduinojson`. If you skip this you'll see:
+
+```
+HINT: The component 'arduinojson' could not be found.
+```
+
+If you *do* want the Arduino framework, add the `arduino` component to your
+project's `EXTRA_COMPONENT_DIRS` — PsychicHttp detects it automatically at build
+time. See `examples/esp-idf/` for a complete working `idf.py` project.
+
+### Installation - Arduino IDE
 
 Open *Tools -> Manage Libraries...* and search for PsychicHttp.
+
+## Wi-Fi Credentials
+
+All example and benchmark projects read Wi-Fi credentials from a `secrets.h` file that you create locally and is never committed to git.
+
+Each example directory contains a `secrets.h.example` template. Before building, rename it and fill in your network details:
+
+```bash
+# standalone example (e.g. examples/pio-arduino)
+mv examples/pio-arduino/src/secrets.h.example examples/pio-arduino/src/secrets.h
+# then edit secrets.h and set WIFI_SSID / WIFI_PASS
+```
+
+When building from the **root `platformio.ini`** you only need one file at the repo root:
+
+```bash
+mv secrets.h.example secrets.h
+# then edit secrets.h and set WIFI_SSID / WIFI_PASS
+```
+
+The root `secrets.h` is found automatically by all example builds via `-I${PROJECT_DIR}` in the shared build flags. A local `src/secrets.h` inside an example always takes priority if present.
+
+# Upgrading from v2.x to v3.0
+
+## Arduino Users
+
+**No code changes are required in almost all cases.** All getter methods that returned `String` in v2.x still return `String` on Arduino.
+
+The one small exception: `PsychicResponse::getContentType()` previously returned `String&` (a mutable reference to an internal field) and now returns `String` by value. Code that only reads the value is completely unaffected. Code that captured it as `String&` to mutate the internal field (an unsupported usage pattern for a getter) will no longer compile.
+
+## ESP-IDF Native Users (new in v3.0)
+
+PsychicHttp now supports native ESP-IDF projects without the Arduino component.
+
+Key differences from the Arduino API:
+
+- **String-returning getters return `const char*`** — `request->uri()`, `request->body()`, `request->header()`, `param->value()`, etc. all return `const char*` instead of `String`.
+- **Upload callback uses `const char* filename`** — the `onUpload` callback signature changes from `const String& filename` to `const char* filename`.
+- **`IPAddress` vs `esp_ip4_addr_t`** — `client->localIP()` and `client->remoteIP()` return `esp_ip4_addr_t` instead of `IPAddress`.
+- **`urlEncode` / `urlDecode` return type differs by platform** — on Arduino they return `String`, while on native ESP-IDF they return `std::string`.
+
+### Feature availability
+
+| Feature | ESP-IDF native |
+|---|---|
+| HTTP handlers (GET/POST/etc.) | ✅ |
+| Static file serving with chunking | ✅ |
+| File uploads (basic + multipart) | ✅ |
+| WebSocket | ✅ |
+| EventSource / SSE | ✅ |
+| JSON responses (`PsychicJsonResponse`) | ✅ |
+| Authentication (basic + digest) | ✅ |
+| Middleware, CORS | ✅ |
+| HTTPS / SSL (`PsychicHttpsServer`) | ✅ |
+| `PsychicStreamResponse` | ✅ |
+| `TemplatePrinter` | ✅ |
+| `ChunkPrinter` | ✅ (internal) |
+
+Use `PsychicStreamResponse` on ESP-IDF by calling `beginSend()`, then writing with `write()` / `print()` / `printf()`, then `endSend()`. Use `PsychicFileResponse` for static files on both platforms.
+
+See `examples/esp-idf-pio/` for a complete working native ESP-IDF project.
+
+Add the following to your `sdkconfig.defaults`:
+
+```ini
+CONFIG_HTTPD_WS_SUPPORT=y
+# CONFIG_MBEDTLS_ROM_MD5 is not set
+
+# Add this if you are using PsychicHttpsServer:
+CONFIG_ESP_HTTPS_SERVER_ENABLE=y
+```
+
+## Writing Handlers That Compile on Both Platforms
+
+Use the `*CStr()` helper methods which always return `const char*` regardless of framework:
+
+```cpp
+// These work identically on both Arduino and ESP-IDF native:
+request->uriCStr()              // instead of request->uri()
+request->bodyCStr()             // instead of request->body()
+request->headerCStr(name)       // instead of request->header(name)
+request->pathCStr()             // instead of request->path()
+request->queryCStr()            // instead of request->query()
+request->methodStrCStr()        // instead of request->methodStr()
+request->getFilenameCStr()      // instead of request->getFilename()
+request->getSessionKeyCStr(key) // instead of request->getSessionKey(key)
+endpoint->uriCStr()             // instead of endpoint->uri()
+param->nameCStr()               // instead of param->name()
+param->valueCStr()              // instead of param->value()
+```
 
 # Principles of Operation
 
@@ -79,10 +212,10 @@ Open *Tools -> Manage Libraries...* and search for PsychicHttp.
 * HTTP request is wrapped inside ```PsychicRequest``` object + TCP Connection wrapped inside PsychicConnection object.
 * When the request head is received, the server goes through all ```PsychicEndpoints``` and finds one that matches the url + method.
     * ```handler->filter()``` and ```handler->canHandle()``` are called on the handler to verify the handler should process the request.
-    * Any middleware attached to the server or endpoint is run in order.
+    * ```handler->needsAuthentication()``` is called and sends an authorization response if required.
     * ```handler->handleRequest()``` is called to actually process the HTTP request.
-* If the handler cannot process the request, the server will loop through any global handlers and call that handler if it passes filter(), canHandle(), and middleware.
-* If no global handlers are called, the server.onNotFound handler will be called.
+* If the handler cannot process the request, the server will loop through any global handlers and call that handler if it passes filter(), canHandle(), and needsAuthentication().
+* If no global handlers are called, the server.defaultEndpoint handler will be called.
 * Each handler is responsible for processing the request and sending a response.
 * When the response is sent, the client is closed and freed from the memory.
     * Unless its a special handler like websockets or eventsource.
@@ -114,7 +247,7 @@ Open *Tools -> Manage Libraries...* and search for PsychicHttp.
 
 # Porting From ESPAsyncWebserver
 
-If you have existing code using ESPAsyncWebserver, you will feel right at home with PsychicHttp.  Even if internally it is much different, the external interface is very similar.  Some things are mostly cosmetic, like different class names and callback definitions.  A few things might require a bit more in-depth approach.  If you're porting your code and run into issues that aren't covered here, please post an issue.
+If you have existing code using ESPAsyncWebserver, you will feel right at home with PsychicHttp.  Even if internally it is much different, the external interface is very similar.  Some things are mostly cosmetic, like different class names and callback definitions.  A few things might require a bit more in-depth approach.  If you're porting your code and run into issues that aren't covered here, please post and issue.
 
 ## Globals Stuff
 
@@ -125,26 +258,27 @@ If you have existing code using ESPAsyncWebserver, you will feel right at home w
 
 ## setup() Stuff
 
-* add your handlers and call `server.start()` at the end
-* server now supports unlimited endpoints — no need to set `config.max_uri_handlers`
+* add your handlers and call server.begin()
 * check your callback function definitions:
-   * All request callbacks now take two parameters: `PsychicRequest *request` and `PsychicResponse *response`
-   * `AsyncWebServerRequest` -> `PsychicRequest`
+   * AsyncWebServerRequest -> PsychicRequest
    * no more onBody() event
-      * for small bodies (up to `MAX_REQUEST_BODY_SIZE`, default 16k) it will be automatically loaded and accessed by `request->body()`
-      * for large bodies, use an upload handler and `onUpload()`
+      * for small bodies (server.maxRequestBodySize, default 16k) it will be automatically loaded and accessed by request->body()
+      * for large bodies, use an upload handler and onUpload()
    * websocket callbacks are much different (and simpler!)
-   * websocket / eventsource handlers get attached to url in `server.on("/url", &handler)` instead of passing url to handler constructor
-   * eventsource callbacks are onOpen and onClose now
+   * websocket / eventsource handlers get attached to url in server.on("/url", &handler) instead of passing url to handler constructor.
+   * eventsource callbacks are onOpen and onClose now.
+* HTTP_ANY is supported via `server.on("/url", HTTP_ANY, callback)`
+* NO server.onFileUpload(onUpload); (you could attach an UploadHandler to the default endpoint i guess?)
+* NO server.onRequestBody(onBody); (same)
 
 ## Requests / Responses
 
-* `request->send` is now `response->send()`
-* if you create a response, call `response->send()` directly, not `request->send(reply)`
-* `request->headers()` is not supported by ESP-IDF, you have to just check for the header you need
-* No `request->beginResponse()`. Instantiate a `PsychicResponse` instead: ```PsychicResponse response(request);```
-* No PROGMEM support (it's not relevant to ESP32: https://esp32.com/viewtopic.php?t=20595)
-* No Stream response support just yet
+* request->send is now response->send()
+* if you create a response, call response->send() directly, not request->send(reply)
+* request->headers() is not supported by ESP-IDF, you have to just check for the header you need.
+* No AsyncCallbackJsonWebHandler (for now... can add if needed)
+* No request->beginResponse().  Instanciate a PsychicResponse instead: ```PsychicResponse response(request);```
+* No PROGMEM suppport (its not relevant to ESP32: https://esp32.com/viewtopic.php?t=20595)
 
 # Usage
 
@@ -158,17 +292,19 @@ PsychicHttpServer server;
 
 void setup()
 {
-   //connect to wifi
+   //optional low level setup server config stuff here.
+   //server.config is an ESP-IDF httpd_config struct
+   //see: https://docs.espressif.com/projects/esp-idf/en/v4.4.6/esp32/api-reference/protocols/esp_http_server.html#_CPPv412httpd_config
 
-   //optional: set default headers on every response
-   DefaultHeaders::Instance().addHeader("Server", "PsychicHttp");
+   //connect to wifi
 
    //call server methods to attach endpoints and handlers
    server.on(...);
    server.serveStatic(...);
+   server.addHandler(...);
 
-   //call start at the end.  you can add/remove handlers after, except for websockets.
-   server.start();
+   //must be called after all server.on() registrations
+   server.begin();
 }
 ```
 
@@ -190,64 +326,43 @@ server.on("/url", request_callback);
 //attaches a websocket handler to /ws
 PsychicWebSocketHandler websocketHandler;
 server.on("/ws", &websocketHandler);
-
-//handle any HTTP method on a URL
-server.on("/any", HTTP_ANY, request_callback);
 ```
 
-The ```server.on(...)``` returns a pointer to the endpoint, which can be used to call various functions like ```setHandler()```, ```addFilter()```, ```addMiddleware()```, and ```setURIMatchFunction()```.
+The ```server.on(...)``` returns a pointer to the endpoint, which can be used to call various functions like ```setHandler()```, ```setFilter()```, and ```addMiddleware()```.
 
 ```cpp
 //respond to /url only from requests to the AP
 server.on("/url", HTTP_GET, request_callback)->addFilter(ON_AP_FILTER);
 
-//add middleware to a specific endpoint
-server.on("/secure", HTTP_GET, request_callback)->addMiddleware(&authMiddleware);
-
-//set the URI matching function on a specific endpoint
-server.on("/simple", HTTP_GET, request_callback)->setURIMatchFunction(MATCH_SIMPLE);
-
-//attach websocket handler to /ws
-PsychicWebSocketHandler websocketHandler;
-server.on("/ws")->setHandler(&websocketHandler);
+//require authentication on /url using middleware
+AuthenticationMiddleware auth;
+auth.setUsername("user");
+auth.setPassword("pass");
+auth.setRealm("My Realm");
+auth.setAuthType(BASIC_AUTH);
+server.on("/url", HTTP_GET, request_callback)->addMiddleware(&auth);
 ```
 
 ### Basic Requests
 
 The ```PsychicWebHandler``` class is for handling standard web requests.  It provides a single callback: ```onRequest()```.  This callback is called when the handler receives a valid HTTP request.
 
-One major difference from ESPAsyncWebserver is that this callback needs to return an esp_err_t variable to let the server know the result of processing the request.  The ```response->send()``` function will return this.  It is a good habit to return the result of these functions as sending the response will close the connection.
+One major difference from ESPAsyncWebserver is that this callback needs to return an esp_err_t variable to let the server know the result of processing the request.  The ```response->send()``` and ```request->reply()``` functions will return this.  It is a good habit to return the result of these functions as sending the response will close the connection.
 
 The function definition for the onRequest callback is:
 
 ```cpp
-esp_err_t function_name(PsychicRequest *request, PsychicResponse *response);
+esp_err_t function_name(PsychicRequest *request);
 ```
 
 Here is a simple example that sends back the client's IP on the URL /ip
 
 ```cpp
-server.on("/ip", [](PsychicRequest *request, PsychicResponse *response)
+server.on("/ip", [](PsychicRequest *request)
 {
    String output = "Your IP is: " + request->client()->remoteIP().toString();
    return response->send(output.c_str());
 });
-```
-
-`PsychicWebHandler` also has `onOpen()` and `onClose()` callbacks to track connections to a specific endpoint:
-
-```cpp
-PsychicWebHandler *handler = new PsychicWebHandler();
-handler->onRequest([](PsychicRequest *request, PsychicResponse *response) {
-  return response->send("OK");
-});
-handler->onOpen([](PsychicClient *client) {
-  Serial.printf("[handler] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
-});
-handler->onClose([](PsychicClient *client) {
-  Serial.printf("[handler] connection #%u closed\n", client->socket());
-});
-server.on("/handler", handler);
 ```
 
 ### Uploads
@@ -287,14 +402,14 @@ It's worth noting that there is no standard way of passing in a filename for thi
    Serial.printf("Writing %d/%d bytes to: %s\n", (int)index+(int)len, request->contentLength(), path.c_str());
 
    if (last)
-     Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index+(uint64_t)len);
+     Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index+(int)len);
 
    //our first call?
    if (!index)
      file = LittleFS.open(path, FILE_WRITE);
    else
      file = LittleFS.open(path, FILE_APPEND);
-   
+
    if(!file) {
      Serial.println("Failed to open file");
      return ESP_FAIL;
@@ -309,7 +424,7 @@ It's worth noting that there is no standard way of passing in a filename for thi
  });
 
  //gets called after upload has been handled
- uploadHandler->onRequest([](PsychicRequest *request, PsychicResponse *response)
+ uploadHandler->onRequest([](PsychicRequest *request)
  {
    String url = "/" + request->getFilename();
    String output = "<a href=\"" + url + "\">" + url + "</a>";
@@ -326,7 +441,7 @@ It's worth noting that there is no standard way of passing in a filename for thi
 Very similar to the basic upload, with 2 key differences:
 
 * multipart requests don't know the total size of the file until after it has been fully processed.  You can get a rough idea with request->contentLength(), but that is the length of the entire multipart encoded request.
-* you can access form variables, including multipart file info (name + size) in the onRequest handler using request->getParam()
+* you can access form variables, including multipart file infor (name + size) in the onRequest handler using request->getParam()
 
 ```cpp
  //a little bit more complicated multipart form
@@ -338,14 +453,14 @@ Very similar to the basic upload, with 2 key differences:
    //some progress over serial.
    Serial.printf("Writing %d bytes to: %s\n", (int)len, path.c_str());
    if (last)
-     Serial.printf("%s is finished. Total bytes: %llu\n", path.c_str(), (uint64_t)index+(uint64_t)len);
+     Serial.printf("%s is finished. Total bytes: %d\n", path.c_str(), (int)index+(int)len);
 
    //our first call?
    if (!index)
      file = LittleFS.open(path, FILE_WRITE);
    else
      file = LittleFS.open(path, FILE_APPEND);
-   
+
    if(!file) {
      Serial.println("Failed to open file");
      return ESP_FAIL;
@@ -360,7 +475,7 @@ Very similar to the basic upload, with 2 key differences:
  });
 
  //gets called after upload has been handled
- multipartHandler->onRequest([](PsychicRequest *request, PsychicResponse *response)
+ multipartHandler->onRequest([](PsychicRequest *request)
  {
    PsychicWebParameter *file = request->getParam("file_upload");
 
@@ -369,9 +484,9 @@ Very similar to the basic upload, with 2 key differences:
 
    output += "<a href=\"" + url + "\">" + url + "</a><br/>\n";
    output += "Bytes: " + String(file->size()) + "<br/>\n";
-   output += "Param 1: " + request->getParam("param1")->value() + "<br/>\n";
-   output += "Param 2: " + request->getParam("param2")->value() + "<br/>\n";
-   
+   output += "Param 1: " + String(request->getParam("param1", "")) + "<br/>\n";
+   output += "Param 2: " + String(request->getParam("param2", "")) + "<br/>\n";
+
    return response->send(output.c_str());
  });
 
@@ -406,21 +521,19 @@ server.serveStatic("/img", LittleFS, "/img/");
 
 //you can also serve single files
 server.serveStatic("/myfile.txt", LittleFS, "/custom.txt");
-
-//set cache control headers
-server.serveStatic("/", LittleFS, "/www/")->setCacheControl("max-age=60");
 ```
 
 You could also theoretically use the file response directly:
 
 ```cpp
-server.on("/ip", [](PsychicRequest *request, PsychicResponse *response)
+server.on("/ip", [](PsychicRequest *request)
 {
    String filename = "/path/to/file";
-   PsychicFileResponse fileResponse(request, LittleFS, filename);
+   PsychicFileResponse response(request, LittleFS, filename);
 
-   return fileResponse.send();
+   return response.send();
 });
+PsychicFileResponse(PsychicRequest *request, FS &fs, const String& path)
 ```
 
 ### Websockets
@@ -435,7 +548,7 @@ Here are the callback definitions:
 
 ```cpp
 void open_function(PsychicWebSocketClient *client);
-esp_err_t frame_function(PsychicWebSocketRequest *request, httpd_ws_frame *frame);
+esp_err_t frame_function(PsychicWebSocketRequest *request, httpd_ws_frame_t *frame);
 void close_function(PsychicWebSocketClient *client);
 ```
 
@@ -445,16 +558,16 @@ Here is a basic example of using WebSockets:
 
 ```cpp
  //create our handler... note this should be located as a global or somewhere it wont go out of scope and be destroyed.
- PsychicWebSocketHandler websocketHandler;
+ PsychicWebSocketHandler websocketHandler();
 
  websocketHandler.onOpen([](PsychicWebSocketClient *client) {
    Serial.printf("[socket] connection #%u connected from %s\n", client->socket(), client->remoteIP().toString().c_str());
    client->sendMessage("Hello!");
  });
 
- websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame *frame) {
+ websocketHandler.onFrame([](PsychicWebSocketRequest *request, httpd_ws_frame_t *frame) {
      Serial.printf("[socket] #%d sent: %s\n", request->client()->socket(), (char *)frame->payload);
-     return request->reply(frame);
+     return response->send(frame);
  });
 
  websocketHandler.onClose([](PsychicWebSocketClient *client) {
@@ -462,24 +575,23 @@ Here is a basic example of using WebSockets:
  });
 
  //attach the handler to /ws.  You can then connect to ws://ip.address/ws
- //NOTE: the handler must be registered before server.start() is called, otherwise it will not work.
  server.on("/ws", &websocketHandler);
 ```
 
 The onFrame() callback has 2 parameters:
 
 * ```PsychicWebSocketRequest *request``` a special request with helper functions for replying in websocket format.
-* ```httpd_ws_frame *frame``` ESP-IDF websocket struct.  The important struct members we care about are:
+* ```httpd_ws_frame_t *frame``` ESP-IDF websocket struct.  The important struct members we care about are:
    * ```uint8_t *payload; /*!< Pre-allocated data buffer */```
    * ```size_t len; /*!< Length of the WebSocket data */```
- 
+
 For sending data on the websocket connection, there are 3 methods:
 
-* ```request->reply()``` - only available in the onFrame() callback context.
+* ```response->send()``` - only available in the onFrame() callback context.
 * ```webSocketHandler.sendAll()``` - can be used anywhere to send websocket messages to all connected clients.
-* ```client->sendMessage()``` - can be used anywhere* to send a websocket message to a specific client
+* ```client->send()``` - can be used anywhere* to send a websocket message to a specific client
 
-All of the above functions either accept a simple ```char *``` string or you can pass a constructed ```httpd_ws_frame```.
+All of the above functions either accept simple ```char *``` string of you can construct your own httpd_ws_frame.
 
 *Special Note:*  Do not hold on to the ```PsychicWebSocketClient``` for sending messages to clients outside the callbacks. That pointer is destroyed when a client disconnects.  Instead, store the ```int client->socket()```.  Then when you want to send a message, use this code:
 
@@ -487,7 +599,7 @@ All of the above functions either accept a simple ```char *``` string or you can
 //make sure our client is still connected.
 PsychicWebSocketClient *client = websocketHandler.getClient(socket);
 if (client != NULL)
-  client->sendMessage("Your Message");
+  client->send("Your Message")
 ```
 
 ### EventSource / SSE
@@ -536,174 +648,12 @@ All of the above functions accept a simple ```char *``` message, and optionally:
 //make sure our client is still connected.
 PsychicEventSourceClient *client = eventSource.getClient(socket);
 if (client != NULL)
-  client->send("Your Event");
-```
-
-### JSON
-
-PsychicHttp has built-in support for JSON via ArduinoJson.  There are two ways to use it:
-
-#### JSON Request Callback
-
-The simplest approach is to use the `PsychicJsonRequestCallback` signature directly with `server.on()`.  The JSON body is parsed automatically and passed as a `JsonVariant`:
-
-```cpp
-server.on("/api", HTTP_POST, [](PsychicRequest *request, PsychicResponse *resp, JsonVariant &json) {
-  JsonObject input = json.as<JsonObject>();
-
-  PsychicJsonResponse response(resp);
-  JsonObject output = response.getRoot();
-  output["status"] = "success";
-  output["millis"] = millis();
-
-  if (input.containsKey("foo"))
-    output["foo"] = input["foo"];
-
-  return response.send();
-});
-```
-
-#### JSON Response
-
-Use `PsychicJsonResponse` to build and send a JSON response from any handler:
-
-```cpp
-server.on("/json", HTTP_GET, [](PsychicRequest *request, PsychicResponse *response) {
-  PsychicJsonResponse jsonResponse(response);
-  JsonObject root = jsonResponse.getRoot();
-  root["status"] = "ok";
-  root["millis"] = millis();
-  return jsonResponse.send();
-});
-```
-
-### Middleware
-
-PsychicHttp has a middleware system that allows you to run code before and after a request is handled.  Middleware can be attached to the server (runs on every request) or to a specific endpoint.
-
-The `PsychicMiddlewareNext` function must be called to pass the request to the next middleware or handler:
-
-```cpp
-esp_err_t run(PsychicRequest *request, PsychicResponse *response, PsychicMiddlewareNext next);
-```
-
-#### Built-in Middleware
-
-Three built-in middleware classes are included:
-
-**LoggingMiddleware** - logs requests in a curl-like format:
-
-```cpp
-LoggingMiddleware loggingMiddleware;
-loggingMiddleware.setOutput(Serial);
-server.addMiddleware(&loggingMiddleware);
-```
-
-**AuthenticationMiddleware** - handles HTTP Basic or Digest authentication:
-
-```cpp
-AuthenticationMiddleware auth;
-auth.setUsername("admin");
-auth.setPassword("admin");
-auth.setRealm("My App");
-auth.setAuthMethod(HTTPAuthMethod::BASIC_AUTH);   // or DIGEST_AUTH
-auth.setAuthFailureMessage("You must log in.");
-
-//attach to the whole server
-server.addMiddleware(&auth);
-
-//or attach to a specific endpoint
-server.on("/secure", HTTP_GET, [](PsychicRequest *request, PsychicResponse *response) {
-  return response->send("Authenticated!");
-})->addMiddleware(&auth);
-```
-
-**CorsMiddleware** - adds CORS headers for cross-origin requests:
-
-```cpp
-CorsMiddleware corsMiddleware;
-//optional customization (defaults shown)
-corsMiddleware.setOrigin("*");
-corsMiddleware.setMethods("*");
-corsMiddleware.setHeaders("*");
-corsMiddleware.setAllowCredentials(true);
-corsMiddleware.setMaxAge(86400);
-
-server.addMiddleware(&corsMiddleware);
-```
-
-#### Custom Middleware
-
-You can write custom middleware by either subclassing `PsychicMiddleware` or by using a lambda:
-
-```cpp
-server.addMiddleware([](PsychicRequest *request, PsychicResponse *response, PsychicMiddlewareNext next) {
-  Serial.printf("Before: %s\n", request->path().c_str());
-  esp_err_t ret = next(request, response);
-  Serial.printf("After: %d\n", response->getCode());
-  return ret;
-});
-```
-
-### URL Rewriting
-
-PsychicHttp supports URL rewriting, which allows you to map one URL to another before the request is matched to a handler:
-
-```cpp
-//rewrite /rewrite to /api?foo=rewrite
-server.rewrite("/rewrite", "/api?foo=rewrite");
-
-//rewrites can also have filters
-server.rewrite("/mobile", "/mobile-index.html")->setFilter(ON_AP_FILTER);
-```
-
-### URI Matching
-
-PsychicHttp supports three URI matching modes that can be set at the server level or per-endpoint:
-
-* `MATCH_SIMPLE` - exact string matching
-* `MATCH_WILDCARD` - ESP-IDF wildcard matching (e.g., `/files/*`)
-* `MATCH_REGEX` - regular expression matching (requires `PSY_ENABLE_REGEX` define)
-
-```cpp
-//set default for all endpoints
-server.setURIMatchFunction(MATCH_WILDCARD);
-
-//or set per-endpoint
-server.on("/files/*", HTTP_GET, handler)->setURIMatchFunction(MATCH_WILDCARD);
-```
-
-#### Regex URI Matching
-
-To use regex matching, add `#define PSY_ENABLE_REGEX` before including PsychicHttp, or define it in your build flags.  Then use `MATCH_REGEX` as the URI match function and capture groups via `request->getRegexMatches()`:
-
-```cpp
-server.on("^/user/([\\w]+)/?$", HTTP_GET, [](PsychicRequest *request, PsychicResponse *response) {
-  std::smatch matches;
-  if (request->getRegexMatches(matches)) {
-    String username = matches.str(1).c_str();
-    return response->send(("Hello " + username).c_str());
-  }
-  return response->send(404, "text/plain", "Not found");
-})->setURIMatchFunction(MATCH_REGEX);
-```
-
-### Default Headers
-
-You can set headers that will be automatically added to every response:
-
-```cpp
-DefaultHeaders::Instance().addHeader("Server", "PsychicHttp");
-DefaultHeaders::Instance().addHeader("X-Custom-Header", "value");
+  client->send("Your Event")
 ```
 
 ### HTTPS / SSL
 
-PsychicHttp supports HTTPS / SSL out of the box, however there are some limitations (see performance below).  Enabling it also increases the code size by about 100kb.
-
-SSL connections require significant RAM — each TLS session consumes roughly 40–100KB of internal RAM plus two 16KB record buffers.  **A board with PSRAM is strongly recommended**, and PSRAM must be enabled in your project configuration (see below).  Without PSRAM, you will likely be limited to a single simultaneous SSL connection before the heap is exhausted.
-
-To use HTTPS, you need to modify your setup like so:
+PsychicHttp supports HTTPS / SSL out of the box on both Arduino and native ESP-IDF, however there are some limitations (see performance below).  Enabling it also increases the code size by about 100kb.  To use HTTPS, you need to modify your setup like so:
 
 ```cpp
 #include <PsychicHttp.h>
@@ -719,8 +669,6 @@ To generate your own key and self signed certificate, you can use the command be
 ```
 openssl req -x509 -newkey rsa:4096 -nodes -keyout server.key -out server.crt -sha256 -days 365
 ```
-
-You can also generate a self-signed certificate directly on the ESP32 at runtime using mbedTLS, which is already bundled with ESP-IDF.  This is useful for devices that need a unique certificate without any external tooling — generate once on first boot, store the PEM strings to NVS or LittleFS, and load them on every subsequent boot.  An example implementation can be found [here](https://github.com/hoeken/YarrboardFramework/blob/34be5c9457355a5e0dcdc0afacca9e2907cfab03/src/controllers/HTTPController.cpp#L328).
 
 Including the ```PsychicHttpsServer.h``` also defines ```PSY_ENABLE_SSL``` which you can use in your code to allow enabling / disabling calls in your code based on if the HTTPS server is available:
 
@@ -739,46 +687,10 @@ Last, but not least, you can create a separate HTTP server on port 80 that redir
 //this creates a 2nd server listening on port 80 and redirects all requests HTTPS
 PsychicHttpServer *redirectServer = new PsychicHttpServer();
 redirectServer->config.ctrl_port = 20420; // just a random port different from the default one
-redirectServer->config.stack_size = 4096; // we dont need a large stack size for this.
-redirectServer->onNotFound([](PsychicRequest *request, PsychicResponse *response) {
+redirectServer->onNotFound([](PsychicRequest *request) {
    String url = "https://" + request->host() + request->url();
    return response->redirect(url.c_str());
 });
-redirectServer->start();
-```
-
-#### Enabling PSRAM for SSL
-
-To offload mbedTLS allocations to PSRAM and avoid exhausting internal heap under multiple SSL connections, add the following to your project.  The example below targets an **ESP32-S3-WROOM-1-N16R8** (8 MB OPI PSRAM) but the mbedTLS options apply to any ESP32 variant with PSRAM.
-
-`sdkconfig.defaults`:
-```
-# Enable OPI PSRAM (8MB on ESP32-S3-WROOM-1-N16R8).
-# board_build.arduino.memory_type = qio_opi selects the right bootloader/linker,
-# but IDF still needs these Kconfig options to actually map PSRAM into the heap.
-CONFIG_SPIRAM=y
-CONFIG_SPIRAM_MODE_OCT=y
-CONFIG_SPIRAM_SPEED_80M=y
-CONFIG_SPIRAM_USE_MALLOC=y
-
-# Move mbedTLS dynamic allocations to PSRAM.
-# Without this, each TLS session chews ~40-100KB of internal RAM plus two 16KB
-# record buffers, exhausting internal heap when multiple clients connect.
-# Has no effect on targets without SPIRAM (CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC
-# depends on SPIRAM in Kconfig, so it is silently ignored on C3/C5/C6/esp32).
-CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
-
-# Use asymmetric record buffer sizes: full 16KB in (needed for receiving TLS
-# records from browsers) but only 4KB out (sufficient for JSON API responses).
-# Saves ~24KB of PSRAM per session vs the default symmetric 32KB allocation.
-CONFIG_MBEDTLS_ASYMMETRIC_CONTENT_LEN=y
-CONFIG_MBEDTLS_SSL_IN_CONTENT_LEN=16384
-CONFIG_MBEDTLS_SSL_OUT_CONTENT_LEN=4096
-```
-
-`platformio.ini`:
-```ini
-build_flags = -D BOARD_HAS_PSRAM
 ```
 
 # TemplatePrinter
@@ -796,7 +708,7 @@ The header file is not currently added to `PsychicHttp.h` and users will have to
 ```C++
 #include <TemplatePrinter.h>
 ```
- 
+
 ## Template parameter definition:
 
 - Must start and end with a preset delimiter, the default is `%`
@@ -870,7 +782,7 @@ bool templateHandler(Print &output, const char *param){
 
   }else if(strcmp(param, "MAX_ALLOC_HEAP") == 0){
     output.print((double)ESP.getMaxAllocHeap() / 1024.0, 2);
-    
+
   }else if(strcmp(param, "HEAP_SIZE") == 0){
     output.print((double)ESP.getHeapSize() / 1024.0, 2);
   }else{
@@ -881,12 +793,12 @@ bool templateHandler(Print &output, const char *param){
 }
 
 //  Example serving a request
-server.on("/template", [](PsychicRequest *request, PsychicResponse *response) {
-  PsychicStreamResponse streamResponse(request, "text/plain");
+server.on("/template", [](PsychicRequest *request) {
+  PsychicStreamResponse response(request, "text/plain");
 
-  streamResponse.beginSend();
-  
-  TemplatePrinter printer(streamResponse, templateHandler);
+  response.beginSend();
+
+  TemplatePrinter printer(response, templateHandler);
 
   printer.println("My ESP has %FREE_HEAP% left. Its lifetime minimum heap is %MIN_FREE_HEAP%.");
   printer.println("The maximum allocation size is %MAX_ALLOC_HEAP%, and its total size is %HEAP_SIZE%.");
@@ -894,8 +806,8 @@ server.on("/template", [](PsychicRequest *request, PsychicResponse *response) {
   printer.println("This line finished with %UNFIN");
   printer.flush();
 
-  return streamResponse.endSend();
-});   
+  return response.endSend();
+});
 ```
 
 The output for example looks like:
@@ -909,20 +821,20 @@ This line finished with %UNFIN
 ## Example 2 - Templating a file
 
 ```C++
-server.on("/home", [](PsychicRequest *request, PsychicResponse *response) {
-  PsychicStreamResponse streamResponse(request, "text/html");
+server.on("/home", [](PsychicRequest *request) {
+  PsychicStreamResponse response(request, "text/html");
   File file = SD.open("/www/index.html");
 
-  streamResponse.beginSend();
+  response.beginSend();
 
-  TemplatePrinter printer(streamResponse, templateHandler);
+  TemplatePrinter printer(response, templateHandler);
 
   printer.copyFrom(file);
   printer.flush();
   file.close();
 
-  return streamResponse.endSend();
-}); 
+  return response.endSend();
+});
 ```
 
 ## Example 3 - Using the `TemplatePrinter::start` method.
@@ -936,35 +848,35 @@ TemplatePrinter::start(host_stream, template_handler, input_handler);
 
 ### Serve a file like example 2
 ```C++
-server.on("/home", [](PsychicRequest *request, PsychicResponse *response) {
-  PsychicStreamResponse streamResponse(request, "text/html");
+server.on("/home", [](PsychicRequest *request) {
+  PsychicStreamResponse response(request, "text/html");
   File file = SD.open("/www/index.html");
 
-  streamResponse.beginSend();
-  TemplatePrinter::start(streamResponse, templateHandler, [&file](TemplatePrinter &printer){
+  response.beginSend();
+  TemplatePrinter::start(response, templateHandler, [&file](TemplatePrinter &printer){
     printer.copyFrom(file);
   });
   file.close();
 
-  return streamResponse.endSend();
+  return response.endSend();
 });
 ```
 
 ### Template a string like example 1
 ```C++
-server.on("/template2", [](PsychicRequest *request, PsychicResponse *response) {
+server.on("/template2", [](PsychicRequest *request) {
 
-  PsychicStreamResponse streamResponse(request, "text/plain");
+  PsychicStreamResponse response(request, "text/plain");
 
-  streamResponse.beginSend();
+  response.beginSend();
 
-  TemplatePrinter::start(streamResponse, templateHandler, [](TemplatePrinter &printer){
+  TemplatePrinter::start(response, templateHandler, [](TemplatePrinter &printer){
     printer.println("My ESP has %FREE_HEAP% left. Its lifetime minimum heap is %MIN_FREE_HEAP%.");
     printer.println("The maximum allocation size is %MAX_ALLOC_HEAP%, and its total size is %HEAP_SIZE%.");
     printer.println("This is an unhandled parameter: %UNHANDLED_PARAM% and this is an invalid param %INVALID PARAM%.");
   });
 
-  return streamResponse.endSend();
+  return response.endSend();
 });
 ```
 
@@ -979,7 +891,7 @@ In order to really see the differences between libraries, I created some basic b
 
 Yes, PsychicHttp supports SSL out of the box, but there are a few caveats:
 
-* SSL connections are memory-intensive — each TLS session consumes roughly 40–100KB of internal RAM plus two 16KB record buffers.  On a board without PSRAM, a blank PsychicHttp sketch has around 150KB free, which limits you to 1–2 simultaneous SSL connections.  **A board with PSRAM is strongly recommended** for any production HTTPS use.  See the [Enabling PSRAM for SSL](#enabling-psram-for-ssl) section above for the required `sdkconfig.defaults` and `platformio.ini` settings to route mbedTLS allocations to PSRAM.
+* Due to memory limitations, it can only handle 2 connections at a time. Each SSL connection takes about 45k ram, and a blank PsychicHttp sketch has about 150k ram free.
 * Speed and latency are still pretty good (see graph above) but the SSH handshake seems to take 1500ms.  With websockets or browser its not an issue since the connection is kept alive, but if you are loading requests in another way it will be a bit slow
 * Unless you want to expose your ESP to the internet, you are limited to self signed keys and the annoying browser security warnings that come with them.
 
@@ -1003,10 +915,16 @@ The best way to get support is probably with Github issues.  There is also a [Di
 
 # Roadmap
 
+## v2.0: ESPAsyncWebserver Parity
+
+* As much ESPAsyncWebServer compatibility as possible
+* Update benchmarks and get new data
+  * we should also track program size and memory usage
+
 ## Longterm Wants
 
 * investigate websocket performance gap
 * Enable worker based multithreading with esp-idf v5.x
 * 100-continue support?
-     
+
 If anyone wants to take a crack at implementing any of the above features I am more than happy to accept pull requests.

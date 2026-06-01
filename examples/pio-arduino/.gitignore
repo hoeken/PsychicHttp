@@ -4,4 +4,4 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
-src/_secret.h
+src/secrets.h
