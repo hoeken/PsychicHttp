@@ -1,4 +1,6 @@
 **/secrets.h
+.venv/
+idf_component.yml.disabled
 .$request flow.drawio.bkp
 .$request flow.drawio.dtmp
 .clang_complete
