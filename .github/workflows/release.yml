@@ -7,6 +7,9 @@ on:
     types:
       - released
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   release_number:
     name: Release Number Validation
