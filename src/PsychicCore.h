@@ -25,18 +25,14 @@
 #endif
 #include "esp_random.h"
 #include <ArduinoJson.h>
+#include <algorithm>
 #include <esp_http_server.h>
 #include <esp_idf_version.h>
-#if ESP_IDF_VERSION_MAJOR >= 5
-  #include <mbedtls/base64.h>
-#else
-  #include <libb64/cencode.h>
-#endif
-#include <algorithm>
 #include <esp_log.h>
 #include <functional>
 #include <list>
 #include <map>
+#include <mbedtls/base64.h>
 #if ESP_IDF_VERSION_MAJOR >= 6
   #include <esp_rom_md5.h>
 #else
