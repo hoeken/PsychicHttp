@@ -198,22 +198,22 @@ const ContentDisposition PsychicRequest::getContentDisposition()
   start = hdr.find("filename=");
   if (start != std::string::npos) {
     end = hdr.find('"', start + 10);
-    if (end != std::string::npos)
+    if (end != std::string::npos && end > start + 10)
 #ifdef ARDUINO
-      cd.filename = hdr.substr(start + 10, end - start - 11).c_str();
+      cd.filename = psychicSubstr(hdr, start + 10, end - start - 11).c_str();
 #else
-      cd.filename = hdr.substr(start + 10, end - start - 11);
+      cd.filename = psychicSubstr(hdr, start + 10, end - start - 11);
 #endif
   }
 
   start = hdr.find("name=");
   if (start != std::string::npos) {
     end = hdr.find('"', start + 6);
-    if (end != std::string::npos)
+    if (end != std::string::npos && end > start + 6)
 #ifdef ARDUINO
-      cd.name = hdr.substr(start + 6, end - start - 7).c_str();
+      cd.name = psychicSubstr(hdr, start + 6, end - start - 7).c_str();
 #else
-      cd.name = hdr.substr(start + 6, end - start - 7);
+      cd.name = psychicSubstr(hdr, start + 6, end - start - 7);
 #endif
   }
 
@@ -701,10 +701,10 @@ bool PsychicRequest::authenticate(const char* username, const char* password, bo
   if (hasHeader("Authorization")) {
     std::string authReq = _getHeader("Authorization");
     if (authReq.compare(0, 5, "Basic") == 0) {
-      authReq = authReq.substr(6);
+      authReq = psychicSubstr(authReq, 6);
       authReq.erase(0, authReq.find_first_not_of(" \t\r\n\f\v"));
       authReq.erase(authReq.find_last_not_of(" \t\r\n\f\v") + 1);
-      char toencodeLen = strlen(username) + strlen(password) + 1;
+      size_t toencodeLen = strlen(username) + strlen(password) + 1;
       char* toencode = new char[toencodeLen + 1];
       if (toencode == NULL) {
         authReq.clear();
@@ -734,7 +734,7 @@ bool PsychicRequest::authenticate(const char* username, const char* password, bo
       delete[] toencode;
       delete[] encoded;
     } else if (authReq.compare(0, 6, "Digest") == 0) {
-      authReq = authReq.substr(7);
+      authReq = psychicSubstr(authReq, 7);
       std::string _username = _extractParam(authReq.c_str(), "username=\"", '\"');
       if (_username.empty() || _username != username) {
         authReq.clear();

@@ -28,6 +28,8 @@
 #include <algorithm>
 #include <esp_http_server.h>
 #include <esp_idf_version.h>
+#include <mbedtls/base64.h>
+#include <algorithm>
 #include <esp_log.h>
 #include <functional>
 #include <list>
@@ -56,6 +58,19 @@ String urlDecode(const char* encoded);
 std::string urlEncode(const char* str);
 std::string urlDecode(const char* encoded);
 #endif
+
+// Bounds-safe substring: clamps pos to the string length so it never throws.
+// Arduino String::substring() silently clamped out-of-range positions; std::string::substr()
+// throws std::out_of_range instead, and C++ exceptions are disabled on ESP-IDF builds, so an
+// out-of-range substr on attacker-controlled input (e.g. a malformed multipart header) would
+// abort and reboot the device. Use this for any substr whose offset is derived from parsed input.
+// (len is left to std::string::substr, which already clamps it to the remaining length.)
+inline std::string psychicSubstr(const std::string& str, size_t pos, size_t len = std::string::npos)
+{
+  if (pos > str.length())
+    return std::string();
+  return str.substr(pos, len);
+}
 
 class PsychicHttpServer;
 class PsychicRequest;

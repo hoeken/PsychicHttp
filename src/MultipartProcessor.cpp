@@ -198,26 +198,26 @@ void MultipartProcessor::_parseMultipartPostByte(uint8_t data, bool last)
     if ((char)data == '\n') {
       if (_temp.length()) {
         if (_temp.length() > 12 && strncasecmp(_temp.c_str(), "Content-Type", 12) == 0) {
-          _itemType = _temp.substr(14);
+          _itemType = psychicSubstr(_temp, 14);
           _itemIsFile = true;
         } else if (_temp.length() > 19 && strncasecmp(_temp.c_str(), "Content-Disposition", 19) == 0) {
-          _temp = _temp.substr(_temp.find(';') + 2);
+          _temp = psychicSubstr(_temp, _temp.find(';') + 2);
           while (_temp.find(';') != std::string::npos && _temp.find(';') > 0) {
             size_t eq = _temp.find('=');
             size_t sc = _temp.find(';');
             if (_temp.compare(0, eq, "name") == 0) {
-              _itemName = _temp.substr(eq + 2, sc - eq - 3);
+              _itemName = psychicSubstr(_temp, eq + 2, sc - eq - 3);
             } else if (_temp.compare(0, eq, "filename") == 0) {
-              _itemFilename = _temp.substr(eq + 2, sc - eq - 3);
+              _itemFilename = psychicSubstr(_temp, eq + 2, sc - eq - 3);
               _itemIsFile = true;
             }
-            _temp = _temp.substr(sc + 2);
+            _temp = psychicSubstr(_temp, sc + 2);
           }
           size_t eq = _temp.find('=');
           if (_temp.compare(0, eq, "name") == 0) {
-            _itemName = _temp.substr(eq + 2, _temp.length() - eq - 3);
+            _itemName = psychicSubstr(_temp, eq + 2, _temp.length() - eq - 3);
           } else if (_temp.compare(0, eq, "filename") == 0) {
-            _itemFilename = _temp.substr(eq + 2, _temp.length() - eq - 3);
+            _itemFilename = psychicSubstr(_temp, eq + 2, _temp.length() - eq - 3);
             _itemIsFile = true;
           }
         }

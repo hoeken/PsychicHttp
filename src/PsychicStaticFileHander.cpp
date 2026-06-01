@@ -98,6 +98,10 @@ bool PsychicStaticFileHandler::_getFile(PsychicRequest* request)
   // Remove the matched uri prefix to get the relative file path
   std::string path(request->uriCStr() + _uri.size());
 
+  // Reject any path that contains directory traversal sequences
+  if (path.find("..") != std::string::npos)
+    return false;
+
   // We can skip the file check and look for default if request is to the root
   // of a directory or that request path ends with '/'
   bool canSkipFileCheck = (_isDir && path.empty()) || (!path.empty() && path.back() == '/');
@@ -192,6 +196,9 @@ esp_err_t PsychicStaticFileHandler::handleRequest(PsychicRequest* request, Psych
     }
     // nope, send them the full file.
     else {
+      // PsychicFileResponse reopens the file from _fs/_filename, so release our
+      // own handle first to avoid holding two descriptors per served file.
+      _file.close();
       PsychicFileResponse response(res, _fs, _filename.c_str());
 
       if (_last_modified.length())
