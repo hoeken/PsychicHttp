@@ -1,6 +1,12 @@
 # This file was automatically generated for projects
 # without default 'CMakeLists.txt' file.
 
+if(IDF_VERSION_MAJOR LESS 5)
+    set(MDNS_COMPONENT mdns)
+else()
+    set(MDNS_COMPONENT espressif__mdns)
+endif()
+
 idf_component_register(
     SRCS "main.cpp"
     INCLUDE_DIRS "."
@@ -11,7 +17,7 @@ idf_component_register(
     esp_netif
     esp_timer
     esp_wifi
-    espressif__mdns
+    ${MDNS_COMPONENT}
     joltwallet__littlefs
     nvs_flash)
 

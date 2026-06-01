@@ -1,4 +1,7 @@
 dependencies:
   bblanchon/arduinojson: ^7
-  espressif/mdns: ^1
+  espressif/mdns:
+    version: ^1
+    rules:
+      - if: "idf_version >=5.0"
   joltwallet/littlefs: ^1
