@@ -666,18 +666,25 @@ void PsychicRequest::setSessionKey(const char* key, const char* value)
 static std::string md5str(const std::string& in)
 {
   uint8_t digest[16];
+#if ESP_IDF_VERSION_MAJOR >= 6
+  md5_context_t ctx;
+  esp_rom_md5_init(&ctx);
+  esp_rom_md5_update(&ctx, (const uint8_t*)in.c_str(), in.length());
+  esp_rom_md5_final(digest, &ctx);
+#else
   mbedtls_md5_context ctx;
   mbedtls_md5_init(&ctx);
-#if MBEDTLS_VERSION_MAJOR >= 3
+  #if MBEDTLS_VERSION_MAJOR >= 3
   mbedtls_md5_starts(&ctx);
   mbedtls_md5_update(&ctx, (const uint8_t*)in.c_str(), in.length());
   mbedtls_md5_finish(&ctx, digest);
-#else
+  #else
   mbedtls_md5_starts_ret(&ctx);
   mbedtls_md5_update_ret(&ctx, (const uint8_t*)in.c_str(), in.length());
   mbedtls_md5_finish_ret(&ctx, digest);
-#endif
+  #endif
   mbedtls_md5_free(&ctx);
+#endif
 
   static const char hexchars[] = "0123456789abcdef";
   char hex[33];

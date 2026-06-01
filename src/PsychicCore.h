@@ -25,6 +25,7 @@
 #endif
 #include "esp_random.h"
 #include <ArduinoJson.h>
+#include <algorithm>
 #include <esp_http_server.h>
 #include <esp_idf_version.h>
 #include <mbedtls/base64.h>
@@ -33,7 +34,12 @@
 #include <functional>
 #include <list>
 #include <map>
-#include <mbedtls/md5.h>
+#include <mbedtls/base64.h>
+#if ESP_IDF_VERSION_MAJOR >= 6
+  #include <esp_rom_md5.h>
+#else
+  #include <mbedtls/md5.h>
+#endif
 #include <string>
 
 #ifdef PSY_DEVMODE

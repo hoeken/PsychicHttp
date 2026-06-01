@@ -25,6 +25,7 @@
 #include <ArduinoJson.h>
 #include <PsychicHttp.h>
 #include <esp_event.h>
+#include <esp_idf_version.h>
 #include <esp_littlefs.h>
 #include <esp_log.h>
 #include <esp_netif.h>
@@ -169,8 +170,14 @@ static void lfs_mount()
   esp_vfs_littlefs_conf_t conf = {
     .base_path = LFS_BASE,
     .partition_label = "littlefs",
+    .partition = nullptr,
+#if ESP_LITTLEFS_HAS_BLOCKDEV
+    .blockdev = nullptr,
+#endif
     .format_if_mount_failed = true,
+    .read_only = false,
     .dont_mount = false,
+    .grow_on_mount = false,
   };
   esp_err_t ret = esp_vfs_littlefs_register(&conf);
   if (ret != ESP_OK) {

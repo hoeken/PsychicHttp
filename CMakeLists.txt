@@ -20,6 +20,10 @@ if("arduino" IN_LIST build_components)
         "mbedtls"
         "arduinojson"
     )
+
+    if(IDF_VERSION_MAJOR GREATER_EQUAL 6)
+        list(APPEND COMPONENT_REQUIRES "esp_rom")
+    endif()
 else()
     set(COMPONENT_REQUIRES
         "esp_https_server"
@@ -28,6 +32,10 @@ else()
         "mbedtls"
         "arduinojson"
     )
+
+    if(IDF_VERSION_MAJOR GREATER_EQUAL 6)
+        list(APPEND COMPONENT_REQUIRES "esp_rom")
+    endif()
 endif()
 
 register_component()

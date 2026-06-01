@@ -8,6 +8,9 @@ on:
   schedule:
     - cron: "0 1 * * 6" # Every Saturday at 1AM
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -22,13 +25,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        idf_ver: ["v4.4.8", "release-v5.5"] # "release-v6.0" removed until arduino-esp32 v4.0 ships with ESP-IDF v6.0 support
+        idf_ver: ["v4.4.8", "release-v5.4", "release-v6.0"]
         idf_target: ["esp32", "esp32s3"]
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          path: ${{ github.workspace }}/app
+      - uses: actions/checkout@v6
 
       - name: Prepare Secret
         run: cp ${{ github.workspace }}/app/examples/esp-idf/main/secrets.h.example ${{ github.workspace }}/app/examples/esp-idf/main/secrets.h
@@ -38,5 +39,5 @@ jobs:
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
           target: ${{ matrix.idf_target }}
-          path: app/examples/esp-idf
+          path: examples/esp-idf
           command: apt-get update && apt-get install -y python3-venv && idf.py build
