@@ -19,9 +19,18 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/arduino-lint-action@v1
-        with:
-          library-manager: update
-          project-type: library
-          compliance: strict
+      - uses: actions/checkout@v6
+      - name: Install Arduino Lint
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-lint/main/etc/install.sh -o /tmp/install-arduino-lint.sh
+          chmod +x /tmp/install-arduino-lint.sh
+          mkdir -p "$RUNNER_TEMP/bin"
+          BINDIR="$RUNNER_TEMP/bin" /tmp/install-arduino-lint.sh
+
+      - name: Run Arduino Lint
+        run: |
+          "$RUNNER_TEMP/bin/arduino-lint" \
+            --library-manager update \
+            --project-type library \
+            --compliance strict \
+            .

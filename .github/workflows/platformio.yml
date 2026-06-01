@@ -37,10 +37,10 @@ jobs:
           ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Cache PlatformIO
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           key: ${{ runner.os }}-pio
           path: |
@@ -48,7 +48,7 @@ jobs:
             ~/.platformio
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -63,4 +63,4 @@ jobs:
       - name: Prepare Secret
         run: cp secrets.h.example secrets.h
 
-      - run: PIO_BOARD=${{ matrix.board }} PIO_PLATFORM="https://github.com/pioarduino/platform-espressif32/releases/download/${{ matrix.platform }}/platform-espressif32.zip" PLATFORMIO_BUILD_FLAGS="${{ matrix.flags }}" pio run -e ci
+      - run: PIO_BOARD=${{ matrix.board }} PIO_PLATFORM="https://github.com/pioarduino/platform-espressif32/releases/download/${{ matrix.platform }}/platform-espressif32.zip" PLATFORMIO_BUILD_FLAGS="${{ matrix.flags }}" pio run -e ci-matrix
