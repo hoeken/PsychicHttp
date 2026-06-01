@@ -32,5 +32,4 @@ jobs:
           "$RUNNER_TEMP/bin/arduino-lint" \
             --library-manager update \
             --project-type library \
-            --compliance strict \
-            .
+            --compliance strict
