@@ -22,7 +22,7 @@
 #define PSYCHIC_VERSION_PATCH 0
 
 /** Optional pre-release suffix (for example "-rc.1") */
-#define PSYCHIC_VERSION_PRERELEASE "-rc.1"
+#define PSYCHIC_VERSION_PRERELEASE ""
 
 /**
  * Macro to convert PsychicHttp version number into an integer
