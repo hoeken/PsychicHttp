@@ -229,9 +229,10 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request, Psychi
   httpd_ws_frame_t ws_pkt;
   memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
   ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-  uint8_t* buf = NULL;
 #ifdef PSYCHIC_WS_RX_STATIC_BUFFER
   bool ws_rx_locked = false;
+#else
+  uint8_t* buf = NULL;
 #endif
 
   /* Set max_len = 0 to get the frame len */
