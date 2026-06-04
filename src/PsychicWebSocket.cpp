@@ -1,4 +1,32 @@
 #include "PsychicWebSocket.h"
+#ifdef PSYCHIC_WS_RX_STATIC_BUFFER
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+#include <esp_heap_caps.h>
+#include <string.h>
+
+// Static RX buffer: pre-allocate once at server start (heap still fresh) so
+// that each incoming WS frame reuses the same region instead of calloc/free.
+// Repeated calloc/free per frame fragments internal SRAM on no-PSRAM boards —
+// after hundreds of frames the largest free block drops below a per-frame alloc
+// even when total free heap is healthy, causing spurious WS disconnects.
+// Pre-alloc via psychic_ws_preinit_rx_buf() in application server-start code.
+static SemaphoreHandle_t s_ws_rx_mutex = NULL;
+static uint8_t* s_ws_rx_buf = NULL;
+
+extern "C" void psychic_ws_preinit_rx_buf() {
+  if (!s_ws_rx_mutex) s_ws_rx_mutex = xSemaphoreCreateMutex();
+  if (s_ws_rx_mutex && !s_ws_rx_buf) {
+    s_ws_rx_buf = (uint8_t*)heap_caps_malloc(PSYCHIC_WS_MAX_FRAME_SIZE + 1,
+                                              MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    if (!s_ws_rx_buf)
+      ESP_LOGE("PH", "psychic_ws_preinit_rx_buf: alloc %u B failed",
+               (unsigned)PSYCHIC_WS_MAX_FRAME_SIZE + 1);
+    else
+      ESP_LOGI("PH", "WS RX static buf pre-allocated (%u B)", (unsigned)PSYCHIC_WS_MAX_FRAME_SIZE + 1);
+  }
+}
+#endif
 
 /*************************************/
 /*  PsychicWebSocketRequest      */
@@ -201,7 +229,11 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request, Psychi
   httpd_ws_frame_t ws_pkt;
   memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
   ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+#ifdef PSYCHIC_WS_RX_STATIC_BUFFER
+  bool ws_rx_locked = false;
+#else
   uint8_t* buf = NULL;
+#endif
 
   /* Set max_len = 0 to get the frame len */
   esp_err_t ret = httpd_ws_recv_frame(wsRequest.request(), &ws_pkt, 0);
@@ -212,6 +244,38 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request, Psychi
 
   // okay, now try to load the packet
   // ESP_LOGD(PH_TAG, "frame len is %d", ws_pkt.len);
+#ifdef PSYCHIC_WS_MAX_FRAME_SIZE
+  if (ws_pkt.len > PSYCHIC_WS_MAX_FRAME_SIZE) {
+    // Reject oversized frames before calloc to protect heap on constrained boards.
+    ESP_LOGW(PH_TAG, "WS frame too big (%u > %u) — closing peer",
+             (unsigned)ws_pkt.len, (unsigned)PSYCHIC_WS_MAX_FRAME_SIZE);
+    return ESP_FAIL;
+  }
+#endif
+#ifdef PSYCHIC_WS_RX_STATIC_BUFFER
+  // Reuse one static RX buffer (allocated at server start) instead of
+  // calloc/free per frame. The calloc/free pattern fragments internal SRAM
+  // on no-PSRAM boards — after many frames the largest free block shrinks
+  // below a per-frame alloc even when total free heap is still healthy.
+  if (ws_pkt.len) {
+    if (!s_ws_rx_mutex) psychic_ws_preinit_rx_buf();
+    if (!s_ws_rx_mutex || !s_ws_rx_buf) {
+      ESP_LOGE(PH_TAG, "WS RX static buf unavailable — dropping frame");
+      return ESP_ERR_NO_MEM;
+    }
+    xSemaphoreTake(s_ws_rx_mutex, portMAX_DELAY);
+    ws_rx_locked = true;
+    memset(s_ws_rx_buf, 0, ws_pkt.len + 1);
+    ws_pkt.payload = s_ws_rx_buf;
+    ret = httpd_ws_recv_frame(wsRequest.request(), &ws_pkt, ws_pkt.len);
+    if (ret != ESP_OK) {
+      ESP_LOGE(PH_TAG, "httpd_ws_recv_frame failed with %s", esp_err_to_name(ret));
+      xSemaphoreGive(s_ws_rx_mutex);
+      ws_rx_locked = false;
+      return ret;
+    }
+  }
+#else
   if (ws_pkt.len) {
     /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
     buf = (uint8_t*)calloc(1, ws_pkt.len + 1);
@@ -229,6 +293,7 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request, Psychi
     }
     // ESP_LOGD(PH_TAG, "Got packet with message: %s", ws_pkt.payload);
   }
+#endif
   if (ws_pkt.type == HTTPD_WS_TYPE_PING) {
       // Respond to ping with pong using the same payload
       ret = wsRequest.reply(HTTPD_WS_TYPE_PONG, ws_pkt.payload, ws_pkt.len);
@@ -250,8 +315,12 @@ esp_err_t PsychicWebSocketHandler::handleRequest(PsychicRequest* request, Psychi
   //   httpd_req_to_sockfd(request->request()),
   //   httpd_ws_get_fd_info(request->server()->server, httpd_req_to_sockfd(request->request())));
 
+#ifdef PSYCHIC_WS_RX_STATIC_BUFFER
+  if (ws_rx_locked) xSemaphoreGive(s_ws_rx_mutex);
+#else
   // dont forget to release our buffer memory
   free(buf);
+#endif
 
   return ret;
 }
