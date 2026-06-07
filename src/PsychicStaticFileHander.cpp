@@ -95,10 +95,23 @@ bool PsychicStaticFileHandler::canHandle(PsychicRequest* request)
 
 bool PsychicStaticFileHandler::_getFile(PsychicRequest* request)
 {
-  // Remove the matched uri prefix to get the relative file path
+  // Skip past the mounted prefix (_uri) to get the path relative to the mount point.
+  // uriCStr() + _uri.size() is pointer arithmetic: it advances the char* past the
+  // prefix, so the string is built from the tail only.
+  // e.g. uri "/static/css/app.css" with mount "/static/" -> "css/app.css"
   std::string path(request->uriCStr() + _uri.size());
 
-  // Reject any path that contains directory traversal sequences
+  // Drop any query string: the file path ends at the first '?'.
+  // e.g. "css/app.css?v=2" -> "css/app.css"
+  size_t queryStart = path.find('?');
+  if (queryStart != std::string::npos)
+    path.erase(queryStart);
+
+  // URL-decode so encoded file names (e.g. "my%20file.txt") resolve correctly.
+  path = std::string(urlDecode(path.c_str()).c_str());
+
+  // Reject any path that contains directory traversal sequences.
+  // This runs after decoding so encoded sequences (e.g. "%2e%2e") can't slip past.
   if (path.find("..") != std::string::npos)
     return false;
 
