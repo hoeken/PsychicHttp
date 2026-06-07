@@ -7,6 +7,12 @@
 class PsychicWebSocketRequest;
 class PsychicWebSocketClient;
 
+#ifdef PSYCHIC_WS_RX_STATIC_BUFFER
+// Pre-allocate the shared WS RX buffer once while the heap is still fresh.
+// Called automatically from PsychicHttpServer::start(); idempotent.
+extern "C" void psychic_ws_preinit_rx_buf();
+#endif
+
 // callback function definitions
 typedef std::function<void(PsychicWebSocketClient* client)> PsychicWebSocketClientCallback;
 typedef std::function<esp_err_t(PsychicWebSocketRequest* request, httpd_ws_frame* frame)> PsychicWebSocketFrameCallback;

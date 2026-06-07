@@ -4,16 +4,14 @@
 
 - **WebSocket opt-in static RX buffer + max-frame guard** (`PsychicWebSocket`): two build-flag-gated optimisations for no-PSRAM or otherwise heap-constrained boards. Both guards compile out when the flags are not defined, so default behaviour is unchanged.
   - `PSYCHIC_WS_MAX_FRAME_SIZE` — reject incoming WS frames larger than the given byte count before they reach `calloc`. Without the cap, a single oversized frame (a rogue client or firmware bug) triggers a large allocation that may fail or fragment SRAM on tight boards.
-  - `PSYCHIC_WS_RX_STATIC_BUFFER` (requires `PSYCHIC_WS_MAX_FRAME_SIZE`) — replace the per-frame `calloc`/`free` with a single static buffer (`PSYCHIC_WS_MAX_FRAME_SIZE + 1` bytes, `MALLOC_CAP_INTERNAL`) allocated at server-start time via `psychic_ws_preinit_rx_buf()`. On ESP32 boards without PSRAM the internal SRAM allocator gets fragmented by hundreds of `calloc`/`free` cycles, eventually producing spurious WS disconnects even with healthy total free heap; a single pre-allocated buffer eliminates the fragmentation. A mutex serialises concurrent WS clients through the single buffer.
+  - `PSYCHIC_WS_RX_STATIC_BUFFER` (requires `PSYCHIC_WS_MAX_FRAME_SIZE`) — replace the per-frame `calloc`/`free` with a single static buffer (`PSYCHIC_WS_MAX_FRAME_SIZE + 1` bytes, `MALLOC_CAP_INTERNAL`) pre-allocated automatically inside `PsychicHttpServer::begin()`/`start()`, while the heap is still fresh. On ESP32 boards without PSRAM the internal SRAM allocator gets fragmented by hundreds of `calloc`/`free` cycles, eventually producing spurious WS disconnects even with healthy total free heap; a single pre-allocated buffer eliminates the fragmentation. A mutex serialises concurrent WS clients through the single buffer. No application code is required beyond the build flags — a lazy fallback also covers any path that receives a frame before `begin()` has run.
 
     ```cpp
     // In build flags (e.g. platformio.ini):
     // -D PSYCHIC_WS_MAX_FRAME_SIZE=2048
     // -D PSYCHIC_WS_RX_STATIC_BUFFER
 
-    // Call once after server.begin() while heap is still fresh:
-    extern "C" void psychic_ws_preinit_rx_buf();
-    psychic_ws_preinit_rx_buf();
+    // That's it — the buffer is allocated for you in server.begin().
     ```
 
 ### Bug Fixes

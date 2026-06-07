@@ -10,7 +10,7 @@
 // Repeated calloc/free per frame fragments internal SRAM on no-PSRAM boards —
 // after hundreds of frames the largest free block drops below a per-frame alloc
 // even when total free heap is healthy, causing spurious WS disconnects.
-// Pre-alloc via psychic_ws_preinit_rx_buf() in application server-start code.
+// Pre-alloc happens in PsychicHttpServer::start() via psychic_ws_preinit_rx_buf().
 static SemaphoreHandle_t s_ws_rx_mutex = NULL;
 static uint8_t* s_ws_rx_buf = NULL;
 

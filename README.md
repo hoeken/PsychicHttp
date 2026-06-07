@@ -602,6 +602,25 @@ if (client != NULL)
   client->send("Your Message")
 ```
 
+#### Heap-constrained boards (no PSRAM)
+
+By default each incoming WebSocket frame is allocated with `calloc()` and freed when it has been handled.  On ESP32 boards without PSRAM, hundreds of these `calloc`/`free` cycles fragment the internal SRAM allocator — eventually the largest free block drops below a single frame allocation even though plenty of total heap remains, which shows up as spurious WebSocket disconnects.
+
+Two optional, build-flag-gated optimisations address this.  Both compile out completely when their flags are not defined, so default behaviour is unchanged:
+
+* `PSYCHIC_WS_MAX_FRAME_SIZE` — reject any incoming frame larger than the given byte count *before* it is allocated.  This caps per-frame memory use and protects the heap from a rogue or buggy client.
+* `PSYCHIC_WS_RX_STATIC_BUFFER` (requires `PSYCHIC_WS_MAX_FRAME_SIZE`) — replace the per-frame `calloc`/`free` with a single static buffer of `PSYCHIC_WS_MAX_FRAME_SIZE + 1` bytes, allocated once from internal SRAM.  This eliminates the fragmentation entirely.  A mutex serialises concurrent WebSocket clients through the shared buffer.
+
+Enable them via build flags (e.g. in `platformio.ini`):
+
+```ini
+build_flags =
+  -D PSYCHIC_WS_MAX_FRAME_SIZE=2048
+  -D PSYCHIC_WS_RX_STATIC_BUFFER
+```
+
+No application code is required — the static buffer is pre-allocated for you inside `server.begin()`, while the heap is still fresh.
+
 ### EventSource / SSE
 
 The ```PsychicEventSource``` class is for handling EventSource / SSE connections.  It provides 2 callbacks:

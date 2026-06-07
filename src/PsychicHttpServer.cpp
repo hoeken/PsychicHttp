@@ -122,6 +122,13 @@ esp_err_t PsychicHttpServer::start()
   start_async_req_workers();
 #endif
 
+#ifdef PSYCHIC_WS_RX_STATIC_BUFFER
+  // Pre-allocate the shared WS RX buffer now, while the heap is still fresh.
+  // (Idempotent; a lazy fallback in PsychicWebSocket.cpp covers any path that
+  // somehow receives a frame without this having run.)
+  psychic_ws_preinit_rx_buf();
+#endif
+
   // one URI handler for each http_method
   config.max_uri_handlers = supported_methods.size() + _esp_idf_endpoints.size();
 
