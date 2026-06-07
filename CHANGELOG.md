@@ -1,3 +1,28 @@
+## 3.1.0
+
+### New API
+
+- **WebSocket opt-in static RX buffer + max-frame guard** (`PsychicWebSocket`): two build-flag-gated optimisations for no-PSRAM or otherwise heap-constrained boards. Both guards compile out when the flags are not defined, so default behaviour is unchanged.
+  - `PSYCHIC_WS_MAX_FRAME_SIZE` — reject incoming WS frames larger than the given byte count before they reach `calloc`. Without the cap, a single oversized frame (a rogue client or firmware bug) triggers a large allocation that may fail or fragment SRAM on tight boards.
+  - `PSYCHIC_WS_RX_STATIC_BUFFER` (requires `PSYCHIC_WS_MAX_FRAME_SIZE`) — replace the per-frame `calloc`/`free` with a single static buffer (`PSYCHIC_WS_MAX_FRAME_SIZE + 1` bytes, `MALLOC_CAP_INTERNAL`) allocated at server-start time via `psychic_ws_preinit_rx_buf()`. On ESP32 boards without PSRAM the internal SRAM allocator gets fragmented by hundreds of `calloc`/`free` cycles, eventually producing spurious WS disconnects even with healthy total free heap; a single pre-allocated buffer eliminates the fragmentation. A mutex serialises concurrent WS clients through the single buffer.
+
+    ```cpp
+    // In build flags (e.g. platformio.ini):
+    // -D PSYCHIC_WS_MAX_FRAME_SIZE=2048
+    // -D PSYCHIC_WS_RX_STATIC_BUFFER
+
+    // Call once after server.begin() while heap is still fresh:
+    extern "C" void psychic_ws_preinit_rx_buf();
+    psychic_ws_preinit_rx_buf();
+    ```
+
+### Bug Fixes
+
+- `PsychicResponse`: chunked responses emitted the HTTP status `"0 unknown"` instead of `"200 OK"`. `_code` defaulted to 0, but the chunked send path (`PsychicFileResponse`, `PsychicStreamResponse`, `PsychicJson`) calls `sendHeaders()` directly, bypassing the `if (!_code) setCode(200)` fallback that only lives in `send()`. The constructor default was restored to 200 (regression from prior versions). (#248)
+- `PsychicStaticFileHandler::_getFile()`: strip query strings and URL-decode the request path. The handler previously used the raw URI tail verbatim, so requests with a query string (e.g. `"app.css?v=2"`) or percent-encoded names (e.g. `"my%20file.txt"`) failed to resolve. It now drops everything after the first `'?'` and URL-decodes via the existing `urlDecode` helper, with the traversal check moved after decoding so encoded sequences like `"%2e%2e"` can't slip past. (#249)
+
+---
+
 ## 3.0.0
 
 ### Build and CI

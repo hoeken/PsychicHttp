@@ -17,7 +17,7 @@
 /** Major version number (X.x.x) */
 #define PSYCHIC_VERSION_MAJOR 3
 /** Minor version number (x.X.x) */
-#define PSYCHIC_VERSION_MINOR 0
+#define PSYCHIC_VERSION_MINOR 1
 /** Patch version number (x.x.X) */
 #define PSYCHIC_VERSION_PATCH 0
 
