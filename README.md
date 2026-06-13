@@ -621,6 +621,21 @@ build_flags =
 
 No application code is required — the static buffer is pre-allocated for you inside `server.begin()`, while the heap is still fresh.
 
+#### Outgoing send backpressure
+
+`sendMessage()` / `sendAll()` copy each outgoing frame and queue it for asynchronous delivery, freeing the copy only once the send completes.  If a client's TCP connection stalls (WiFi roam, client out of range, half-open socket) it stops draining its queue, so an application that broadcasts frequently piles up queued frames until the heap is exhausted — at which point unrelated subsystems (e.g. the WiFi stack) start failing on small allocations and the device aborts.
+
+Two safeguards address this:
+
+* `PSYCHIC_WS_MAX_PENDING_FRAMES` — caps the number of in-flight (queued-but-not-yet-sent) frames *per client*.  Once a client is at the cap, further `sendMessage()` calls for that client return `ESP_ERR_NO_MEM` and the frame is dropped instead of queued, bounding the heap any single stalled client can consume regardless of broadcast rate.  `sendAll()` keeps delivering to every other client.  **This is on by default with a cap of `8`** — override it with a build flag to raise/lower the cap, or define it as `0` to disable the cap entirely (restoring the old unbounded behaviour).
+* `PSYCHIC_WS_PSRAM_PAYLOAD` — allocate the per-frame payload copy from PSRAM (`MALLOC_CAP_SPIRAM`) instead of internal DRAM, falling back to internal heap on boards without PSRAM.  On PSRAM-equipped boards this keeps queued frames out of the scarce internal pool that WiFi/lwip depend on, changing the failure budget from a few hundred KB of DRAM to megabytes of PSRAM.  This is opt-in and compiles out when undefined; it is not a substitute for the queue cap — the queue still needs a bound.
+
+```ini
+build_flags =
+  -D PSYCHIC_WS_MAX_PENDING_FRAMES=16  ; optional: override the default cap of 8
+  -D PSYCHIC_WS_PSRAM_PAYLOAD          ; optional: payload copies in PSRAM
+```
+
 ### EventSource / SSE
 
 The ```PsychicEventSource``` class is for handling EventSource / SSE connections.  It provides 2 callbacks:

@@ -19,6 +19,14 @@
   #define MAX_REQUEST_BODY_SIZE (16 * 1024) // 16K
 #endif
 
+// Max outgoing WebSocket frames a single client may have queued-but-not-yet-sent
+// before further sends to that client are dropped. Bounds the heap a stalled
+// client (WiFi roam, out of range, half-open socket) can consume regardless of
+// broadcast rate. Define as 0 to disable the cap entirely.
+#ifndef PSYCHIC_WS_MAX_PENDING_FRAMES
+  #define PSYCHIC_WS_MAX_PENDING_FRAMES 8
+#endif
+
 #ifdef ARDUINO
   #include "FS.h"
   #include <Arduino.h>

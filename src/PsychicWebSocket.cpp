@@ -1,4 +1,7 @@
 #include "PsychicWebSocket.h"
+#ifdef PSYCHIC_WS_PSRAM_PAYLOAD
+#include <esp_heap_caps.h>
+#endif
 #ifdef PSYCHIC_WS_RX_STATIC_BUFFER
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -72,8 +75,21 @@ esp_err_t PsychicWebSocketRequest::reply(const char* buf)
 /*  PsychicWebSocketClient   */
 /*************************************/
 
+#if PSYCHIC_WS_MAX_PENDING_FRAMES > 0
+// Context handed to the async-send completion callback.  Bundles the frame to
+// free with a shared reference to the issuing client's pending-frame counter so
+// the counter can be decremented even if the client itself has been destroyed.
+struct PsychicWsSendCtx {
+  httpd_ws_frame_t* ws_pkt;
+  std::shared_ptr<std::atomic<int>> pending;
+};
+#endif
+
 PsychicWebSocketClient::PsychicWebSocketClient(PsychicClient* client)
     : PsychicClient(client->server(), client->socket())
+#if PSYCHIC_WS_MAX_PENDING_FRAMES > 0
+    , _pendingFrames(std::make_shared<std::atomic<int>>(0))
+#endif
 {
 }
 
@@ -83,10 +99,19 @@ PsychicWebSocketClient::~PsychicWebSocketClient()
 
 void PsychicWebSocketClient::_sendMessageCallback(esp_err_t err, int socket, void* arg)
 {
+#if PSYCHIC_WS_MAX_PENDING_FRAMES > 0
+  // free our frame and release one slot from the client's in-flight counter.
+  PsychicWsSendCtx* ctx = (PsychicWsSendCtx*)arg;
+  ctx->pending->fetch_sub(1);
+  free(ctx->ws_pkt->payload);
+  free(ctx->ws_pkt);
+  delete ctx;
+#else
   // free our frame.
   httpd_ws_frame_t* ws_pkt = (httpd_ws_frame_t*)arg;
   free(ws_pkt->payload);
   free(ws_pkt);
+#endif
 
   if (err == ESP_OK)
     return;
@@ -107,6 +132,18 @@ esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_frame_t* ws_pkt)
 
 esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_type_t op, const void* data, size_t len)
 {
+#if PSYCHIC_WS_MAX_PENDING_FRAMES > 0
+  // Backpressure: a client whose TCP connection has stalled (WiFi roam, out of
+  // range, half-open socket) stops draining its send queue, so async frames
+  // pile up in the heap until the device runs out of memory.  Refuse to queue
+  // any more once this client already has too many frames in flight.
+  int pending = _pendingFrames->load();
+  if (pending >= PSYCHIC_WS_MAX_PENDING_FRAMES) {
+    ESP_LOGW(PH_TAG, "Websocket: client #%d send queue full (%d pending) — dropping frame", socket(), pending);
+    return ESP_ERR_NO_MEM;
+  }
+#endif
+
   // init our frame.
   httpd_ws_frame_t* ws_pkt = (httpd_ws_frame_t*)malloc(sizeof(httpd_ws_frame_t));
   if (ws_pkt == NULL) {
@@ -116,7 +153,16 @@ esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_type_t op, const void* da
   memset(ws_pkt, 0, sizeof(httpd_ws_frame_t)); // zero the datastructure out
 
   // allocate for event text
+#ifdef PSYCHIC_WS_PSRAM_PAYLOAD
+  // The payload copy is only read by lwip while the send drains — it has no
+  // need to live in scarce internal DRAM.  Prefer PSRAM, fall back to internal
+  // heap on boards without it (heap_caps_malloc returns NULL there).
+  ws_pkt->payload = (uint8_t*)heap_caps_malloc(len, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (ws_pkt->payload == NULL)
+    ws_pkt->payload = (uint8_t*)malloc(len);
+#else
   ws_pkt->payload = (uint8_t*)malloc(len);
+#endif
   if (ws_pkt->payload == NULL) {
     ESP_LOGE(PH_TAG, "Websocket: out of memory");
     free(ws_pkt); // free our other memory
@@ -127,6 +173,26 @@ esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_type_t op, const void* da
   ws_pkt->len = len;
   ws_pkt->type = op;
 
+#if PSYCHIC_WS_MAX_PENDING_FRAMES > 0
+  PsychicWsSendCtx* ctx = new (std::nothrow) PsychicWsSendCtx{ws_pkt, _pendingFrames};
+  if (ctx == NULL) {
+    ESP_LOGE(PH_TAG, "Websocket: out of memory");
+    free(ws_pkt->payload);
+    free(ws_pkt);
+    return ESP_ERR_NO_MEM;
+  }
+
+  // count this frame as in flight before queuing; the callback (success or
+  // failure) decrements, and we roll back here if the queue call itself fails.
+  _pendingFrames->fetch_add(1);
+  esp_err_t err = httpd_ws_send_data_async(server(), socket(), ws_pkt, PsychicWebSocketClient::_sendMessageCallback, ctx);
+  if (err != ESP_OK) {
+    _pendingFrames->fetch_sub(1);
+    free(ws_pkt->payload);
+    free(ws_pkt);
+    delete ctx;
+  }
+#else
   esp_err_t err = httpd_ws_send_data_async(server(), socket(), ws_pkt, PsychicWebSocketClient::_sendMessageCallback, ws_pkt);
 
   // take care of memory
@@ -134,6 +200,7 @@ esp_err_t PsychicWebSocketClient::sendMessage(httpd_ws_type_t op, const void* da
     free(ws_pkt->payload);
     free(ws_pkt);
   }
+#endif
 
   return err;
 }
@@ -352,8 +419,10 @@ void PsychicWebSocketHandler::sendAll(httpd_ws_frame_t* ws_pkt)
       continue;
     }
 
+    // A failed send (socket error, or a full per-client queue when backpressure
+    // is enabled) only concerns that one client — keep broadcasting to the rest.
     if (((PsychicWebSocketClient*)client->_friend)->sendMessage(ws_pkt) != ESP_OK)
-      break;
+      continue;
   }
 }
 
