@@ -1,3 +1,14 @@
+## 3.1.1
+
+### Bug Fix - Memory Exhaustion
+
+- **WebSocket send backpressure** (`PsychicWebSocket`): bound the internal heap a stalled client can consume. `sendMessage()` copies every outgoing frame and queues it via `httpd_ws_send_data_async()`, freeing the copy only when the send completes. Previously there was no limit on frames in flight per client, so a client whose TCP connection stalls (WiFi roam, out of range, half-open socket) stops draining its queue while a frequently-broadcasting app piles up queued frames until internal heap is exhausted — at which point unrelated subsystems (e.g. the WiFi stack mid-reconnect) fail on tiny allocations and the device aborts. (#250)
+  - `PSYCHIC_WS_MAX_PENDING_FRAMES` — cap in-flight frames per client (default `8`, set `0` to disable). Over the cap, `sendMessage()` drops the frame and returns `ESP_ERR_NO_MEM`, bounding the heap any single stalled client can consume regardless of broadcast rate. The per-client counter is a `shared_ptr<atomic<int>>` so an in-flight async send can safely outlive the client object, which is destroyed on disconnect while callbacks may still be pending on the httpd task.
+  - `PSYCHIC_WS_PSRAM_PAYLOAD` (opt-in) — allocate the per-frame payload copy from PSRAM, falling back to internal heap on boards without it, keeping queued frames out of the scarce internal pool WiFi/lwip depend on.
+  - `sendAll()`: a failed send now continues to the remaining clients instead of breaking the loop, so one client at its cap can't abort the broadcast.
+
+---
+
 ## 3.1.0
 
 ### New API
