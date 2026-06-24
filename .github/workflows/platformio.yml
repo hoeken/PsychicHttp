@@ -17,12 +17,13 @@ concurrency:
 
 jobs:
   build:
-    name: "pio:${{ matrix.board }}:${{ matrix.platform }}:${{ matrix.flags }}"
+    name: "pio:${{ matrix.board }}:${{ matrix.platform }}:${{ matrix.env }}:${{ matrix.flags }}"
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
+        env: ["ci-matrix"]
         flags: ["-DPSY_ENABLE_SSL", "-DPSY_ENABLE_REGEX"]
         platform: [
           "stable"
@@ -35,6 +36,11 @@ jobs:
             "esp32-c3-devkitc-02",
             "esp32-c6-devkitc-1",
           ]
+        include:
+          - env: "arduino3-arduinojson6"
+            platform: "stable"
+            board: "esp32-s3-devkitc-1"
+            flags: ""
 
     steps:
       - uses: actions/checkout@v6
@@ -63,4 +69,4 @@ jobs:
       - name: Prepare Secret
         run: cp secrets.h.example secrets.h
 
-      - run: PIO_BOARD=${{ matrix.board }} PIO_PLATFORM="https://github.com/pioarduino/platform-espressif32/releases/download/${{ matrix.platform }}/platform-espressif32.zip" PLATFORMIO_BUILD_FLAGS="${{ matrix.flags }}" pio run -e ci-matrix
+      - run: PIO_BOARD=${{ matrix.board }} PIO_PLATFORM="https://github.com/pioarduino/platform-espressif32/releases/download/${{ matrix.platform }}/platform-espressif32.zip" PLATFORMIO_BUILD_FLAGS="${{ matrix.flags }}" pio run -e ${{ matrix.env }}
