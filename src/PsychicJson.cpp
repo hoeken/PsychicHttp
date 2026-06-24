@@ -4,7 +4,7 @@
 PsychicJsonResponse::PsychicJsonResponse(PsychicResponse* response, bool isArray, size_t maxJsonBufferSize) : PsychicResponseDelegate(response),
                                                                                                               _jsonBuffer(maxJsonBufferSize)
 {
-  response->setContentType(JSON_MIMETYPE);
+  setContentType(JSON_MIMETYPE);
   if (isArray)
     _root = _jsonBuffer.createNestedArray();
   else
