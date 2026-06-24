@@ -1,7 +1,7 @@
 #include "PsychicJson.h"
 
 #ifdef ARDUINOJSON_6_COMPATIBILITY
-PsychicJsonResponse::PsychicJsonResponse(PsychicResponse* response, bool isArray, size_t maxJsonBufferSize) : __response(response),
+PsychicJsonResponse::PsychicJsonResponse(PsychicResponse* response, bool isArray, size_t maxJsonBufferSize) : PsychicResponseDelegate(response),
                                                                                                               _jsonBuffer(maxJsonBufferSize)
 {
   response->setContentType(JSON_MIMETYPE);
