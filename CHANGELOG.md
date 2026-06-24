@@ -1,3 +1,11 @@
+## 3.1.2
+
+### Bug Fixes
+
+- `PsychicJsonResponse`: fixed compilation against ArduinoJson v6. Added an `arduino3-arduinojson6` CI target. Thanks to @oseiler2. (#251)
+
+---
+
 ## 3.1.1
 
 ### Bug Fix - Memory Exhaustion
